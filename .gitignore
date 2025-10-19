@@ -1,0 +1,12 @@
+# Backend
+DevArena/target/
+
+# Frontend
+devarena-client/node_modules/
+devarena-client/dist/
+
+# IDEs & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
