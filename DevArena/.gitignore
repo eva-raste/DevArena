@@ -30,3 +30,5 @@ Thumbs.db
 application-*.yml
 application-*.properties
 .env
+
+.factorypath
