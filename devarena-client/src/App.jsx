@@ -12,7 +12,8 @@ function App() {
 
   return (
     <div style={{ textAlign: "center", marginTop: "50px" }}>
-      <h1>React + Spring Boot with Vite</h1>
+      <h1>JAY DIWALI</h1>
+      <h1>everything is working fine</h1>
       <p style={{ fontSize: "18px", color: "green" }}>
         {message || "Loading..."}
       </p>
