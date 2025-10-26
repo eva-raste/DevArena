@@ -1,22 +1,17 @@
-import { useEffect, useState } from "react";
-
+import { Routes, Route, Link } from "react-router-dom";
+import Home from "./Component/home"
+import Problemset from "./Component/ProblemSet"
+import Solve from "./Component/solve"
 function App() {
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    fetch("http://localhost:8080/hello")
-      .then((res) => res.text())
-      .then((data) => setMessage(data))
-      .catch((err) => console.error(err));
-  }, []);
-
   return (
-    <div style={{ textAlign: "center", marginTop: "50px" }}>
-      <h1>JAY DIWALI</h1>
-      <h1>everything is working fine</h1>
-      <p style={{ fontSize: "18px", color: "green" }}>
-        {message || "Loading..."}
-      </p>
+    <div>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/problemset" element={<Problemset />} />
+{/*         <Route path="/solve/:id" element={<Solve />} /> */}
+        <Route path="/solve/:slug" element={<Solve />} />
+
+      </Routes>
     </div>
   );
 }
