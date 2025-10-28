@@ -12,28 +12,28 @@ const Solve = () => {
 
   const languages = ["c", "cpp", "java", "python", "javascript"];
 
-  const lcLangMap = {
-    c: "c",
-    cpp: "cpp",
-    java: "java",
-    python: "python3",
-    javascript: "javascript",
-  };
-
-const pistonLangMap = {
-  c: "c",
-  cpp: "cpp",
-  java: "java",
-  python: "python3",
-  javascript: "javascript",
-};
-
   const monacoLangMap = {
     c: "c",
     cpp: "cpp",
     java: "java",
     python: "python",
     javascript: "javascript",
+  };
+
+  const pistonLangMap = {
+    c: "c",
+    cpp: "cpp",
+    java: "java",
+    python: "python3",
+    javascript: "nodejs",
+  };
+
+  const fileExtMap = {
+    c: "c",
+    cpp: "cpp",
+    java: "java",
+    python: "py",
+    javascript: "js",
   };
 
   // Fallback templates
@@ -46,11 +46,6 @@ const pistonLangMap = {
   };
 
   useEffect(() => {
-    if (!slug) {
-      console.error("Slug is undefined!");
-      return;
-    }
-
     const fetchProblem = async () => {
       try {
         const res = await fetch(`http://localhost:8080/api/problem/${slug}`, {
@@ -58,18 +53,22 @@ const pistonLangMap = {
           headers: { "Content-Type": "application/json" },
         });
         const data = await res.json();
+        const q = data?.data?.question;
 
-        if (!data?.data?.question) {
+        if (!q) {
           console.error("Problem not found or invalid slug");
           setProblem(null);
           return;
         }
 
-        const q = data.data.question;
         const codeMap = {};
-        q.codeSnippets?.forEach(snippet => {
-          codeMap[snippet.lang.toLowerCase()] = snippet.code;
+        q.codeSnippets?.forEach((snippet) => {
+          const lang = snippet.lang.toLowerCase();
+          if (lang === "c++") codeMap["cpp"] = snippet.code;
+          else if (lang === "python3") codeMap["python"] = snippet.code;
+          else codeMap[lang] = snippet.code;
         });
+
         setProblem({ ...q, codeMap });
       } catch (err) {
         console.error(err);
@@ -83,8 +82,7 @@ const pistonLangMap = {
   useEffect(() => {
     if (!editorRef.current || !problem) return;
 
-    const initialCode =
-      problem.codeMap?.[lcLangMap[language]] || fallbackTemplates[language];
+    const initialCode = problem.codeMap?.[language] || fallbackTemplates[language];
 
     monacoEditor.current = monaco.editor.create(editorRef.current, {
       value: initialCode,
@@ -99,16 +97,28 @@ const pistonLangMap = {
   useEffect(() => {
     if (!monacoEditor.current || !problem) return;
 
-    const newValue =
-      problem.codeMap?.[lcLangMap[language]] || fallbackTemplates[language];
-
+    const newValue = problem.codeMap?.[language] || fallbackTemplates[language];
     const model = monaco.editor.createModel(newValue, monacoLangMap[language]);
     monacoEditor.current.setModel(model);
   }, [language, problem]);
 
   const handleRun = async () => {
+    const code = monacoEditor.current?.getValue() || "";
+    if (!code.trim()) {
+      setOutput("Cannot run empty code");
+      return;
+    }
+
     setOutput("Running...");
-    const code = monacoEditor.current.getValue();
+
+    const runtimeVersionMap = {
+      c: "10.2.0",
+      cpp: "10.2.0",
+      java: "15.0.2",
+      python: "3.10.0",
+      javascript: "18.15.0",
+    };
+
 
     try {
       const res = await fetch("https://emkc.org/api/v2/piston/execute", {
@@ -116,23 +126,28 @@ const pistonLangMap = {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           language: pistonLangMap[language],
-          version: "latest",
-          files: [{ name: `Main.${language}`, content: code }],
+          version: runtimeVersionMap[language], // required string version
+          files: [
+            {
+              name: `Main.${fileExtMap[language]}`,
+              content: code,
+            },
+          ],
         }),
       });
 
+      if (!res.ok) {
+        const text = await res.text();
+        setOutput(`Error: ${res.status} ${res.statusText}\n${text}`);
+        return;
+      }
 
       const data = await res.json();
-
       let rawOutput = "";
       if (data.compile) rawOutput += data.compile.output || "";
       if (data.run) rawOutput += data.run.output || "";
 
-      const cleanedOutput = rawOutput
-        .replace(/File\s+"\/piston\/jobs\/[^\n"]+"/g, 'File "Main"')
-        .replace(/\/piston\/jobs\/[^\s]*/g, "Main");
-
-      setOutput(cleanedOutput.trim() || "(no output)");
+      setOutput(rawOutput.trim() || "(no output)");
     } catch (err) {
       console.error(err);
       setOutput("Error executing code");
@@ -151,9 +166,9 @@ const pistonLangMap = {
         <select
           id="language"
           value={language}
-          onChange={e => setLanguage(e.target.value)}
+          onChange={(e) => setLanguage(e.target.value)}
         >
-          {languages.map(lang => (
+          {languages.map((lang) => (
             <option key={lang} value={lang}>
               {lang.toUpperCase()}
             </option>
