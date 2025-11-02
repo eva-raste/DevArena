@@ -5,44 +5,21 @@ import * as monaco from "monaco-editor";
 const Solve = () => {
   const { slug } = useParams();
   const [problem, setProblem] = useState(null);
-  const [language, setLanguage] = useState("python");
+  const [language, setLanguage] = useState("cpp");
   const [output, setOutput] = useState("");
   const editorRef = useRef(null);
   const monacoEditor = useRef(null);
 
-  const languages = ["c", "cpp", "java", "python", "javascript"];
+  const languages = ["c", "cpp"];
 
-  const monacoLangMap = {
-    c: "c",
-    cpp: "cpp",
-    java: "java",
-    python: "python",
-    javascript: "javascript",
+  const langMap = {
+    c: { monaco: "c", piston: "c", ext: "c", version: "10.2.0" },
+    cpp: { monaco: "cpp", piston: "c++", ext: "cpp", version: "10.2.0" },
   };
 
-  const pistonLangMap = {
-    c: "c",
-    cpp: "cpp",
-    java: "java",
-    python: "python3",
-    javascript: "nodejs",
-  };
-
-  const fileExtMap = {
-    c: "c",
-    cpp: "cpp",
-    java: "java",
-    python: "py",
-    javascript: "js",
-  };
-
-  // Fallback templates
   const fallbackTemplates = {
     c: `#include <stdio.h>\nint main() {\n  printf("Hello World\\n");\n  return 0;\n}`,
     cpp: `#include <iostream>\nusing namespace std;\nint main() {\n  cout << "Hello World" << endl;\n  return 0;\n}`,
-    java: `public class Main {\n  public static void main(String[] args) {\n    System.out.println("Hello World");\n  }\n}`,
-    python: `print("Hello World")`,
-    javascript: `console.log("Hello World")`,
   };
 
   useEffect(() => {
@@ -54,105 +31,139 @@ const Solve = () => {
         });
         const data = await res.json();
         const q = data?.data?.question;
-
         if (!q) {
-          console.error("Problem not found or invalid slug");
           setProblem(null);
           return;
         }
-
         const codeMap = {};
         q.codeSnippets?.forEach((snippet) => {
           const lang = snippet.lang.toLowerCase();
           if (lang === "c++") codeMap["cpp"] = snippet.code;
-          else if (lang === "python3") codeMap["python"] = snippet.code;
-          else codeMap[lang] = snippet.code;
+          else if (lang === "c") codeMap["c"] = snippet.code;
         });
-
         setProblem({ ...q, codeMap });
-      } catch (err) {
-        console.error(err);
+      } catch {
         setProblem(null);
       }
     };
-
     fetchProblem();
   }, [slug]);
 
   useEffect(() => {
     if (!editorRef.current || !problem) return;
-
     const initialCode = problem.codeMap?.[language] || fallbackTemplates[language];
-
     monacoEditor.current = monaco.editor.create(editorRef.current, {
       value: initialCode,
-      language: monacoLangMap[language],
+      language: langMap[language].monaco,
       theme: "vs-dark",
       automaticLayout: true,
     });
-
     return () => monacoEditor.current?.dispose();
   }, [problem]);
 
   useEffect(() => {
     if (!monacoEditor.current || !problem) return;
-
     const newValue = problem.codeMap?.[language] || fallbackTemplates[language];
-    const model = monaco.editor.createModel(newValue, monacoLangMap[language]);
+    const model = monaco.editor.createModel(newValue, langMap[language].monaco);
     monacoEditor.current.setModel(model);
   }, [language, problem]);
 
   const handleRun = async () => {
-    const code = monacoEditor.current?.getValue() || "";
-    if (!code.trim()) {
-      setOutput("Cannot run empty code");
-      return;
-    }
-
-    setOutput("Running...");
-
-    const runtimeVersionMap = {
-      c: "10.2.0",
-      cpp: "10.2.0",
-      java: "15.0.2",
-      python: "3.10.0",
-      javascript: "18.15.0",
-    };
-
-
     try {
-      const res = await fetch("https://emkc.org/api/v2/piston/execute", {
+      setOutput("🧠 Generating main() function using AI...");
+
+      const userCode = monacoEditor.current.getValue();
+      const funcMatch = userCode.match(/[\w<>]+\s+\w+\s*\([^)]*\)/);
+      const funcSignature = funcMatch ? funcMatch[0] : "int solve()";
+
+      const res = await fetch("http://localhost:8080/api/ai/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          language: pistonLangMap[language],
-          version: runtimeVersionMap[language], // required string version
-          files: [
-            {
-              name: `Main.${fileExtMap[language]}`,
-              content: code,
-            },
-          ],
+          description: problem.content,
+          function: funcSignature,
         }),
       });
 
-      if (!res.ok) {
-        const text = await res.text();
-        setOutput(`Error: ${res.status} ${res.statusText}\n${text}`);
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error("Invalid backend JSON: " + text);
+      }
+
+      if (data.error) {
+        setOutput("❌ AI generation failed: " + data.error);
         return;
       }
 
-      const data = await res.json();
-      let rawOutput = "";
-      if (data.compile) rawOutput += data.compile.output || "";
-      if (data.run) rawOutput += data.run.output || "";
+      const mainFunction = data.mainFunction;
 
-      setOutput(rawOutput.trim() || "(no output)");
+      const functionMatch = userCode.match(/class\s+Solution\s*{[^}]*\b(\w+)\s*\(/);
+      let functionName = functionMatch ? functionMatch[1] : null;
+
+      let fixedMain = mainFunction;
+      if (functionName) {
+        const regex = new RegExp(`\\b${functionName}\\s*\\(`, "g");
+        fixedMain = mainFunction.replace(regex, `Solution().${functionName}(`);
+      }
+
+      const finalCode = `
+      #include <bits/stdc++.h>
+      using namespace std;
+
+      ${userCode}
+
+      ${fixedMain}
+      `.trim();
+
+console.log(finalCode);
+      const exampleRegex = /Input:\s*([^\n\r]*)/gi;
+      const examples = [];
+      let match;
+      while ((match = exampleRegex.exec(problem.content))) {
+            examples.push(match[1].replace(/<\/?strong>/gi, "").trim());
+      }
+      console.log(examples);
+
+      setOutput(`🚀 Running ${examples.length} test case(s)...`);
+
+      const results = [];
+      for (const input of examples) {
+        const pistonRes = await fetch("https://emkc.org/api/v2/piston/execute", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            language: "c++",
+            version: "10.2.0",
+            files: [{ name: "main.cpp", content: finalCode }],
+            stdin: input,
+          }),
+        });
+
+        const result = await pistonRes.json();
+        results.push({
+          input,
+          stdout: result.run?.stdout || "",
+          stderr: result.run?.stderr || "",
+        });
+      }
+
+      let formatted = "";
+      results.forEach((r, i) => {
+        formatted += `Example ${i + 1}\nInput: ${r.input}\n`;
+        if (r.stdout.trim()) formatted += `Output:\n${r.stdout.trim()}\n`;
+        if (r.stderr.trim()) formatted += `Error:\n${r.stderr.trim()}\n`;
+        formatted += "---------------------\n";
+      });
+
+      setOutput(formatted || "(no output)");
     } catch (err) {
-      console.error(err);
-      setOutput("Error executing code");
+      setOutput(" Error: " + err.message);
     }
   };
+
 
   if (!problem) return <p>Loading problem...</p>;
 
@@ -160,7 +171,6 @@ const Solve = () => {
     <div style={{ padding: "20px" }}>
       <h2>{problem.title}</h2>
       <div dangerouslySetInnerHTML={{ __html: problem.content }} />
-
       <div style={{ marginTop: "10px" }}>
         <label htmlFor="language">Language: </label>
         <select
