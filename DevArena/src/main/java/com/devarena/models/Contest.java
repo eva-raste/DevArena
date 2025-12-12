@@ -5,6 +5,7 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,15 +15,34 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Contest {
+@Entity
+public class Contest
+{
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID contestId;
-    private UUID creatorId;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User owner;
+
+    @ManyToOne
+    @JoinColumn(name = "attendee_id")
+    private User attendee;
+
     private String title;
+
+    @Column(unique = true)
     private String roomId;
-//  private boolean isPrivate;
+    // private boolean isPrivate;
+
+    @ManyToMany
+    @JoinTable(name="contests_questions",
+            joinColumns = @JoinColumn(name = "contest_id"),
+            inverseJoinColumns = @JoinColumn(name = "question_id"))
     private List<Question> questions;
-   // private Leaderboard leaderboard;
+    // private Leaderboard leaderboard;
+
     private LocalDateTime startTime;
     private LocalDateTime endTime;
-
 }
