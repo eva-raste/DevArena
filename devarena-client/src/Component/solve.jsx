@@ -131,22 +131,21 @@ console.log(finalCode);
 
       const results = [];
       for (const input of examples) {
-        const pistonRes = await fetch("https://emkc.org/api/v2/piston/execute", {
+
+        const judgeRes = await fetch("http://localhost:8080/api/run", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            language: "c++",
-            version: "10.2.0",
-            files: [{ name: "main.cpp", content: finalCode }],
-            stdin: input,
-          }),
+            code: finalCode,
+            stdin: input
+          })
         });
 
-        const result = await pistonRes.json();
+        const result = await judgeRes.json();
         results.push({
           input,
-          stdout: result.run?.stdout || "",
-          stderr: result.run?.stderr || "",
+          stdout: result.stdout || "",
+          stderr: result.stderr || "",
         });
       }
 
