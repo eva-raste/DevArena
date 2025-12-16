@@ -63,7 +63,7 @@ public class HomeController {
         return ResponseEntity.ok(response.getBody());
     }
 
-    @Value("${OPENROUTER_API_KEY}")
+    @Value("${openai.api.key}")
     private String openRouterKey;
 
     @PostMapping("/ai/generate")
@@ -74,17 +74,17 @@ public class HomeController {
         String prompt = """
     You are a strict C++ code generator.
     Your task: Generate ONLY the main() function for the given problem.
-    
+
     Rules:
     1️ Output only one C++ function: `int main() { ... }`
     2️ Do NOT include any other code, explanation, or class.
     3️ Use `cin` for input and `cout` for output.
     4️ Follow input/output format from the problem description.
     5️ Inside main(), call the function from this signature exactly once.
-    
+
     Problem description:
     %s
-    
+
     Function signature:
     %s
     """.formatted(description, functionSignature);

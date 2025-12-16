@@ -33,4 +33,3 @@ application-*.properties
 
 .factorypath
 
-src/main/resources/application.properties
