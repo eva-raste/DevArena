@@ -25,7 +25,7 @@ public class Question {
     private List<Contest> contests;
 
     @Column(unique = true, nullable = false)
-    private String question_slug;
+    private String questionSlug;
 
     private String title;
 

@@ -1,6 +1,5 @@
 package com.devarena.dtos;
 
-import com.devarena.models.Contest;
 import com.devarena.models.Testcase;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -13,10 +12,8 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class QuestionCreateDto {
-
-    private List<Contest> contests;
-
-    private String question_slug;
+    private UUID questionId;
+    private String questionSlug;
     private String title;
     private String description;
     private String difficulty;

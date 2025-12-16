@@ -243,7 +243,7 @@ const GenerateContestQuestion = ({
 
       <div className="max-w-7xl mx-auto">
         <h1 className="text-4xl font-bold mb-8 bg-linear-to-r from-teal-400 to-purple-500 bg-clip-text text-transparent">
-          Generate Contest Question
+          Generate Question
         </h1>
 
         <div className="grid lg:grid-cols-2 gap-8">
