@@ -13,135 +13,127 @@ const Solve = () => {
   const languages = ["c", "cpp"];
 
   const langMap = {
-    c: { monaco: "c", piston: "c", ext: "c", version: "10.2.0" },
-    cpp: { monaco: "cpp", piston: "c++", ext: "cpp", version: "10.2.0" },
+    c: { monaco: "c" },
+    cpp: { monaco: "cpp" },
   };
 
   const fallbackTemplates = {
-    c: `#include <stdio.h>\nint main() {\n  printf("Hello World\\n");\n  return 0;\n}`,
-    cpp: `#include <iostream>\nusing namespace std;\nint main() {\n  cout << "Hello World" << endl;\n  return 0;\n}`,
+    c: `#include <stdio.h>
+int main() {
+  printf("Hello World\\n");
+  return 0;
+}`,
+    cpp: `#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+  cout << "Hello World" << endl;
+  return 0;
+}`,
   };
 
+  // Fetch problem
   useEffect(() => {
     const fetchProblem = async () => {
       try {
-        const res = await fetch(`http://localhost:8080/api/problem/${slug}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        });
+        const res = await fetch(
+          `http://localhost:8080/api/problem/${slug}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+          }
+        );
         const data = await res.json();
         const q = data?.data?.question;
+
         if (!q) {
           setProblem(null);
           return;
         }
+
         const codeMap = {};
         q.codeSnippets?.forEach((snippet) => {
           const lang = snippet.lang.toLowerCase();
-          if (lang === "c++") codeMap["cpp"] = snippet.code;
-          else if (lang === "c") codeMap["c"] = snippet.code;
+          if (lang === "c++") codeMap.cpp = snippet.code;
+          if (lang === "c") codeMap.c = snippet.code;
         });
+
         setProblem({ ...q, codeMap });
       } catch {
         setProblem(null);
       }
     };
+
     fetchProblem();
   }, [slug]);
 
+  // Init Monaco
   useEffect(() => {
     if (!editorRef.current || !problem) return;
-    const initialCode = problem.codeMap?.[language] || fallbackTemplates[language];
+
+    const initialCode =
+      problem.codeMap?.[language] || fallbackTemplates[language];
+
     monacoEditor.current = monaco.editor.create(editorRef.current, {
       value: initialCode,
       language: langMap[language].monaco,
       theme: "vs-dark",
       automaticLayout: true,
     });
+
     return () => monacoEditor.current?.dispose();
   }, [problem]);
 
+  // Change language
   useEffect(() => {
     if (!monacoEditor.current || !problem) return;
-    const newValue = problem.codeMap?.[language] || fallbackTemplates[language];
-    const model = monaco.editor.createModel(newValue, langMap[language].monaco);
+
+    const newValue =
+      problem.codeMap?.[language] || fallbackTemplates[language];
+
+    const model = monaco.editor.createModel(
+      newValue,
+      langMap[language].monaco
+    );
     monacoEditor.current.setModel(model);
   }, [language, problem]);
 
+  // Run code (NO AI, NO main injection)
   const handleRun = async () => {
     try {
-      setOutput("🧠 Generating main() function using AI...");
+      setOutput("⏳ Running code...");
 
       const userCode = monacoEditor.current.getValue();
-      const funcMatch = userCode.match(/[\w<>]+\s+\w+\s*\([^)]*\)/);
-      const funcSignature = funcMatch ? funcMatch[0] : "int solve()";
 
-      const res = await fetch("http://localhost:8080/api/ai/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          description: problem.content,
-          function: funcSignature,
-        }),
-      });
-
-      const text = await res.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        throw new Error("Invalid backend JSON: " + text);
-      }
-
-      if (data.error) {
-        setOutput("❌ AI generation failed: " + data.error);
-        return;
-      }
-
-      const mainFunction = data.mainFunction;
-
-      const functionMatch = userCode.match(/class\s+Solution\s*{[^}]*\b(\w+)\s*\(/);
-      let functionName = functionMatch ? functionMatch[1] : null;
-
-      let fixedMain = mainFunction;
-      if (functionName) {
-        const regex = new RegExp(`\\b${functionName}\\s*\\(`, "g");
-        fixedMain = mainFunction.replace(regex, `Solution().${functionName}(`);
-      }
-
-      const finalCode = `
-      #include <bits/stdc++.h>
-      using namespace std;
-
-      ${userCode}
-
-      ${fixedMain}
-      `.trim();
-
-console.log(finalCode);
+      // Extract example inputs
       const exampleRegex = /Input:\s*([^\n\r]*)/gi;
       const examples = [];
       let match;
-      while ((match = exampleRegex.exec(problem.content))) {
-            examples.push(match[1].replace(/<\/?strong>/gi, "").trim());
-      }
-      console.log(examples);
 
-      setOutput(`🚀 Running ${examples.length} test case(s)...`);
+      while ((match = exampleRegex.exec(problem.content))) {
+        examples.push(
+          match[1].replace(/<\/?strong>/gi, "").trim()
+        );
+      }
+
+      if (examples.length === 0) {
+        setOutput("⚠️ No example inputs found.");
+        return;
+      }
 
       const results = [];
-      for (const input of examples) {
 
-        const judgeRes = await fetch("http://localhost:8080/api/run", {
+      for (const input of examples) {
+        const res = await fetch("http://localhost:8080/api/run", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            code: finalCode,
-            stdin: input
-          })
+            code: userCode, // sent AS-IS
+            stdin: input,
+          }),
         });
 
-        const result = await judgeRes.json();
+        const result = await res.json();
         results.push({
           input,
           stdout: result.stdout || "",
@@ -151,29 +143,30 @@ console.log(finalCode);
 
       let formatted = "";
       results.forEach((r, i) => {
-        formatted += `Example ${i + 1}\nInput: ${r.input}\n`;
-        if (r.stdout.trim()) formatted += `Output:\n${r.stdout.trim()}\n`;
-        if (r.stderr.trim()) formatted += `Error:\n${r.stderr.trim()}\n`;
+        formatted += `Example ${i + 1}\n`;
+        formatted += `Input:\n${r.input}\n`;
+        if (r.stdout.trim()) formatted += `Output:\n${r.stdout}\n`;
+        if (r.stderr.trim()) formatted += `Error:\n${r.stderr}\n`;
         formatted += "---------------------\n";
       });
 
       setOutput(formatted || "(no output)");
     } catch (err) {
-      setOutput(" Error: " + err.message);
+      setOutput("❌ Error: " + err.message);
     }
   };
-
 
   if (!problem) return <p>Loading problem...</p>;
 
   return (
     <div style={{ padding: "20px" }}>
       <h2>{problem.title}</h2>
+
       <div dangerouslySetInnerHTML={{ __html: problem.content }} />
+
       <div style={{ marginTop: "10px" }}>
-        <label htmlFor="language">Language: </label>
+        <label>Language: </label>
         <select
-          id="language"
           value={language}
           onChange={(e) => setLanguage(e.target.value)}
         >

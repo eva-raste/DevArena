@@ -27,5 +27,9 @@ Thumbs.db
 *.swp
 
 # Environment/config
+application-*.yml
+application-*.properties
 .env
+
 .factorypath
+
