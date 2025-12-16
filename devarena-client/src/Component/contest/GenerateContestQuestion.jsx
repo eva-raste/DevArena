@@ -204,7 +204,7 @@ const GenerateContestQuestion = ({
   )
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-100 p-4 md:p-8">
+    <div className="min-h-screen bg-linear-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-100 p-4 md:p-8">
       <style>
         {`
           @keyframes fadeSlideIn {
@@ -242,7 +242,7 @@ const GenerateContestQuestion = ({
       <Toast toast={toast} />
 
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8 bg-gradient-to-r from-teal-400 to-purple-500 bg-clip-text text-transparent">
+        <h1 className="text-4xl font-bold mb-8 bg-linear-to-r from-teal-400 to-purple-500 bg-clip-text text-transparent">
           Generate Contest Question
         </h1>
 

@@ -135,6 +135,4 @@ public class HomeController {
         }
         throw new RuntimeException("Invalid AI response");
     }
-
-
 }
