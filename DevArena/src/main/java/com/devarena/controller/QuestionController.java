@@ -1,35 +1,46 @@
 package com.devarena.controller;
 
 import com.devarena.dtos.QuestionCreateDto;
+import com.devarena.dtos.QuestionDto;
 import com.devarena.service.IQuesitonService;
-import lombok.Data;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/questions")
-@Data
+@CrossOrigin(origins = "http://localhost:5173")
+@RequiredArgsConstructor
 public class QuestionController {
+
     private final IQuesitonService questionService;
 
     @PostMapping
-    public ResponseEntity<QuestionCreateDto> createQuestion(@RequestBody QuestionCreateDto question) throws Exception {
+    public ResponseEntity<QuestionCreateDto> createQuestion(@Valid @RequestBody QuestionCreateDto question) {
 
-        System.out.println("Request for " + question);
-
-        if(questionService.existsByQuestionSlug(question.getQuestionSlug()))
-        {
-            throw new Exception("Question with this slug already exists");
+        if (questionService.existsByQuestionSlug(question.getQuestionSlug())) {
+            return ResponseEntity
+                    .status(HttpStatus.CONFLICT)
+                    .body(null);
         }
 
-        QuestionCreateDto q = questionService.createQuestion(question);
-        System.out.println("Returning " + q);
-        return ResponseEntity.status(HttpStatus.CREATED).body(q);
+        QuestionCreateDto created = questionService.createQuestion(question);
+        return ResponseEntity
+                .ok(created);
     }
-    @GetMapping("/all")
-    public ResponseEntity<Iterable<QuestionCreateDto>> getAllQuestions()
-    {
+
+    @GetMapping
+    public ResponseEntity<Iterable<QuestionDto>> getAllQuestions() {
         return ResponseEntity.ok(questionService.getAllQuestions());
     }
+
+    @GetMapping(value="/{slug}",produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<QuestionDto> findByQuestionSlug(@PathVariable("slug") String slug)
+    {
+        return ResponseEntity.ok(questionService.findByQuestionSlug(slug));
+    }
+
 }

@@ -1,6 +1,7 @@
 package com.devarena.service;
 
 import com.devarena.dtos.QuestionCreateDto;
+import com.devarena.dtos.QuestionDto;
 import com.devarena.models.Question;
 import com.devarena.repositories.IQuestionRepo;
 import jakarta.transaction.Transactional;
@@ -28,11 +29,11 @@ public class QuestionServiceImpl implements IQuesitonService {
         return modelMapper.map(newquestion,QuestionCreateDto.class);
     }
 
-    public Iterable<QuestionCreateDto> getAllQuestions()
+    public Iterable<QuestionDto> getAllQuestions()
     {
         return questionRepo.findAll()
                 .stream().map(
-                        (Question q) -> modelMapper.map(q,QuestionCreateDto.class)
+                        (Question q) -> modelMapper.map(q,QuestionDto.class)
                 )
         .toList();
 
@@ -41,6 +42,12 @@ public class QuestionServiceImpl implements IQuesitonService {
     @Override
     public boolean existsByQuestionSlug(String questionSlug) {
         return questionRepo.existsByQuestionSlug(questionSlug);
+    }
+
+    @Override
+    public QuestionDto findByQuestionSlug(String slug) {
+        return modelMapper.map(questionRepo.findByQuestionSlug(slug),QuestionDto.class);
+
     }
 
 }

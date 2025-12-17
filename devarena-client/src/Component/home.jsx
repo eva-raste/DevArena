@@ -5,10 +5,17 @@ function Home() {
     <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center text-white">
       <h2 className="text-3xl font-semibold mb-6">Hi from Home Page</h2>
       <Link
-        to="/create-contest"
+        to="/create-question"
         className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl text-lg font-medium transition"
       >
-        Create Contest
+        Create Question
+      </Link>
+      <br />
+      <Link
+        to="/show-all-questions"
+        className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl text-lg font-medium transition"
+      >
+        Show All Questions
       </Link>
     </div>
   );

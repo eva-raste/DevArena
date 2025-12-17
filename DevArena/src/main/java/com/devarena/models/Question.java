@@ -32,7 +32,9 @@ public class Question {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    private String difficulty;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private QuestionDifficulty difficulty;
 
     private Integer score;
 
@@ -54,4 +56,14 @@ public class Question {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "main_function", columnDefinition = "jsonb")
     private Map<String, String> mainFunction;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private QuestionOrigin origin = QuestionOrigin.OWN;
+
+
+    @PrePersist
+    void init() {
+        if (origin == null) origin = QuestionOrigin.OWN;
+    }
 }

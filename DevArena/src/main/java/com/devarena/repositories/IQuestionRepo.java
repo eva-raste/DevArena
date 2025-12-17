@@ -8,4 +8,6 @@ import java.util.UUID;
 public interface IQuestionRepo extends JpaRepository<Question, UUID> {
 
     boolean existsByQuestionSlug(String questionSlug);
+
+    Question findByQuestionSlug(String slug);
 }
