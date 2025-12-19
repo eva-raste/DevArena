@@ -25,7 +25,7 @@ public class HomeController {
     }
 
     @PostMapping("/problem/{slug}")
-    public ResponseEntity<Map<String, Object>> getProblem(@PathVariable String slug) {
+    public ResponseEntity<Map<String, Object>> getProblem(@PathVariable("slug") String slug) {
         String url = "https://leetcode.com/graphql";
 
         String query = """

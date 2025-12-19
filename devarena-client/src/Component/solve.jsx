@@ -43,6 +43,7 @@ int main() {
             headers: { "Content-Type": "application/json" },
           }
         );
+
         const data = await res.json();
         const q = data?.data?.question;
 
@@ -98,14 +99,13 @@ int main() {
     monacoEditor.current.setModel(model);
   }, [language, problem]);
 
-  // Run code (NO AI, NO main injection)
+  // Run code
   const handleRun = async () => {
     try {
       setOutput("⏳ Running code...");
 
       const userCode = monacoEditor.current.getValue();
 
-      // Extract example inputs
       const exampleRegex = /Input:\s*([^\n\r]*)/gi;
       const examples = [];
       let match;
@@ -117,7 +117,7 @@ int main() {
       }
 
       if (examples.length === 0) {
-        setOutput("⚠️ No example inputs found.");
+        setOutput("⚠ No example inputs found.");
         return;
       }
 
@@ -128,7 +128,7 @@ int main() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            code: userCode, // sent AS-IS
+            code: userCode,
             stdin: input,
           }),
         });
@@ -142,11 +142,19 @@ int main() {
       }
 
       let formatted = "";
+
       results.forEach((r, i) => {
         formatted += `Example ${i + 1}\n`;
         formatted += `Input:\n${r.input}\n`;
-        if (r.stdout.trim()) formatted += `Output:\n${r.stdout}\n`;
-        if (r.stderr.trim()) formatted += `Error:\n${r.stderr}\n`;
+
+        if (r.stdout.trim()) {
+          formatted += `Output:\n${r.stdout}\n`;
+        }
+
+        if (r.stderr.trim()) {
+          formatted += `Error:\n${r.stderr}\n`;
+        }
+
         formatted += "---------------------\n";
       });
 
