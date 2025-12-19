@@ -1,6 +1,8 @@
+const BASE_URL = 'http://localhost:8080/api';
+
 export async function createQuestion(question) {
     console.log("sending data to backend ", question);
-  const res = await fetch("http://localhost:8080/api/questions", {
+  const res = await fetch(`${BASE_URL}/questions`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(question),
@@ -18,3 +20,19 @@ export async function createQuestion(question) {
 
   return data;
 }
+
+
+export const fetchQuestionsApi = async () => {
+  const response = await fetch(`${BASE_URL}/questions`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch questions');
+  }
+
+  return response.json();
+};

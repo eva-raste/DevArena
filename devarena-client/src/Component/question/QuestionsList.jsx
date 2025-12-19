@@ -94,7 +94,7 @@ const QuestionsList = () => {
           </div>
           <button
             onClick={handleCreateNew}
-            className="px-6 py-3 bg-gradient-to-r from-teal-500 to-purple-500 hover:from-teal-600 hover:to-purple-600 text-white rounded-2xl transition-all shadow-lg font-medium flex items-center gap-2"
+            className="px-6 py-3 bg-linear-to-r from-teal-500 to-purple-500 hover:from-teal-600 hover:to-purple-600 text-white rounded-2xl transition-all shadow-lg font-medium flex items-center gap-2"
           >
             <svg
               className="w-5 h-5"

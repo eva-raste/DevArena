@@ -17,6 +17,13 @@ function Home() {
       >
         Show All Questions
       </Link>
+      <br />
+      <Link
+        to="/create-contest"
+        className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl text-lg font-medium transition"
+      >
+        Create Contest
+      </Link>
     </div>
   );
 }

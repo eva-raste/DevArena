@@ -23,7 +23,7 @@ public class QuestionController {
 
         if (questionService.existsByQuestionSlug(question.getQuestionSlug())) {
             return ResponseEntity
-                    .status(HttpStatus.CONFLICT)
+                    .status(409)
                     .body(null);
         }
 

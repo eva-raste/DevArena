@@ -1,16 +1,14 @@
 package com.devarena.models;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.List;
 import java.util.UUID;
 
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @Entity
 @Table(name="users")
 public class User {
@@ -30,7 +28,10 @@ public class User {
     @OneToMany(mappedBy = "owner")
     private List<Contest> createdContests;
 
-    @ManyToMany(mappedBy = "attendee")
+    @ManyToMany
+    @JoinTable(name = "users_contests",
+                joinColumns = @JoinColumn(name="user_id"),
+                inverseJoinColumns = @JoinColumn(name="contest_id"))
     private List<Contest> attendedContests;
 
 }
