@@ -8,6 +8,8 @@ devarena-client/dist/
 # IDEs & OS
 .vscode/
 .idea/
+.dist/
+.history/
 .DS_Store
 Thumbs.db
 
