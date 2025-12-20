@@ -100,7 +100,7 @@ export const QuestionForm = ({
         
           value={question.description ?? ""}
           onChange={(e) => onInputChange("description", e.target.value)}
-          className={`${styles.customScrollbar} w-full bg-gray-900/50 text-gray-100 rounded-2xl px-6 py-3 border-2 border-gray-700/50 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all shadow-inner resize-y min-h-[200px] max-h-[400px]"
+          className={`w-full bg-gray-900/50 text-gray-100 rounded-2xl px-6 py-3 border-2 border-gray-700/50 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all shadow-inner resize-y min-h-[200px] max-h-[400px]"
           placeholder="Write your question description here...`}
         />
       </div>
@@ -178,7 +178,7 @@ export const QuestionForm = ({
         <textarea
           value={question.constraints ?? ""}
           onChange={(e) => onInputChange("constraints", e.target.value)}
-          className={`${styles.customScrollbar} w-full bg-gray-900/50 text-gray-100 rounded-2xl px-6 py-3 border-2 border-gray-700/50 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all shadow-inner font-mono text-sm resize-y min-h-[120px] max-h-[300px]`}
+          className={`w-full bg-gray-900/50 text-gray-100 rounded-2xl px-6 py-3 border-2 border-gray-700/50 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all shadow-inner font-mono text-sm resize-y min-h-[120px] max-h-[300px]`}
         />
       </div>
 
@@ -228,7 +228,7 @@ export const QuestionForm = ({
         <button
           type="button"
           onClick={onPublishClick}
-          className="px-6 py-3 bg-gradient-to-r from-teal-500 to-purple-500 hover:from-teal-600 hover:to-purple-600 text-white rounded-2xl transition-all shadow-lg"
+          className="px-6 py-3 bg-linear-to-r from-teal-500 to-purple-500 hover:from-teal-600 hover:to-purple-600 text-white rounded-2xl transition-all shadow-lg"
         >
           Publish Question
         </button>

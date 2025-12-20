@@ -8,4 +8,7 @@ public interface IContestService {
     ContestResponseDto createContest(CreateContestRequest request);
 
     ContestResponseDto getContestByRoomId(String roomId);
+
+//    Iterable<ContestResponseDto> getAllPublicContests();
+
 }

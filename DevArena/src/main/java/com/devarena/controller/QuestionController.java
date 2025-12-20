@@ -1,7 +1,9 @@
 package com.devarena.controller;
 
+import com.devarena.dtos.QuestionCardDto;
 import com.devarena.dtos.QuestionCreateDto;
 import com.devarena.dtos.QuestionDto;
+import com.devarena.models.QuestionOrigin;
 import com.devarena.service.IQuesitonService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +43,15 @@ public class QuestionController {
     public ResponseEntity<QuestionDto> findByQuestionSlug(@PathVariable("slug") String slug)
     {
         return ResponseEntity.ok(questionService.findByQuestionSlug(slug));
+    }
+
+    @GetMapping(value = "/card/{slug}/{origin}",produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<QuestionCardDto> getQuestionCardByQuestionSlug
+            (@PathVariable("slug") String slug, @PathVariable("origin")QuestionOrigin questionOrigin)
+    {
+        QuestionCardDto q = questionService.getCardByQuestionSlug(slug,questionOrigin);
+
+        return ResponseEntity.ok(q);
     }
 
 }

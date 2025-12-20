@@ -34,5 +34,11 @@ public class User {
                 inverseJoinColumns = @JoinColumn(name="contest_id"))
     private List<Contest> attendedContests;
 
+    @OneToMany(mappedBy = "owner")
+    private List<Question> createdQuestions;
+
+    @ManyToMany(mappedBy = "modifiers")
+    private List<Question> modifierQuestions;
+
 }
 

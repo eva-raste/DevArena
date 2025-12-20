@@ -58,6 +58,17 @@ public class ContestServiceImpl implements IContestService {
         return toResponseDto(contest);
     }
 
+//    @Override
+//    public List<ContestResponseDto> getAllPublicContests() {
+//        List<Contest> contests = contestRepo.findByVisibilityIsPublic();
+//        return contests.stream().map(
+//            this::toResponseDto
+//        )
+//        .toList();
+//    }
+
+//    public ContestResponseDto
+
     private ContestResponseDto toResponseDto(Contest contest) {
         ContestResponseDto dto = new ContestResponseDto();
         dto.setContestId(contest.getContestId());

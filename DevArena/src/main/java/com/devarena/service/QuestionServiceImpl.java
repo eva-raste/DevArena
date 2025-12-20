@@ -1,13 +1,17 @@
 package com.devarena.service;
 
+import com.devarena.dtos.QuestionCardDto;
 import com.devarena.dtos.QuestionCreateDto;
 import com.devarena.dtos.QuestionDto;
 import com.devarena.models.Question;
+import com.devarena.models.QuestionOrigin;
 import com.devarena.repositories.IQuestionRepo;
 import jakarta.transaction.Transactional;
 import lombok.Data;
 import org.modelmapper.ModelMapper;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @Data
@@ -48,6 +52,29 @@ public class QuestionServiceImpl implements IQuesitonService {
     public QuestionDto findByQuestionSlug(String slug) {
         return modelMapper.map(questionRepo.findByQuestionSlug(slug),QuestionDto.class);
 
+    }
+
+    @Override
+    public QuestionCardDto getCardByQuestionSlug(
+            String slug,
+            QuestionOrigin questionOrigin
+    ) {
+        Question ques = questionRepo
+                .findByQuestionSlugAndOrigin(slug, questionOrigin)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Question not found"
+                ));
+//        if(ques == null)
+//        {
+//            switch(questionOrigin)
+//            {
+//                case QuestionOrigin.LEETCODE -> break;
+//                case QuestionOrigin.CODEFORCES -> ;
+//            }
+//        }
+        // store q in db
+        return modelMapper.map(ques,QuestionCardDto.class);
     }
 
 }
