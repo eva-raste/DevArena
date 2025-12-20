@@ -5,6 +5,9 @@ import Solve from "./Component/solve"
 import CreateQuestion from "./Component/question/CreateQuestion";
 import QuestionsList from "./Component/question/QuestionsList";
 import CreateContest from "./Component/contest/CreateContest";
+import Login from "./Component/authentication/login";
+import Signup from "./Component/authentication/signup";
+
 function App() {
   return (
     <div>
@@ -16,7 +19,8 @@ function App() {
         <Route path="/create-question" element={ <CreateQuestion /> }/>
         <Route path="/show-all-questions" element={ <QuestionsList /> }/>
         <Route path="/create-contest" element={<CreateContest />} />
-
+        <Route path="/login" element={<Login/>} />
+        <Route path="/signup" element={<Signup/>} />
         {/* <Route path="/create-contest" element = {<CreateContest />} /> */}
 
       </Routes>
