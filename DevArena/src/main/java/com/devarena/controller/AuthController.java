@@ -3,6 +3,7 @@ package com.devarena.controller;
 import com.devarena.dtos.LoginRequest;
 import com.devarena.dtos.UserDto;
 import com.devarena.service.AuthService;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,11 +20,10 @@ public class AuthController {
 
     private final AuthService authService;
 
-    // 👇 THIS WAS MISSING
     private final AuthenticationManager authenticationManager;
 
     @PostMapping("/register")
-    public ResponseEntity<UserDto> register(@RequestBody UserDto userDto) {
+    public ResponseEntity<UserDto> register(@Valid @RequestBody UserDto userDto) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(authService.registerUser(userDto));
     }

@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from "./AuthContext";
+import { Link } from "react-router-dom";
 
 const Signup = () => {
   const [email, setEmail] = useState("");
@@ -32,8 +34,9 @@ const Signup = () => {
       setEmail("");
       setUsername("");
       setPassword("");
-      navigate("/");
+      navigate("/login");
     } catch (err) {
+        console.log(err.message);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -185,6 +188,13 @@ const Signup = () => {
             <button type="submit" disabled={loading}>
               {loading ? "Creating Account..." : "Sign Up"}
             </button>
+            <p className="mt-4 text-center text-gray-400">
+              Already have an account?{" "}
+              <Link to="/login" className="text-blue-400 hover:underline">
+                Login
+              </Link>
+            </p>
+
           </form>
 
           {error && <p className="error">{error}</p>}

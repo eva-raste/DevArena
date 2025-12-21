@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from "./AuthContext";
+import { Link } from "react-router-dom";
+
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -8,34 +11,32 @@ const Login = () => {
   const [success, setSuccess] = useState("");
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
-    setLoading(true);
+ const { login } = useAuth();
 
-    try {
-      const res = await fetch("http://localhost:8080/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+ const handleSubmit = async (e) => {
+   e.preventDefault();
+   setLoading(true);
+   setError("");
 
-      if (!res.ok) {
-        const msg = await res.text();
-        throw new Error(msg || "Invalid email or password");
-      }
+   try {
+     const res = await fetch("http://localhost:8080/api/auth/login", {
+       method: "POST",
+       headers: { "Content-Type": "application/json" },
+       body: JSON.stringify({ email, password }),
+     });
 
-      setSuccess("Login successful");
-      setEmail("");
-      setPassword("");
-      navigate("/");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+     if (!res.ok) throw new Error("Invalid email or password");
+
+     login(email, password);
+
+     navigate("/");
+   } catch (err) {
+     setError(err.message);
+   } finally {
+     setLoading(false);
+   }
+ };
+
 
   return (
     <>
@@ -170,8 +171,16 @@ const Login = () => {
             <button type="submit" disabled={loading}>
               {loading ? "Logging in..." : "Login"}
             </button>
-          </form>
 
+
+            <p className="mt-4 text-center text-gray-400">
+              Don&apos;t have an account?{" "}
+              <Link to="/signup" className="text-blue-400 hover:underline">
+                Sign Up
+              </Link>
+            </p>
+
+        </form>
           {error && <p className="error">{error}</p>}
           {success && <p className="success">{success}</p>}
         </div>
