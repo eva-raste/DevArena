@@ -25,7 +25,7 @@ public class Contest
     private UUID contestId;
 
     @ManyToOne
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "owner_id",nullable = false)
     private User owner;
 
     @ManyToMany(mappedBy = "attendedContests")

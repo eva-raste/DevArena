@@ -46,6 +46,12 @@ public class User implements UserDetails {
                 inverseJoinColumns = @JoinColumn(name="contest_id"))
     private List<Contest> attendedContests;
 
+    @OneToMany(mappedBy = "owner")
+    private List<Question> createdQuestions;
+
+    @ManyToMany(mappedBy = "modifiers")
+    private List<Question> modifierQuestions;
+
     @PrePersist
     protected void onCreate()
     {
@@ -63,7 +69,7 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
+        return List.of(new SimpleGrantedAuthority("ROLE_USER"));
     }
 
     @Override
@@ -90,11 +96,7 @@ public class User implements UserDetails {
     public boolean isEnabled() {
         return this.enable;
     }
-    @OneToMany(mappedBy = "owner")
-    private List<Question> createdQuestions;
 
-    @ManyToMany(mappedBy = "modifiers")
-    private List<Question> modifierQuestions;
 
 }
 
