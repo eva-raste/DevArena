@@ -1,13 +1,17 @@
 package com.devarena.controller;
 
+import com.devarena.dtos.QuestionCardDto;
 import com.devarena.dtos.QuestionCreateDto;
 import com.devarena.dtos.QuestionDto;
+import com.devarena.models.QuestionOrigin;
+import com.devarena.models.User;
 import com.devarena.service.IQuesitonService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,7 +23,8 @@ public class QuestionController {
     private final IQuesitonService questionService;
 
     @PostMapping
-    public ResponseEntity<QuestionCreateDto> createQuestion(@Valid @RequestBody QuestionCreateDto question) {
+    public ResponseEntity<QuestionCreateDto> createQuestion(@Valid @RequestBody QuestionCreateDto question,
+                                                            @AuthenticationPrincipal User owner) {
 
         if (questionService.existsByQuestionSlug(question.getQuestionSlug())) {
             return ResponseEntity
@@ -27,7 +32,7 @@ public class QuestionController {
                     .body(null);
         }
 
-        QuestionCreateDto created = questionService.createQuestion(question);
+        QuestionCreateDto created = questionService.createQuestion(question,owner);
         return ResponseEntity
                 .ok(created);
     }
@@ -41,6 +46,15 @@ public class QuestionController {
     public ResponseEntity<QuestionDto> findByQuestionSlug(@PathVariable("slug") String slug)
     {
         return ResponseEntity.ok(questionService.findByQuestionSlug(slug));
+    }
+
+    @GetMapping(value = "/card/{slug}/{origin}",produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<QuestionCardDto> getQuestionCardByQuestionSlug
+            (@PathVariable("slug") String slug, @PathVariable("origin")QuestionOrigin questionOrigin)
+    {
+        QuestionCardDto q = questionService.getCardByQuestionSlug(slug,questionOrigin);
+
+        return ResponseEntity.ok(q);
     }
 
 }

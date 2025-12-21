@@ -25,7 +25,7 @@ public class Contest
     private UUID contestId;
 
     @ManyToOne
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "owner_id",nullable = false)
     private User owner;
 
     @ManyToMany(mappedBy = "attendedContests")
@@ -44,14 +44,14 @@ public class Contest
     // private Leaderboard leaderboard;
 
     @Enumerated(EnumType.STRING)
-    private ContestVisibility visibility;
+    private ContestVisibility visibility = ContestVisibility.PUBLIC;
 
     @Column(columnDefinition = "TEXT")
     private String instructions;
 
 
     @Enumerated(EnumType.STRING)
-    private ContestStatus status;
+    private ContestStatus status = ContestStatus.LIVE;
 
 
     private LocalDateTime startTime;

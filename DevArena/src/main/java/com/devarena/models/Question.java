@@ -27,6 +27,17 @@ public class Question {
 
     private String title;
 
+    @ManyToOne
+    @JoinColumn(name = "owner_id")
+    private User owner;
+
+    @ManyToMany
+    @JoinTable(
+            joinColumns = @JoinColumn(name = "question_id"),
+            inverseJoinColumns = @JoinColumn(name = "modifier_id")
+    )
+    private List<User> modifiers;
+
     @Column(columnDefinition = "TEXT")
     private String description;
 

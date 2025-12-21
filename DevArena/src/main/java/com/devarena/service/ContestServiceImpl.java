@@ -4,6 +4,7 @@ import com.devarena.dtos.ContestResponseDto;
 import com.devarena.dtos.CreateContestRequest;
 import com.devarena.models.Contest;
 import com.devarena.models.Question;
+import com.devarena.models.User;
 import com.devarena.repositories.IContestRepo;
 import com.devarena.repositories.IQuestionRepo;
 import com.devarena.security.RoomIdGenerator;
@@ -30,7 +31,7 @@ public class ContestServiceImpl implements IContestService {
 
     @Override
     @Transactional
-    public ContestResponseDto createContest(CreateContestRequest req) {
+    public ContestResponseDto createContest(CreateContestRequest req, User owner) {
 
         List<Question> questions =
                 questionRepo.findAllByQuestionSlugIn(req.getQuestionSlugs());
@@ -41,7 +42,7 @@ public class ContestServiceImpl implements IContestService {
 
         Contest contest = Contest.create(
                 req,
-                null, // owner intentionally null
+                owner, // owner intentionally null
                 questions,
                 createUniqueRoomId()
         );
@@ -57,6 +58,17 @@ public class ContestServiceImpl implements IContestService {
 
         return toResponseDto(contest);
     }
+
+//    @Override
+//    public List<ContestResponseDto> getAllPublicContests() {
+//        List<Contest> contests = contestRepo.findByVisibilityIsPublic();
+//        return contests.stream().map(
+//            this::toResponseDto
+//        )
+//        .toList();
+//    }
+
+//    public ContestResponseDto
 
     private ContestResponseDto toResponseDto(Contest contest) {
         ContestResponseDto dto = new ContestResponseDto();

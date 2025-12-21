@@ -1,7 +1,7 @@
-const BASE_URL = 'http://localhost:8080/api';
+const BASE_URL = 'http://localhost:8080/api/contests';
 
 export const createContestApi = async (payload) => {
-  const response = await fetch(`${BASE_URL}/contests`, {
+  const response = await fetch(`${BASE_URL}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
