@@ -18,4 +18,5 @@ public interface IQuestionRepo extends JpaRepository<Question, UUID> {
 
     Optional<Question> findByQuestionSlugAndOrigin(String slug, QuestionOrigin origin);
 
+    boolean existsByQuestionSlugAndOrigin(String questionSlug, QuestionOrigin origin);
 }

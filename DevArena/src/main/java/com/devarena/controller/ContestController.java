@@ -4,7 +4,7 @@ package com.devarena.controller;
 import com.devarena.dtos.ContestResponseDto;
 import com.devarena.dtos.CreateContestRequest;
 import com.devarena.models.User;
-import com.devarena.service.IContestService;
+import com.devarena.service.interfaces.IContestService;
 import lombok.Data;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

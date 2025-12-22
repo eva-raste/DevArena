@@ -2,7 +2,7 @@ package com.devarena.controller;
 
 import com.devarena.dtos.LoginRequest;
 import com.devarena.dtos.UserDto;
-import com.devarena.service.AuthService;
+import com.devarena.service.interfaces.AuthService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;

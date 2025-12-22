@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createContestApi } from "../lib/contest-api";
+import { createContestApi } from "../apis/contest-api";
 
 export function useCreateContest() {
   const [loading, setLoading] = useState(false);

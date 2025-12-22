@@ -5,10 +5,9 @@ import com.devarena.dtos.QuestionCreateDto;
 import com.devarena.dtos.QuestionDto;
 import com.devarena.models.QuestionOrigin;
 import com.devarena.models.User;
-import com.devarena.service.IQuesitonService;
+import com.devarena.service.interfaces.IQuesitonService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -26,7 +25,9 @@ public class QuestionController {
     public ResponseEntity<QuestionCreateDto> createQuestion(@Valid @RequestBody QuestionCreateDto question,
                                                             @AuthenticationPrincipal User owner) {
 
-        if (questionService.existsByQuestionSlug(question.getQuestionSlug())) {
+        // if same slug exists in db
+        // as creating question, so origin is OWN always
+        if (questionService.existsByQuestionSlugAndOrigin(question.getQuestionSlug(),QuestionOrigin.OWN)) {
             return ResponseEntity
                     .status(409)
                     .body(null);

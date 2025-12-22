@@ -1,7 +1,7 @@
 package com.devarena.controller;
 
 import com.devarena.dtos.UserDto;
-import com.devarena.service.UserService;
+import com.devarena.service.interfaces.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CrossOrigin;

@@ -30,11 +30,11 @@ public class UserDto {
     @Size(min = 8, message = "Password must be at least 8 characters long")
     private String password;
 
-    private boolean enable=true;
-    private Instant createdAt=Instant.now();
-    private Instant updatesAt=Instant.now();
+    private boolean enable;
+    private Instant createdAt;
+    private Instant updatesAt;
 
-    private Provider provider=Provider.LOCAL;
+    private Provider provider;
 
     private List<Contest> createdContests;
 

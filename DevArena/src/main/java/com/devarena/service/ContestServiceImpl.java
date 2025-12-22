@@ -8,6 +8,7 @@ import com.devarena.models.User;
 import com.devarena.repositories.IContestRepo;
 import com.devarena.repositories.IQuestionRepo;
 import com.devarena.security.RoomIdGenerator;
+import com.devarena.service.interfaces.IContestService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -36,13 +37,15 @@ public class ContestServiceImpl implements IContestService {
         List<Question> questions =
                 questionRepo.findAllByQuestionSlugIn(req.getQuestionSlugs());
 
-        if (questions.size() != req.getQuestionSlugs().size()) {
+        // if req has no questions or fetched questions and req slugs size is unequal
+        if (req.getQuestionSlugs() == null || questions.size() != req.getQuestionSlugs().size()) {
             throw new RuntimeException("Invalid question slugs");
         }
 
+        System.out.println("adding owner to contest\n" + owner);
         Contest contest = Contest.create(
                 req,
-                owner, // owner intentionally null
+                owner,
                 questions,
                 createUniqueRoomId()
         );
@@ -72,6 +75,7 @@ public class ContestServiceImpl implements IContestService {
 
     private ContestResponseDto toResponseDto(Contest contest) {
         ContestResponseDto dto = new ContestResponseDto();
+
         dto.setContestId(contest.getContestId());
         dto.setRoomId(contest.getRoomId());
         dto.setTitle(contest.getTitle());
@@ -79,6 +83,7 @@ public class ContestServiceImpl implements IContestService {
         dto.setStatus(contest.getStatus());
         dto.setStartTime(contest.getStartTime());
         dto.setEndTime(contest.getEndTime());
+
         return dto;
     }
 }

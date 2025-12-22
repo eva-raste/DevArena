@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from './css/QuestionsList.module.css';
+import { fetchQuestionsApi } from '../../apis/question-api'
 
 const QuestionsList = () => {
   const [questions, setQuestions] = useState([]);
@@ -17,26 +18,18 @@ const QuestionsList = () => {
   const fetchQuestions = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8080/api/questions', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch questions');
-      }
-
-      const data = await response.json();
+      const data = await fetchQuestionsApi(); // ✅ call API, not itself
       setQuestions(data);
       setError(null);
+
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Failed to fetch questions");
     } finally {
       setLoading(false);
     }
   };
+
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {

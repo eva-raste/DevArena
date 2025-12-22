@@ -6,6 +6,7 @@ import com.devarena.helper.userHelper;
 import com.devarena.models.Provider;
 import com.devarena.models.User;
 import com.devarena.repositories.UserRepository;
+import com.devarena.service.interfaces.UserService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;

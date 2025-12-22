@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { generateUUID, slugify, validateQuestion } from "../../lib/question-utils"
-import { createQuestion } from "../../lib/question-api"
+import { generateUUID, slugify, validateQuestion } from "../../apis/question-utils"
+import { createQuestion } from "../../apis/question-api"
 import { Toast } from "./Toast"
 import { QuestionForm } from "./QuestionForm"
 import { LivePreview } from "./LivePreview"

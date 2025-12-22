@@ -2,7 +2,6 @@ package com.devarena.models;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -28,8 +27,17 @@ public class Contest
     @JoinColumn(name = "owner_id",nullable = false)
     private User owner;
 
-    @ManyToMany(mappedBy = "attendedContests")
-    private List<User> participants;
+    @ManyToMany
+    @JoinTable(name = "modifiers_contests",
+            joinColumns = @JoinColumn(name="contest_id"),
+            inverseJoinColumns = @JoinColumn(name="modifier_id"))
+    private List<User> modifiers = new ArrayList<>();
+
+    @ManyToMany
+    @JoinTable(name = "attendees_contests",
+            joinColumns = @JoinColumn(name="contest_id"),
+            inverseJoinColumns = @JoinColumn(name="attendee_id"))
+    private List<User> attendees = new ArrayList<>();
 
     private String title;
 
@@ -77,7 +85,8 @@ public class Contest
         contest.startTime = req.getStartTime();
         contest.endTime = req.getEndTime();
         contest.roomId = roomId;
-        contest.owner = owner; // null for now
+        contest.setOwner(owner);
+        contest.getModifiers().add(owner);
         contest.status = ContestStatus.SCHEDULED;
 
         contest.addQuestions(questions);
@@ -85,10 +94,8 @@ public class Contest
     }
 
 
+
     public void addQuestions(List<Question> questions) {
-        for (Question q : questions) {
-            this.questions.add(q);
-            q.getContests().add(this);
-        }
+        this.questions.addAll(questions);
     }
 }
