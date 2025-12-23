@@ -39,8 +39,8 @@ public class QuestionController {
     }
 
     @GetMapping
-    public ResponseEntity<Iterable<QuestionDto>> getAllQuestions() {
-        return ResponseEntity.ok(questionService.getAllQuestions());
+    public ResponseEntity<Iterable<QuestionDto>> getAllQuestions(@AuthenticationPrincipal User owner) {
+        return ResponseEntity.ok(questionService.getAllQuestionsByUser(owner));
     }
 
     @GetMapping(value="/{slug}",produces = MediaType.APPLICATION_JSON_VALUE)

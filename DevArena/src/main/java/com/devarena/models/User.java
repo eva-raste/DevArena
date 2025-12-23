@@ -24,7 +24,7 @@ public class User implements UserDetails {
     private UUID userId;
 
     @Column(unique = true)
-    private String username;
+    private String displayName;
 
     @Column(unique = true)
     private String email;

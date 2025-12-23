@@ -1,11 +1,10 @@
 import React, { useState } from "react";
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from "./AuthContext";
 import { Link } from "react-router-dom";
 
 const Signup = () => {
   const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -22,7 +21,7 @@ const Signup = () => {
       const res = await fetch("http://localhost:8080/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, username, password }),
+        body: JSON.stringify({ email, displayName, password }),
       });
 
       if (!res.ok) {
@@ -32,7 +31,7 @@ const Signup = () => {
 
       setSuccess("Account created successfully. You can now log in.");
       setEmail("");
-      setUsername("");
+      setDisplayName("");
       setPassword("");
       navigate("/login");
     } catch (err) {
@@ -167,8 +166,8 @@ const Signup = () => {
               <input
                 type="text"
                 placeholder="Johna Doe samory"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
                 required
               />
             </div>

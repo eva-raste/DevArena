@@ -94,4 +94,9 @@ public class QuestionServiceImpl implements IQuesitonService {
         return questionRepo.existsByQuestionSlugAndOrigin(questionSlug,origin);
     }
 
+    @Override
+    public Iterable<QuestionDto> getAllQuestionsByUser(User owner) {
+        return questionRepo.findAllByOwner(owner);
+    }
+
 }

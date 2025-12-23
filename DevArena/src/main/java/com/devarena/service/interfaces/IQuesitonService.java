@@ -21,4 +21,6 @@ public interface IQuesitonService {
     QuestionCardDto getCardByQuestionSlug(String slug, QuestionOrigin questionOrigin);
 
     boolean existsByQuestionSlugAndOrigin(@NotBlank String questionSlug, QuestionOrigin own);
+
+    Iterable<QuestionDto> getAllQuestionsByUser(User owner);
 }

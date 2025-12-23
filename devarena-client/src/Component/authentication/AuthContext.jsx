@@ -30,6 +30,8 @@ export const AuthProvider = ({ children }) => {
             },
           }
         );
+        console.log("User fetched")
+        console.log(res.data)
         setUser(res.data);
       } catch (err) {
         logout();
