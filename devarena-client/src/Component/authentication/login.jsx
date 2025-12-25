@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from "./AuthContext";
 import { Link } from "react-router-dom";
+import api from "../../apis/axios";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -19,19 +20,10 @@ const Login = () => {
    setError("");
 
    try {
-     const res = await fetch("http://localhost:8080/api/auth/login", {
-       method: "POST",
-       headers: { "Content-Type": "application/json" },
-       body: JSON.stringify({ email, password }),
-     });
-
-     if (!res.ok) throw new Error("Invalid email or password");
-
-     login(email, password);
-
+     await login(email, password);
      navigate("/");
    } catch (err) {
-     setError(err.message);
+     setError("Invalid email or password");
    } finally {
      setLoading(false);
    }

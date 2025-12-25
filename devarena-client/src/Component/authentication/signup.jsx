@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from "./AuthContext";
 import { Link } from "react-router-dom";
+import api from "../../apis/axios";
 
 const Signup = () => {
   const [email, setEmail] = useState("");
@@ -19,29 +20,27 @@ const Signup = () => {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8080/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, username, password }),
+      await api.post("/auth/register", {
+        email,
+        username,
+        password,
       });
-
-      if (!res.ok) {
-        const msg = await res.text();
-        throw new Error(msg || "Signup failed");
-      }
 
       setSuccess("Account created successfully. You can now log in.");
       setEmail("");
       setUsername("");
       setPassword("");
       navigate("/login");
+
     } catch (err) {
-        console.log(err.message);
-      setError(err.message);
+      setError(
+        err.response?.data?.message || "Signup failed"
+      );
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <>

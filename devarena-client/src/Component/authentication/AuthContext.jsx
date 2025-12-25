@@ -1,37 +1,28 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import api from "../../apis/axios";
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
 
-  const [authHeader, setAuthHeader] = useState(
-    () => localStorage.getItem("auth")
-  );
+  const [token, setToken] = useState(() => localStorage.getItem("token"));
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchCurrentUser = async () => {
-      if (!authHeader) {
+      if (!token) {
         setUser(null);
         setLoading(false);
         return;
       }
 
       try {
-        const res = await axios.get(
-          "http://localhost:8080/api/profile/me",
-          {
-            headers: {
-              Authorization: authHeader,
-            },
-          }
-        );
+        const res = await api.get("/profile/me");
         setUser(res.data);
-      } catch (err) {
+      } catch {
         logout();
       } finally {
         setLoading(false);
@@ -39,17 +30,22 @@ export const AuthProvider = ({ children }) => {
     };
 
     fetchCurrentUser();
-  }, [authHeader]);
+  }, [token]);
 
-  const login = (email, password) => {
-    const header = "Basic " + btoa(`${email}:${password}`);
-    localStorage.setItem("auth", header);
-    setAuthHeader(header);
+  const login = async (email, password) => {
+    const res = await api.post("/auth/login", { email, password });
+
+    const token = res.data.accessToken;
+
+    localStorage.setItem("token", token);
+    setToken(token);
+    setUser(res.data.user);
+    console.log("token set");
   };
 
   const logout = () => {
-    localStorage.removeItem("auth");
-    setAuthHeader(null);
+    localStorage.removeItem("token");
+    setToken(null);
     setUser(null);
     navigate("/login");
   };
@@ -62,7 +58,6 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated: !!user,
         login,
         logout,
-        authHeader,
       }}
     >
       {children}
