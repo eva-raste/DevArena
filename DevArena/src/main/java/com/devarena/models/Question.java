@@ -1,5 +1,6 @@
 package com.devarena.models;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -12,6 +13,11 @@ import org.hibernate.type.SqlTypes;
 @Getter
 @Setter
 @NoArgsConstructor
+@Table(
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"question_slug", "origin"})
+        }
+)
 @Entity
 public class Question {
 
@@ -20,9 +26,9 @@ public class Question {
     private UUID questionId;
 
     @ManyToMany(mappedBy = "questions")
-    private List<Contest> contests;
+    private List<Contest> contests = new ArrayList<>();
 
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false)
     private String questionSlug;
 
     private String title;
@@ -33,10 +39,11 @@ public class Question {
 
     @ManyToMany
     @JoinTable(
+            name="modifiers_questions",
             joinColumns = @JoinColumn(name = "question_id"),
             inverseJoinColumns = @JoinColumn(name = "modifier_id")
     )
-    private List<User> modifiers;
+    private List<User> modifiers = new ArrayList<>();
 
     @Column(columnDefinition = "TEXT")
     private String description;
@@ -52,11 +59,11 @@ public class Question {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "sample_testcases", columnDefinition = "jsonb")
-    private List<Testcase> sampleTestcases;
+    private List<Testcase> sampleTestcases = new ArrayList<>();
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "hidden_testcases", columnDefinition = "jsonb")
-    private List<Testcase> hiddenTestcases;
+    private List<Testcase> hiddenTestcases = new ArrayList<>();
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "function_templates", columnDefinition = "jsonb")

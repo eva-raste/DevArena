@@ -6,6 +6,7 @@ import com.devarena.helper.userHelper;
 import com.devarena.models.Provider;
 import com.devarena.models.User;
 import com.devarena.repositories.UserRepository;
+import com.devarena.service.interfaces.UserService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
@@ -42,15 +43,16 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto getUserByEmail(String email) {
-        User user=userRepository.findByEmail(email).orElseThrow(()->new ResourceNotFoundException("user not found with given email id"));
+        User user=userRepository.findByEmail(email)
+                .orElseThrow(()->new ResourceNotFoundException("user not found with given email id"));
         return modelMapper.map(user,UserDto.class);
     }
 
     @Override
     public UserDto updateUser(UserDto userDto, String userId) {
         User existingUser=userRepository.findById(userHelper.parseUUID(userId)).orElseThrow(()->new ResourceNotFoundException("User not found"));
-        if(userDto.getUsername()!=null)
-            existingUser.setUsername(userDto.getUsername());
+        if(userDto.getDisplayName()!=null)
+            existingUser.setDisplayName(userDto.getDisplayName());
         if(userDto.getProvider()!=null)
             existingUser.setProvider(userDto.getProvider());
         if(userDto.getPassword()!=null)

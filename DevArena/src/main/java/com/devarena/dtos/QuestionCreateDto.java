@@ -1,6 +1,7 @@
 package com.devarena.dtos;
 
 import com.devarena.models.QuestionDifficulty;
+import com.devarena.models.QuestionOrigin;
 import com.devarena.models.Testcase;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;

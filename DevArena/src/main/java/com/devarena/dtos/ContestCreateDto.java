@@ -2,6 +2,8 @@ package com.devarena.dtos;
 
 import com.devarena.models.Question;
 import com.devarena.models.User;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,10 +17,13 @@ import java.util.UUID;
 @NoArgsConstructor
 public class ContestCreateDto {
 
+    @NotNull
     private User owner;
 
+    @NotEmpty
     private String title;
 
+    @NotNull
     private List<Question> questions;
 
     private LocalDateTime startTime;

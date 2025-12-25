@@ -1,4 +1,4 @@
-import { renderMarkdown } from "../../lib/question-utils"
+import { renderMarkdown } from "../../apis/question-utils"
 
 export const LivePreview = ({ question }) => {
   return (

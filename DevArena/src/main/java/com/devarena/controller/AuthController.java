@@ -6,7 +6,7 @@ import com.devarena.dtos.UserDto;
 import com.devarena.models.User;
 import com.devarena.repositories.UserRepository;
 import com.devarena.security.JwtService;
-import com.devarena.service.AuthService;
+import com.devarena.service.interfaces.IAuthService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.modelmapper.ModelMapper;
@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.*;
 @AllArgsConstructor
 public class AuthController {
 
-    private final AuthService authService;
+    private final IAuthService authService;
     private final UserRepository userRepository;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;

@@ -7,6 +7,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -23,7 +24,7 @@ public class User implements UserDetails {
     private UUID userId;
 
     @Column(unique = true)
-    private String username;
+    private String displayName;
 
     @Column(unique = true)
     private String email;
@@ -38,24 +39,25 @@ public class User implements UserDetails {
     private Provider provider=Provider.LOCAL;
 
     @OneToMany(mappedBy = "owner")
-    private List<Contest> createdContests;
-
-    @ManyToMany
-    @JoinTable(name = "users_contests",
-                joinColumns = @JoinColumn(name="user_id"),
-                inverseJoinColumns = @JoinColumn(name="contest_id"))
-    private List<Contest> attendedContests;
-
-    @OneToMany(mappedBy = "owner")
-    private List<Question> createdQuestions;
+    private List<Contest> createdContests = new ArrayList<>();
 
     @ManyToMany(mappedBy = "modifiers")
-    private List<Question> modifierQuestions;
+    private List<Contest> modifierContests = new ArrayList<>();
+
+    @ManyToMany(mappedBy = "attendees")
+    private List<Contest> attendedContests = new ArrayList<>();
+
+    @OneToMany(mappedBy = "owner")
+    private List<Question> createdQuestions = new ArrayList<>();
+
+    @ManyToMany(mappedBy = "modifiers")
+    private List<Question> modifierQuestions = new ArrayList<>();
 
     @PrePersist
     protected void onCreate()
     {
         Instant now=Instant.now();
+        enable = true;
         if(createdAt==null)
             createdAt=now;
         updatesAt=now;

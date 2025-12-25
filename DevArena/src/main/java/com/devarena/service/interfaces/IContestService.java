@@ -1,4 +1,4 @@
-package com.devarena.service;
+package com.devarena.service.interfaces;
 
 
 import com.devarena.dtos.ContestResponseDto;

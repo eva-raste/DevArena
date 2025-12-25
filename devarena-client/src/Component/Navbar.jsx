@@ -51,7 +51,7 @@ function Navbar() {
                 <span className="text-gray-300 text-sm">
                   Hello,{" "}
                   <span className="text-white font-semibold">
-                    {user.username || user.name}
+                    {user.displayName}
                   </span>
                 </span>
                 <button

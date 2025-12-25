@@ -1,7 +1,7 @@
 package com.devarena.controller;
 
 import com.devarena.dtos.UserDto;
-import com.devarena.service.UserService;
+import com.devarena.service.interfaces.UserService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

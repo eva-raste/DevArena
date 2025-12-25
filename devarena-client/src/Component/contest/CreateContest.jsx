@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useCreateContest } from "../../hooks/useCreateContest.js";
-import { fetchQuestionCard } from "../../lib/question-api.js";
+import { fetchQuestionCard } from "../../apis/question-api.js";
 
 const CreateContest = () => {
   const [form, setForm] = useState({
@@ -21,7 +21,7 @@ const CreateContest = () => {
   const onChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
-  // 🔑 Add question on ENTER
+  // Add question on ENTER
   const handleSlugKeyDown = async (e) => {
     if (e.key !== "Enter") return;
     e.preventDefault();

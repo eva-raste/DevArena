@@ -7,15 +7,13 @@ import com.devarena.models.Question;
 import com.devarena.models.QuestionOrigin;
 import com.devarena.models.User;
 import com.devarena.repositories.IQuestionRepo;
+import com.devarena.service.interfaces.IQuesitonService;
 import jakarta.transaction.Transactional;
 import lombok.Data;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 @Data
@@ -32,18 +30,14 @@ public class QuestionServiceImpl implements IQuesitonService {
         }
         Question newquestion = modelMapper.map(question,Question.class);
         System.out.println("Saving question \n" + newquestion);
+
         // Owner (Many-to-One)
         newquestion.setOwner(owner);
 
-        owner.setCreatedQuestions(new ArrayList<>());
-        owner.getCreatedQuestions().add(newquestion);
-
         // Modifiers (Many-to-Many)
-        newquestion.setModifiers(new ArrayList<>());
         newquestion.getModifiers().add(owner);
 
-        owner.setModifierQuestions(new ArrayList<>());
-        owner.getModifierQuestions().add(newquestion);
+        newquestion.setOrigin(QuestionOrigin.OWN);
 
         questionRepo.save(newquestion);
 
@@ -93,6 +87,16 @@ public class QuestionServiceImpl implements IQuesitonService {
 //        }
         // store q in db
         return modelMapper.map(ques,QuestionCardDto.class);
+    }
+
+    @Override
+    public boolean existsByQuestionSlugAndOrigin(String questionSlug, QuestionOrigin origin) {
+        return questionRepo.existsByQuestionSlugAndOrigin(questionSlug,origin);
+    }
+
+    @Override
+    public Iterable<QuestionDto> getAllQuestionsByUser(User owner) {
+        return questionRepo.findAllByOwner(owner);
     }
 
 }

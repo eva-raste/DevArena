@@ -1,7 +1,8 @@
 package com.devarena.service;
 
 import com.devarena.dtos.UserDto;
-import com.devarena.service.UserService;
+import com.devarena.service.interfaces.AuthService;
+import com.devarena.service.interfaces.UserService;
 import lombok.AllArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

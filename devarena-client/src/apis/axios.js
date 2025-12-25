@@ -18,7 +18,6 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-
 // api.interceptors.response.use(
 //   (response) => response,
 //   (error) => {
