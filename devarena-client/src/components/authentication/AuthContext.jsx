@@ -1,7 +1,6 @@
-/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../../apis/axios";
+import { loginApi, fetchProfileApi } from "../../apis/auth-api";
 
 const AuthContext = createContext(null);
 
@@ -13,7 +12,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchCurrentUser = async () => {
+    const fetchProfile = async () => {
       if (!token) {
         setUser(null);
         setLoading(false);
@@ -21,29 +20,24 @@ export const AuthProvider = ({ children }) => {
       }
 
       try {
-        const res = await api.get("/profile/me");
-        console.log("profile fetched\n",res.data);
-        setUser(res.data);
-      } catch {
+        const userData = await fetchProfileApi();
+        setUser(userData);
+      } catch (err) {
         logout();
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCurrentUser();
+    fetchProfile();
   }, [token]);
 
   const login = async (email, password) => {
-    const res = await api.post("/auth/login", { email, password });
-
-    const token = res.data.accessToken;
-
+    const res = await loginApi(email, password);
+    console.log("hello");
+    const token = res.accessToken;
     localStorage.setItem("token", token);
     setToken(token);
-    setUser(res.data.user);
-    console.log(res.data);
-    console.log("token set");
   };
 
   const logout = () => {

@@ -35,7 +35,6 @@ public class UserServiceImpl implements UserService {
         }
 
         User user=modelMapper.map(userDto,User.class);
-        user.setProvider(userDto.getProvider()!=null ? userDto.getProvider() : Provider.LOCAL);
         User savedUser=userRepository.save(user);
         System.out.println("user saved ");
         return modelMapper.map(savedUser,UserDto.class);
@@ -53,13 +52,7 @@ public class UserServiceImpl implements UserService {
         User existingUser=userRepository.findById(userHelper.parseUUID(userId)).orElseThrow(()->new ResourceNotFoundException("User not found"));
         if(userDto.getDisplayName()!=null)
             existingUser.setDisplayName(userDto.getDisplayName());
-        if(userDto.getProvider()!=null)
-            existingUser.setProvider(userDto.getProvider());
-        if(userDto.getPassword()!=null)
-            existingUser.setPassword(userDto.getPassword());
-        if(userDto.getUpdatesAt()!=null)
-            existingUser.setUpdatesAt(Instant.now());
-        existingUser.setEnable((userDto.isEnable()));
+        
 
         User updatedUser=userRepository.save(existingUser);
         return modelMapper.map(updatedUser,UserDto.class);

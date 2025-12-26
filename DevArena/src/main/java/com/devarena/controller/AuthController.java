@@ -1,6 +1,7 @@
 package com.devarena.controller;
 
 import com.devarena.dtos.LoginRequest;
+import com.devarena.dtos.LoginUserDto;
 import com.devarena.dtos.TokenResponse;
 import com.devarena.dtos.UserDto;
 import com.devarena.models.User;
@@ -46,9 +47,22 @@ public class AuthController {
         if(!user.isEnabled())
             throw new DisabledException("User is disabled");
 
-        String accessToken= jwtService.generateAccessToken(user);
-        TokenResponse tokenResponse=TokenResponse.of(accessToken,"",jwtService.getAccessTtlSeconds(),"Bearer",mapper.map(user,UserDto.class));
-        System.out.println("User logged in : " + tokenResponse);
+        String accessToken = jwtService.generateAccessToken(user);
+
+        LoginUserDto loginUserDto = new LoginUserDto(
+                user.getDisplayName(),
+                user.getEmail()
+        );
+
+        TokenResponse tokenResponse = TokenResponse.of(
+                accessToken,
+                "",
+                jwtService.getAccessTtlSeconds(),
+                "Bearer",
+                loginUserDto
+        );
+
+
         return ResponseEntity.ok(tokenResponse);
     }
 

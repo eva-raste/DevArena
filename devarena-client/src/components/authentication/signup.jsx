@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from 'react-router-dom';
 import { Link } from "react-router-dom";
-import api from "../../apis/axios";
+import { signupApi } from "../../apis/auth-api";
 
 const Signup = () => {
   const [email, setEmail] = useState("");
@@ -19,7 +19,7 @@ const Signup = () => {
     setLoading(true);
 
     try {
-      await api.post("/auth/register", {
+      await signupApi({
         email,
         displayName,
         password,
