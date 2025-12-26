@@ -40,7 +40,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .sessionManagement(sm->sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .httpBasic(Customizer.withDefaults())
+//                .httpBasic(Customizer.withDefaults())
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()

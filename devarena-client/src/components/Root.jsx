@@ -3,11 +3,12 @@ import Navbar from './Navbar'
 import { Outlet } from 'react-router-dom'
 
 const Root = () => {
-  return (
-    <div>
-        <Navbar />
+ return (
+    <div className="min-h-screen">
+      <Navbar />
+      <main className="pt-16">
         <Outlet />
-      
+      </main>
     </div>
   )
 }

@@ -15,6 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
+
 @Service
 @Data
 public class QuestionServiceImpl implements IQuesitonService {
@@ -69,23 +71,14 @@ public class QuestionServiceImpl implements IQuesitonService {
     @Override
     public QuestionCardDto getCardByQuestionSlug(
             String slug,
-            QuestionOrigin questionOrigin
-    ) {
+            QuestionOrigin questionOrigin,
+            User owner) {
         Question ques = questionRepo
-                .findByQuestionSlugAndOrigin(slug, questionOrigin)
+                .findByQuestionSlugAndOriginAndOwner(slug, questionOrigin,owner)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "Question not found"
                 ));
-//        if(ques == null)
-//        {
-//            switch(questionOrigin)
-//            {
-//                case QuestionOrigin.LEETCODE -> break;
-//                case QuestionOrigin.CODEFORCES -> ;
-//            }
-//        }
-        // store q in db
         return modelMapper.map(ques,QuestionCardDto.class);
     }
 
@@ -95,8 +88,11 @@ public class QuestionServiceImpl implements IQuesitonService {
     }
 
     @Override
-    public Iterable<QuestionDto> getAllQuestionsByUser(User owner) {
-        return questionRepo.findAllByOwner(owner);
+    public List<QuestionDto> getAllQuestionsByUser(User owner) {
+        List<Question> qu = questionRepo.findAllByOwner(owner);
+        return qu.stream().map(
+                q -> modelMapper.map(q,QuestionDto.class)
+        ).toList();
     }
 
 }

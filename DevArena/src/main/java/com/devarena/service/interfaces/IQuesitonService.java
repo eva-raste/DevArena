@@ -8,6 +8,8 @@ import com.devarena.models.QuestionOrigin;
 import com.devarena.models.User;
 import jakarta.validation.constraints.NotBlank;
 
+import java.util.List;
+
 
 public interface IQuesitonService {
     public QuestionCreateDto createQuestion(QuestionCreateDto q, User owner);
@@ -18,9 +20,9 @@ public interface IQuesitonService {
 
     public QuestionDto findByQuestionSlug(String slug);
 
-    QuestionCardDto getCardByQuestionSlug(String slug, QuestionOrigin questionOrigin);
+    QuestionCardDto getCardByQuestionSlug(String slug, QuestionOrigin questionOrigin, User owner);
 
     boolean existsByQuestionSlugAndOrigin(@NotBlank String questionSlug, QuestionOrigin own);
 
-    Iterable<QuestionDto> getAllQuestionsByUser(User owner);
+    List<QuestionDto> getAllQuestionsByUser(User owner);
 }

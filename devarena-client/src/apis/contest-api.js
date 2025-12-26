@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 
 import api from "./axios.js";
 
@@ -15,3 +16,17 @@ export const createContestApi = async (payload) => {
 
   }
 };
+
+
+export const fetchAllCOntestsApi = async () =>{
+  try{
+    const response  = await api.get('/contests/me');
+
+    return response.data;
+  }
+  catch(err)
+  {
+    throw new Error("Failed to fetch Contests");
+  }
+  
+}

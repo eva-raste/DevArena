@@ -8,7 +8,7 @@ function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
 
   return (
-    <nav className="bg-gray-900 border-b border-gray-800 fixed w-full top-0 z-50">
+    <nav className="bg-gray-900 border-b border-gray-800 fixed top-0 w-full h-16 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           
@@ -43,6 +43,12 @@ function Navbar() {
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-medium transition"
             >
               Create Contest
+            </Link>
+            <Link
+              to="/my-contests"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-medium transition"
+            >
+              My Contests
             </Link>
 
             {/* Auth Section */}
@@ -131,7 +137,7 @@ function Navbar() {
                 <div className="px-3 py-2 text-gray-300">
                   Hello,{" "}
                   <span className="text-white font-semibold">
-                    {user.username || user.name}
+                    {user.displayName}
                   </span>
                 </div>
                 <button

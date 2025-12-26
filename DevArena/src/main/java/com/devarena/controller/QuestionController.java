@@ -51,9 +51,12 @@ public class QuestionController {
 
     @GetMapping(value = "/card/{slug}/{origin}",produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<QuestionCardDto> getQuestionCardByQuestionSlug
-            (@PathVariable("slug") String slug, @PathVariable("origin")QuestionOrigin questionOrigin)
+            (
+                    @PathVariable("slug") String slug, @PathVariable("origin")QuestionOrigin questionOrigin,
+                @AuthenticationPrincipal User owner
+            )
     {
-        QuestionCardDto q = questionService.getCardByQuestionSlug(slug,questionOrigin);
+        QuestionCardDto q = questionService.getCardByQuestionSlug(slug,questionOrigin,owner);
 
         return ResponseEntity.ok(q);
     }

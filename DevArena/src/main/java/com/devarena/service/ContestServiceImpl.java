@@ -11,6 +11,7 @@ import com.devarena.security.RoomIdGenerator;
 import com.devarena.service.interfaces.IContestService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
@@ -60,6 +61,12 @@ public class ContestServiceImpl implements IContestService {
                 .orElseThrow(() -> new RuntimeException("Contest not found"));
 
         return toResponseDto(contest);
+    }
+
+    @Override
+    public List<ContestResponseDto> getOwnerContests(User owner) {
+        List<Contest> contests =  contestRepo.findAllByOwner(owner);
+        return contests.stream().map(this::toResponseDto).toList();
     }
 
 //    @Override

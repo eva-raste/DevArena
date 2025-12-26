@@ -1,13 +1,14 @@
 import { Routes, Route} from "react-router-dom";
-import Home from "./Component/home"
-import Problemset from "./Component/ProblemSet"
-import Solve from "./Component/solve"
-import CreateQuestion from "./Component/question/CreateQuestion";
-import QuestionsList from "./Component/question/QuestionsList";
-import CreateContest from "./Component/contest/CreateContest";
-import Root from "./Component/Root";
-import Login from "./Component/authentication/login";
-import Signup from "./Component/authentication/signup";
+import Home from "./components/home"
+import Problemset from "./components/ProblemSet"
+import Solve from "./components/solve"
+import CreateQuestion from "./components/question/CreateQuestion";
+import QuestionsList from "./components/question/QuestionsList";
+import CreateContest from "./components/contest/CreateContest";
+import Root from "./components/Root";
+import Login from "./components/authentication/login";
+import Signup from "./components/authentication/signup";
+import ContestsPage from "./components/contest/ContestsPage";
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
           <Route path="/create-question" element={ <CreateQuestion /> }/>
           <Route path="/show-all-questions" element={ <QuestionsList /> }/>
           <Route path="/create-contest" element={<CreateContest />} />
+          <Route path="/my-contests" element={ < ContestsPage />} />
         </Route>
         <Route path="/login" element={<Login/>} />
         <Route path="/signup" element={<Signup/>} />

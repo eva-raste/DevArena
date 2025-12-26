@@ -85,11 +85,13 @@ public class Contest
         contest.startTime = req.getStartTime();
         contest.endTime = req.getEndTime();
         contest.roomId = roomId;
+        System.out.println("Owner is " + owner);
         contest.setOwner(owner);
         contest.getModifiers().add(owner);
         contest.status = ContestStatus.SCHEDULED;
 
         contest.addQuestions(questions);
+        System.out.println("Creating contest : \n" + contest);
         return contest;
     }
 

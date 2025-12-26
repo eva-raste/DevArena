@@ -22,5 +22,10 @@ public interface IQuestionRepo extends JpaRepository<Question, UUID> {
 
     boolean existsByQuestionSlugAndOrigin(String questionSlug, QuestionOrigin origin);
 
-    List<QuestionDto> findAllByOwner(User owner);
+    List<Question> findAllByOwner(User owner);
+
+    Optional<Question> findByQuestionSlugAndOriginAndOwner(
+            String slug
+            , QuestionOrigin questionOrigin
+            , User owner);
 }

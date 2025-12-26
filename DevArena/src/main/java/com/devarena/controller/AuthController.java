@@ -42,13 +42,13 @@ public class AuthController {
     {
         Authentication authenticate=authenticate(loginRequest);
         User user=userRepository.findByEmail(loginRequest.getEmail()).orElseThrow(()-> new BadCredentialsException("Invalid username or password"));
-        //System.out.println("email is : "+ user.getEmail());
+        System.out.println("email is : "+ user.getEmail());
         if(!user.isEnabled())
             throw new DisabledException("User is disabled");
 
         String accessToken= jwtService.generateAccessToken(user);
         TokenResponse tokenResponse=TokenResponse.of(accessToken,"",jwtService.getAccessTtlSeconds(),"Bearer",mapper.map(user,UserDto.class));
-
+        System.out.println("User logged in : " + tokenResponse);
         return ResponseEntity.ok(tokenResponse);
     }
 

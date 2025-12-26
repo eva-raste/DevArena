@@ -19,7 +19,8 @@ const QuestionsList = () => {
     try {
       setLoading(true);
 
-      const data = await fetchQuestionsApi(); // ✅ call API, not itself
+      // fetching all questions of current user
+      const data = await fetchQuestionsApi(); 
       setQuestions(data);
       setError(null);
 

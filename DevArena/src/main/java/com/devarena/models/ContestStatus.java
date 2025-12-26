@@ -4,6 +4,5 @@ public enum ContestStatus {
     DRAFT,
     SCHEDULED,
     LIVE,
-    ENDED,
-    CANCELLED
+    ENDED
 }

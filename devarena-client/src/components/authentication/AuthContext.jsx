@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../apis/axios";
@@ -21,6 +22,7 @@ export const AuthProvider = ({ children }) => {
 
       try {
         const res = await api.get("/profile/me");
+        console.log("profile fetched\n",res.data);
         setUser(res.data);
       } catch {
         logout();
@@ -40,6 +42,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem("token", token);
     setToken(token);
     setUser(res.data.user);
+    console.log(res.data);
     console.log("token set");
   };
 
