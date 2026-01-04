@@ -1,8 +1,11 @@
 package com.devarena.dtos;
 
 import com.devarena.models.QuestionDifficulty;
+import com.devarena.models.QuestionOrigin;
+import com.devarena.models.Testcase;
 import lombok.Data;
 
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -19,4 +22,13 @@ public class QuestionCardDto {
     private QuestionDifficulty difficulty;
 
     private Integer score;
+
+    private String constraints;
+
+    private List<Testcase> sampleTestcases;
+
+    private List<Testcase> hiddenTestcases;
+
+    private QuestionOrigin origin = QuestionOrigin.OWN;
+
 }

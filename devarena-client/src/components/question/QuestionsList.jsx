@@ -20,7 +20,7 @@ const QuestionsList = () => {
       setLoading(true);
 
       // fetching all questions of current user
-      const data = await fetchQuestionsApi(); 
+      const data = await fetchQuestionsApi();
       setQuestions(data);
       setError(null);
 
@@ -57,9 +57,10 @@ const QuestionsList = () => {
         return matchesFilter && matchesSearch
     })
 
-  const handleCardClick = (questionId) => {
-    navigate(`/question/${questionId}`);
+  const handleCardClick = (slug) => {
+    navigate(`/question/${slug}`);
   };
+
 
   const handleCreateNew = () => {
     navigate('/create-question');
@@ -197,11 +198,11 @@ const QuestionsList = () => {
         ) : (
           <div className={styles.gridContainer}>
             {filteredQuestions.map((question) => (
-              <div
-                key={question._id || question.questionSlug}
-                onClick={() => handleCardClick(question._id)}
-                className={`${styles.questionCard} cursor-pointer`}
-              >
+                <div
+                  key={question.questionSlug}
+                  onClick={() => handleCardClick(question.questionSlug)}
+                  className={`${styles.questionCard} cursor-pointer`}
+                >
                 {/* Card Header */}
                 <div className="flex justify-between items-start mb-3">
                   <h3 className="text-xl font-bold text-gray-100 flex-1 pr-4">

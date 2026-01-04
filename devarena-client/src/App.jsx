@@ -9,7 +9,7 @@ import Root from "./components/Root";
 import Login from "./components/authentication/login";
 import Signup from "./components/authentication/signup";
 import ContestsPage from "./components/contest/ContestsPage";
-
+import QuestionSolve from "./components/question/QuestionSolve";
 function App() {
   return (
     <div>
@@ -24,6 +24,8 @@ function App() {
           <Route path="/show-all-questions" element={ <QuestionsList /> }/>
           <Route path="/create-contest" element={<CreateContest />} />
           <Route path="/my-contests" element={ < ContestsPage />} />
+          <Route path="/question/:slug" element={<QuestionSolve />} />
+
         </Route>
         <Route path="/login" element={<Login/>} />
         <Route path="/signup" element={<Signup/>} />

@@ -31,3 +31,15 @@ export async function fetchQuestionCard(slug, origin) {
     throw new Error("Question not found");
   }
 }
+
+export async function runCode(code, testcases) {
+  try {
+    const res = await api.post("/run", {
+      code,
+      testcases,
+    });
+    return res.data;
+  } catch (err) {
+    throw new Error("Failed to run code");
+  }
+}

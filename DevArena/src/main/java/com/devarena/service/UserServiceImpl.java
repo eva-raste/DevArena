@@ -52,7 +52,7 @@ public class UserServiceImpl implements UserService {
         User existingUser=userRepository.findById(userHelper.parseUUID(userId)).orElseThrow(()->new ResourceNotFoundException("User not found"));
         if(userDto.getDisplayName()!=null)
             existingUser.setDisplayName(userDto.getDisplayName());
-        
+
 
         User updatedUser=userRepository.save(existingUser);
         return modelMapper.map(updatedUser,UserDto.class);

@@ -1,71 +1,99 @@
 package com.devarena.service;
 
 import org.springframework.stereotype.Service;
-import java.io.IOException;
+
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class LocalCppRunnerService {
 
-    public Result execute(String code, String stdin) {
-        Result result = new Result();
+    public List<Result> executeBatch(String code, List<String> testcases) {
+        List<Result> results = new ArrayList<>();
 
         try {
-            // Temp directory
+            //COMPILE ONCE
+
             Path tempDir = Files.createTempDirectory("cpp");
             Path codeFile = tempDir.resolve("code.cpp");
-            Files.writeString(codeFile, code);
+            Files.writeString(codeFile, code, StandardCharsets.UTF_8);
 
-            // STEP 1 — Compile
             Process compile = new ProcessBuilder(
                     "docker", "run", "--rm",
-                    "-v", tempDir.toString() + ":/usr/src/myapp",
+                    "-v", tempDir.toAbsolutePath() + ":/usr/src/myapp",
                     "-w", "/usr/src/myapp",
                     "gpp-runner",
-                    "g++", "code.cpp", "-o", "app"
-            ).start();
+                    "g++", "code.cpp", "-O2", "-std=c++17", "-o", "app"
+            ).redirectErrorStream(true).start();
 
-            compile.waitFor();
-            String compileErr = new String(compile.getErrorStream().readAllBytes());
+            compile.waitFor(10, TimeUnit.SECONDS);
 
-            if (!compileErr.isEmpty()) {
-                result.stderr = compileErr;
-                return result;
+            String compileOut = new String(
+                    compile.getInputStream().readAllBytes(),
+                    StandardCharsets.UTF_8
+            );
+
+            if (compile.exitValue() != 0) {
+                for (int i = 0; i < testcases.size(); i++) {
+                    results.add(new Result("", compileOut));
+                }
+                return results;
             }
 
-            // STEP 2 — Run the executable
-            Process run = new ProcessBuilder(
-                    "docker", "run", "--rm",
-                    "-v", tempDir.toString() + ":/usr/src/myapp",
-                    "-w", "/usr/src/myapp",
-                    "gpp-runner",
-                    "./app"
-            ).start();
+            //RUN BINARY PER TESTCASE
 
-            // Pass STDIN to program
-            if (!stdin.isEmpty()) {
-                run.getOutputStream().write(stdin.getBytes());
-                run.getOutputStream().flush();
+            for (String stdin : testcases) {
+
+                if (!stdin.endsWith("\n"))
+                    stdin += "\n";
+
+                Process run = new ProcessBuilder(
+                        "docker", "run", "--rm", "-i",
+                        "-v", tempDir.toAbsolutePath() + ":/usr/src/myapp",
+                        "-w", "/usr/src/myapp",
+                        "gpp-runner",
+                        "./app"
+                ).start();
+
+                try (OutputStream os = run.getOutputStream()) {
+                    os.write(stdin.getBytes(StandardCharsets.UTF_8));
+                    os.flush();
+                }
+
+                run.waitFor(5, TimeUnit.SECONDS);
+
+                String stdout = new String(
+                        run.getInputStream().readAllBytes(),
+                        StandardCharsets.UTF_8
+                );
+                String stderr = new String(
+                        run.getErrorStream().readAllBytes(),
+                        StandardCharsets.UTF_8
+                );
+
+                results.add(new Result(stdout, stderr));
             }
-            run.getOutputStream().close();
-
-            String stdout = new String(run.getInputStream().readAllBytes());
-            String stderr = new String(run.getErrorStream().readAllBytes());
-            run.waitFor();
-
-            result.stdout = stdout;
-            result.stderr = stderr;
 
         } catch (Exception e) {
-            result.stderr = "Execution error: " + e.getMessage();
+            results.clear();
+            results.add(new Result("", "Execution error: " + e.getMessage()));
         }
 
-        return result;
+        return results;
     }
 
     public static class Result {
-        public String stdout = "";
-        public String stderr = "";
+        public String stdout;
+        public String stderr;
+
+        public Result(String stdout, String stderr) {
+            this.stdout = stdout;
+            this.stderr = stderr;
+        }
     }
 }

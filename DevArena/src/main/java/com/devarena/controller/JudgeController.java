@@ -4,6 +4,7 @@ import com.devarena.service.LocalCppRunnerService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @CrossOrigin(origins = "http://localhost:5173")
@@ -18,19 +19,19 @@ public class JudgeController {
     }
 
     @PostMapping("/run")
-    public ResponseEntity<?> run(@RequestBody Map<String, String> body) {
+    public ResponseEntity<?> runBatch(@RequestBody Map<String, Object> body) {
 
-        String code = body.get("code");
-        String stdin = body.get("stdin");
+        String code = (String) body.get("code");
+        @SuppressWarnings("unchecked")
+        List<String> testcases = (List<String>) body.get("testcases");
 
-        if (code == null)
-            return ResponseEntity.badRequest().body("Missing code");
+        if (code == null || testcases == null)
+            return ResponseEntity.badRequest().body("Missing code or testcases");
 
-        LocalCppRunnerService.Result result = runner.execute(code, stdin == null ? "" : stdin);
+        List<LocalCppRunnerService.Result> results =
+                runner.executeBatch(code, testcases);
 
-        return ResponseEntity.ok(Map.of(
-                "stdout", result.stdout,
-                "stderr", result.stderr
-        ));
+        return ResponseEntity.ok(Map.of("results", results));
     }
+
 }
