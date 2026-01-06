@@ -3,7 +3,6 @@ package com.devarena.controller;
 import com.devarena.dtos.QuestionCardDto;
 import com.devarena.dtos.QuestionCreateDto;
 import com.devarena.dtos.QuestionDto;
-import com.devarena.models.QuestionOrigin;
 import com.devarena.models.User;
 import com.devarena.service.interfaces.IQuesitonService;
 import jakarta.validation.Valid;
@@ -26,8 +25,7 @@ public class QuestionController {
                                                             @AuthenticationPrincipal User owner) {
 
         // if same slug exists in db
-        // as creating question, so origin is OWN always
-        if (questionService.existsByQuestionSlugAndOrigin(question.getQuestionSlug(),QuestionOrigin.OWN)) {
+        if (questionService.existsByQuestionSlug(question.getQuestionSlug())) {
             return ResponseEntity
                     .status(409)
                     .body(null);
@@ -49,14 +47,14 @@ public class QuestionController {
         return ResponseEntity.ok(questionService.findByQuestionSlug(slug));
     }
 
-    @GetMapping(value = "/card/{slug}/{origin}",produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/card/{slug}",produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<QuestionCardDto> getQuestionCardByQuestionSlug
             (
-                    @PathVariable("slug") String slug, @PathVariable("origin")QuestionOrigin questionOrigin,
+                    @PathVariable("slug") String slug,
                 @AuthenticationPrincipal User owner
             )
     {
-        QuestionCardDto q = questionService.getCardByQuestionSlug(slug,questionOrigin,owner);
+        QuestionCardDto q = questionService.getCardByQuestionSlug(slug,owner);
 
         return ResponseEntity.ok(q);
     }

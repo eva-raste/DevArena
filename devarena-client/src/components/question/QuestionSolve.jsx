@@ -5,7 +5,6 @@ import * as monaco from "monaco-editor";
 
 const QuestionSolve = () => {
   const { slug } = useParams();
-  var origin = "OWN";
 
   const [question, setQuestion] = useState(null);
   const [language, setLanguage] = useState("cpp");
@@ -41,8 +40,8 @@ int main() {
   const loadQuestion = async () => {
     try {
       setLoading(true);
-      const data = await fetchQuestionCard(slug, origin);
-      origin = data.origin;
+      const data = await fetchQuestionCard(slug);
+      console.log(data);
       setQuestion(data);
     } catch {
       setError("Question not found");

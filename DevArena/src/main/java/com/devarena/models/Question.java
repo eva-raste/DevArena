@@ -15,7 +15,7 @@ import org.hibernate.type.SqlTypes;
 @NoArgsConstructor
 @Table(
         uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"question_slug", "origin"})
+                @UniqueConstraint(columnNames = {"question_slug"})
         }
 )
 @Entity
@@ -65,21 +65,4 @@ public class Question {
     @Column(name = "hidden_testcases", columnDefinition = "jsonb")
     private List<Testcase> hiddenTestcases = new ArrayList<>();
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "function_templates", columnDefinition = "jsonb")
-    private Map<String, String> functionTemplates;
-
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "main_function", columnDefinition = "jsonb")
-    private Map<String, String> mainFunction;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private QuestionOrigin origin = QuestionOrigin.OWN;
-
-
-    @PrePersist
-    void init() {
-        if (origin == null) origin = QuestionOrigin.OWN;
-    }
 }

@@ -1,7 +1,6 @@
 package com.devarena.dtos;
 
 import com.devarena.models.QuestionDifficulty;
-import com.devarena.models.QuestionOrigin;
 import com.devarena.models.Testcase;
 import lombok.Data;
 
@@ -29,6 +28,5 @@ public class QuestionCardDto {
 
     private List<Testcase> hiddenTestcases;
 
-    private QuestionOrigin origin = QuestionOrigin.OWN;
 
 }

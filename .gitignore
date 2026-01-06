@@ -16,3 +16,24 @@ Thumbs.db
 .project
 devarena-client/.early.coverage/v8/coverage-final.json
 
+# =========================
+# Python ingestion workspace
+# =========================
+
+# Virtual environment
+data-ingestion/codeforces/.venv/
+data-ingestion/codeforces/venv/
+
+# Python cache
+data-ingestion/**/__pycache__/
+data-ingestion/**/*.pyc
+data-ingestion/**/*.pyo
+
+# Generated ingestion output
+data-ingestion/codeforces/output/
+data-ingestion/codeforces/*.ndjson
+
+data-ingestion/codeforces/.env
+
+
+

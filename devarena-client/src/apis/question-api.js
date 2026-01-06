@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import api from "./axios"; // default export
 
 export async function createQuestion(question) {
@@ -23,9 +24,9 @@ export const fetchQuestionsApi = async () => {
   }
 };
 
-export async function fetchQuestionCard(slug, origin) {
+export async function fetchQuestionCard(slug) {
   try {
-    const res = await api.get(`/questions/card/${slug}/${origin}`);
+    const res = await api.get(`/questions/card/${slug}`);
     return res.data;
   } catch (err) {
     throw new Error("Question not found");

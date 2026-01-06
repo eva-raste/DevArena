@@ -12,7 +12,6 @@ const CreateContest = () => {
   });
 
   const [slugInput, setSlugInput] = useState("");
-  const [origin, setOrigin] = useState("OWN");
   const [questions, setQuestions] = useState([]);
   const [questionError, setQuestionError] = useState(null);
 
@@ -32,8 +31,7 @@ const CreateContest = () => {
       setQuestionError(null);
 
       const card = await fetchQuestionCard(
-        slugInput.trim(),
-        origin
+        slugInput.trim()
       );
 
       // prevent duplicates
@@ -130,15 +128,7 @@ const CreateContest = () => {
                 className="flex-1 bg-[#020617] border border-slate-700 rounded-md px-3 py-2 text-slate-100"
               />
 
-              <select
-                value={origin}
-                onChange={(e) => setOrigin(e.target.value)}
-                className="bg-[#020617] border border-slate-700 rounded-md px-3 py-2 text-slate-100"
-              >
-                <option value="OWN">OWN</option>
-                <option value="LEETCODE">LEETCODE</option>
-                <option value="CODEFORCES">CODEFORCES</option>
-              </select>
+              
             </div>
 
             {questionError && (

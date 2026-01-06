@@ -4,7 +4,6 @@ import com.devarena.dtos.QuestionCardDto;
 import com.devarena.dtos.QuestionCreateDto;
 import com.devarena.dtos.QuestionDto;
 import com.devarena.models.Question;
-import com.devarena.models.QuestionOrigin;
 import com.devarena.models.User;
 import com.devarena.repositories.IQuestionRepo;
 import com.devarena.service.interfaces.IQuesitonService;
@@ -39,8 +38,6 @@ public class QuestionServiceImpl implements IQuesitonService {
         // Modifiers (Many-to-Many)
         newquestion.getModifiers().add(owner);
 
-        newquestion.setOrigin(QuestionOrigin.OWN);
-
         questionRepo.save(newquestion);
 
         System.out.println("after save question \n" + newquestion);
@@ -71,20 +68,16 @@ public class QuestionServiceImpl implements IQuesitonService {
     @Override
     public QuestionCardDto getCardByQuestionSlug(
             String slug,
-            QuestionOrigin questionOrigin,
             User owner) {
-        Question ques = questionRepo
-                .findByQuestionSlugAndOriginAndOwner(slug, questionOrigin,owner)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Question not found"
-                ));
-        return modelMapper.map(ques,QuestionCardDto.class);
-    }
+        Question ques = null;
+                ques = questionRepo
+                        .findByQuestionSlugAndOwner(slug,owner)
+                        .orElseThrow(() -> new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Question not found"
+                        ));
 
-    @Override
-    public boolean existsByQuestionSlugAndOrigin(String questionSlug, QuestionOrigin origin) {
-        return questionRepo.existsByQuestionSlugAndOrigin(questionSlug,origin);
+        return modelMapper.map(ques,QuestionCardDto.class);
     }
 
     @Override

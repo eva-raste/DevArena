@@ -41,7 +41,6 @@ public class LocalCppRunnerService {
                     "docker", "exec", containerName,
                     "g++", "code.cpp", "-O2", "-std=c++17", "-o", "app"
             ).redirectErrorStream(true).start();
-
             compile.waitFor(10, TimeUnit.SECONDS);
 
             String compileOutput = new String(

@@ -1,13 +1,10 @@
 package com.devarena.dtos;
 
 import com.devarena.models.QuestionDifficulty;
-import com.devarena.models.QuestionOrigin;
 import com.devarena.models.Testcase;
-import lombok.Data;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
-import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
@@ -33,5 +30,4 @@ public class QuestionDto {
 
     private List<Testcase> hiddenTestcases;
 
-    private QuestionOrigin origin = QuestionOrigin.OWN;
 }
