@@ -1,7 +1,9 @@
 package com.devarena.service;
 
+import com.devarena.dtos.ContestDetailDto;
 import com.devarena.dtos.ContestResponseDto;
 import com.devarena.dtos.CreateContestRequest;
+import com.devarena.dtos.QuestionDto;
 import com.devarena.models.Contest;
 import com.devarena.models.Question;
 import com.devarena.models.User;
@@ -79,6 +81,40 @@ public class ContestServiceImpl implements IContestService {
 //    }
 
 //    public ContestResponseDto
+
+    @Override
+    public ContestDetailDto getContestDetails(String roomId) {
+        Contest contest = contestRepo.findByRoomId(roomId)
+                .orElseThrow(() -> new RuntimeException("Contest not found"));
+
+        ContestDetailDto dto = new ContestDetailDto();
+
+        dto.setRoomId(contest.getRoomId());
+        dto.setTitle(contest.getTitle());
+        dto.setVisibility(contest.getVisibility());
+        dto.setInstructions(contest.getInstructions());
+        dto.setStartTime(contest.getStartTime());
+        dto.setEndTime(contest.getEndTime());
+
+        // Map questions
+        List<QuestionDto> questions = contest.getQuestions()
+                .stream()
+                .map(this::toQuestionDto)
+                .toList();
+
+        dto.setQuestions(questions);
+
+        return dto;
+    }
+
+    private QuestionDto toQuestionDto(Question question) {
+        QuestionDto dto = new QuestionDto();
+        dto.setConstraints(question.getConstraints());
+        dto.setDifficulty(question.getDifficulty());
+        dto.setTitle(question.getTitle());
+        dto.setDescription(question.getDescription());
+        return dto;
+    }
 
     private ContestResponseDto toResponseDto(Contest contest) {
         ContestResponseDto dto = new ContestResponseDto();

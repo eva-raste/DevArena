@@ -10,6 +10,7 @@ import Login from "./components/authentication/login";
 import Signup from "./components/authentication/signup";
 import ContestsPage from "./components/contest/ContestsPage";
 import QuestionSolve from "./components/question/QuestionSolve";
+import ContestDetailsPage from "./components/contest/ContestDetailsPage";
 function App() {
   return (
     <div>
@@ -24,6 +25,8 @@ function App() {
           <Route path="/show-all-questions" element={ <QuestionsList /> }/>
           <Route path="/create-contest" element={<CreateContest />} />
           <Route path="/my-contests" element={ < ContestsPage />} />
+          <Route path="/contests/:contestId" element={<ContestDetailsPage />} />
+
           <Route path="/question/:slug" element={<QuestionSolve />} />
 
         </Route>

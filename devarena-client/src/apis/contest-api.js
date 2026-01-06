@@ -30,3 +30,15 @@ export const fetchAllCOntestsApi = async () =>{
   }
   
 }
+
+export const fetchContestByIdApi = async (roomId) => {
+  try {
+    const res = await api.get(`/contests/${roomId}`)
+    return res.data
+  } catch (error) {
+    console.error("Failed to fetch contest details", error)
+    throw new Error(
+      error.response?.data?.message || "Unable to fetch contest details"
+    )
+  }
+}

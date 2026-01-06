@@ -1,6 +1,7 @@
 package com.devarena.service.interfaces;
 
 
+import com.devarena.dtos.ContestDetailDto;
 import com.devarena.dtos.ContestResponseDto;
 import com.devarena.dtos.CreateContestRequest;
 import com.devarena.models.User;
@@ -17,4 +18,5 @@ public interface IContestService {
     List<ContestResponseDto> getOwnerContests(User owner);
 
 
+    ContestDetailDto getContestDetails(String roomId);
 }

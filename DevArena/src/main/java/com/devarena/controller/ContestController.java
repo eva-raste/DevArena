@@ -1,6 +1,7 @@
 package com.devarena.controller;
 
 
+import com.devarena.dtos.ContestDetailDto;
 import com.devarena.dtos.ContestResponseDto;
 import com.devarena.dtos.CreateContestRequest;
 import com.devarena.models.User;
@@ -45,4 +46,13 @@ public class ContestController {
         System.out.println(response);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/{roomId}")
+    public ResponseEntity<ContestDetailDto> getContestDetails(
+            @PathVariable String roomId
+    ) {
+        ContestDetailDto response = contestService.getContestDetails(roomId);
+        return ResponseEntity.ok(response);
+    }
+
 }

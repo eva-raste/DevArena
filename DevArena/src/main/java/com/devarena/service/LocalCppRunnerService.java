@@ -15,53 +15,57 @@ public class LocalCppRunnerService {
 
     public List<Result> executeBatch(String code, List<String> testcases) {
         List<Result> results = new ArrayList<>();
+        String containerName = "cpp-runner-" + System.nanoTime();
 
         try {
-            //COMPILE ONCE
-
+            //Create temp workspace
             Path tempDir = Files.createTempDirectory("cpp");
-            Path codeFile = tempDir.resolve("code.cpp");
-            Files.writeString(codeFile, code, StandardCharsets.UTF_8);
+            Files.writeString(tempDir.resolve("code.cpp"), code, StandardCharsets.UTF_8);
 
-            Process compile = new ProcessBuilder(
-                    "docker", "run", "--rm",
-                    "-v", tempDir.toAbsolutePath() + ":/usr/src/myapp",
-                    "-w", "/usr/src/myapp",
+            //Start ONE container (reused)
+            new ProcessBuilder(
+                    "docker", "run", "-dit",
+                    "--name", containerName,
+                    "-v", tempDir.toAbsolutePath() + ":/work",
+                    "-w", "/work",
+                    "--cpus=1",
+                    "--memory=256m",
+                    "--pids-limit=64",
+                    "--network=none",
                     "gpp-runner",
+                    "bash"
+            ).start().waitFor();
+
+            //Compile ONCE
+            Process compile = new ProcessBuilder(
+                    "docker", "exec", containerName,
                     "g++", "code.cpp", "-O2", "-std=c++17", "-o", "app"
             ).redirectErrorStream(true).start();
 
             compile.waitFor(10, TimeUnit.SECONDS);
 
-            String compileOut = new String(
+            String compileOutput = new String(
                     compile.getInputStream().readAllBytes(),
                     StandardCharsets.UTF_8
             );
 
             if (compile.exitValue() != 0) {
                 for (int i = 0; i < testcases.size(); i++) {
-                    results.add(new Result("", compileOut));
+                    results.add(new Result("", compileOutput));
                 }
                 return results;
             }
 
-            //RUN BINARY PER TESTCASE
-
-            for (String stdin : testcases) {
-
-                if (!stdin.endsWith("\n"))
-                    stdin += "\n";
-
+            // Run EACH testcase inside SAME container
+            for (String input : testcases) {
                 Process run = new ProcessBuilder(
-                        "docker", "run", "--rm", "-i",
-                        "-v", tempDir.toAbsolutePath() + ":/usr/src/myapp",
-                        "-w", "/usr/src/myapp",
-                        "gpp-runner",
+                        "docker", "exec", "-i",
+                        containerName,
                         "./app"
                 ).start();
 
                 try (OutputStream os = run.getOutputStream()) {
-                    os.write(stdin.getBytes(StandardCharsets.UTF_8));
+                    os.write(input.getBytes(StandardCharsets.UTF_8));
                     os.flush();
                 }
 
@@ -76,12 +80,17 @@ public class LocalCppRunnerService {
                         StandardCharsets.UTF_8
                 );
 
-                results.add(new Result(stdout, stderr));
+                results.add(new Result(stdout.trim(), stderr.trim()));
             }
 
         } catch (Exception e) {
             results.clear();
             results.add(new Result("", "Execution error: " + e.getMessage()));
+        } finally {
+            // Cleanup container
+            try {
+                new ProcessBuilder("docker", "rm", "-f", containerName).start();
+            } catch (Exception ignored) {}
         }
 
         return results;
