@@ -46,9 +46,9 @@ def normalize_example(ex):
 
 def normalize_row(row):
     examples = row.get("examples") or []
-
+    slug = row["id"].strip().lower()
     return {
-        "slug": row["id"],
+        "slug": slug,
         "title": row.get("title"),
         "description": row.get("description"),
         "examples": [

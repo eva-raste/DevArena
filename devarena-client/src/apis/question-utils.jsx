@@ -18,6 +18,7 @@ export const generateUUID = () => {
 
 // Convert title to slug - simple: replace spaces with dashes and lower-case
 export const slugify = (title) => {
+  
   return String(title || "").trim().replace(/\s+/g, "-").toLowerCase()
 }
 

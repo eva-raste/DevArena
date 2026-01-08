@@ -44,3 +44,17 @@ export async function runCode(code, testcases) {
     throw new Error("Failed to run code");
   }
 }
+
+export async function fetchCodeforcesQuestionApi(slug)
+{
+  try{
+    const res = await api.get(`/questions/prefill/codeforces`,{
+       params: { slug }
+    });
+    return res.data;
+  }
+  catch(err)
+  {
+    throw new Error("Failed to fetch CodeForces question...")
+  }
+}

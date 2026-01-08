@@ -1,16 +1,17 @@
+/* eslint-disable no-unused-vars */
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
 import { generateUUID, slugify, validateQuestion } from "../../apis/question-utils"
 import { createQuestion } from "../../apis/question-api"
-import { Toast } from "./Toast"
 import { QuestionForm } from "./QuestionForm"
 import { LivePreview } from "./LivePreview"
 import { JsonPreview } from "./JsonPreview"
 import { PublishModal } from "./PublishModal"
-import styles from './css/CreateQuestion.module.css';
+import { CodeforcesPrefill } from "./CodeforcesPrefill"
+import { AppToast } from "./AppToast"
+import styles from "./css/CreateQuestion.module.css"
 import { useNavigate } from "react-router-dom"
-
 
 const CreateQuestion = ({ existingSlugs = [] }) => {
   const emptyState = {
@@ -25,7 +26,7 @@ const CreateQuestion = ({ existingSlugs = [] }) => {
     hiddenTestcases: [],
   }
 
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   const [question, setQuestion] = useState({ ...emptyState })
   const [errors, setErrors] = useState([])
@@ -35,20 +36,17 @@ const CreateQuestion = ({ existingSlugs = [] }) => {
   const [lastAddedSampleId, setLastAddedSampleId] = useState(null)
   const [lastAddedHiddenId, setLastAddedHiddenId] = useState(null)
   const [scoreInput, setScoreInput] = useState("")
-  // eslint-disable-next-line no-unused-vars
-  const [isPublishing, setIsPublishing] = useState(false)
 
-
-  /* Slug auto-generate */
+  /* auto-generate slug */
   useEffect(() => {
-    if (!question.title) return
+    if (!question.title || question.questionSlug) return
     setQuestion(prev => ({
       ...prev,
       questionSlug: slugify(question.title),
     }))
   }, [question.title])
 
-  /* Slug conflict */
+  /* slug conflict */
   useEffect(() => {
     setSlugWarning(
       question.questionSlug &&
@@ -66,32 +64,27 @@ const CreateQuestion = ({ existingSlugs = [] }) => {
   }, [])
 
   const handleScoreInputChange = useCallback((e) => {
-    const value = e.target.value
-    if (value === "" || /^\d+$/.test(value)) {
-      setScoreInput(value)
+    const v = e.target.value
+    if (v === "" || /^\d+$/.test(v)) {
+      setScoreInput(v)
       setQuestion(prev => ({
         ...prev,
-        score: value === "" ? 0 : Number(value),
+        score: v === "" ? 0 : Number(v),
       }))
     }
   }, [])
 
-  const makeSlugUnique = useCallback(() => {
-    const base = question.questionSlug || "question"
-    let counter = 1
-    let slug = `${base}-${counter}`
+  /* ---------------- TESTCASE LOGIC ---------------- */
 
-    while (existingSlugs.includes(slug)) {
-      counter++
-      slug = `${base}-${counter}`
-    }
+  const createEmptyTestcase = () => ({
+    id: generateUUID(),
+    input: "",
+    output: "",
+    explanation: "",
+  })
 
-    setQuestion(prev => ({ ...prev, questionSlug: slug }))
-    showToast("Slug made unique", "success")
-  }, [question.questionSlug, existingSlugs, showToast])
-
-  const addTestcase = useCallback((type) => {
-    const tc = { id: generateUUID(), input: "", output: "" }
+  const handleAddTestcase = useCallback((type) => {
+    const tc = createEmptyTestcase()
 
     setQuestion(prev => ({
       ...prev,
@@ -103,7 +96,7 @@ const CreateQuestion = ({ existingSlugs = [] }) => {
       : setLastAddedHiddenId(tc.id)
   }, [])
 
-  const updateTestcase = useCallback((type, id, field, value) => {
+  const handleUpdateTestcase = useCallback((type, id, field, value) => {
     setQuestion(prev => ({
       ...prev,
       [type]: prev[type].map(tc =>
@@ -112,12 +105,37 @@ const CreateQuestion = ({ existingSlugs = [] }) => {
     }))
   }, [])
 
-  const removeTestcase = useCallback((type, id) => {
+  const handleRemoveTestcase = useCallback((type, id) => {
     setQuestion(prev => ({
       ...prev,
       [type]: prev[type].filter(tc => tc.id !== id),
     }))
   }, [])
+
+  const handleDuplicateTestcase = useCallback((type, id) => {
+    setQuestion(prev => {
+      const idx = prev[type].findIndex(tc => tc.id === id)
+      if (idx === -1) return prev
+
+      const clone = { ...prev[type][idx], id: generateUUID() }
+      const updated = [...prev[type]]
+      updated.splice(idx + 1, 0, clone)
+
+      return { ...prev, [type]: updated }
+    })
+  }, [])
+
+  const handleMoveTestcase = useCallback((type, from, to) => {
+    setQuestion(prev => {
+      if (to < 0 || to >= prev[type].length) return prev
+      const updated = [...prev[type]]
+      const [item] = updated.splice(from, 1)
+      updated.splice(to, 0, item)
+      return { ...prev, [type]: updated }
+    })
+  }, [])
+
+  /* ---------------- VALIDATION / PUBLISH ---------------- */
 
   const handleValidate = useCallback(() => {
     const errs = validateQuestion(question)
@@ -129,7 +147,7 @@ const CreateQuestion = ({ existingSlugs = [] }) => {
 
   const handlePublishClick = useCallback(() => {
     const errs = validateQuestion(question)
-    if (errs.length > 0) {
+    if (errs.length) {
       setErrors(errs)
       showToast("Fix validation errors first", "error")
       return
@@ -137,43 +155,47 @@ const CreateQuestion = ({ existingSlugs = [] }) => {
     setShowPublishModal(true)
   }, [question, showToast])
 
-const confirmPublish = useCallback(async () => {
-  setIsPublishing(true)          // start loader
-  setShowPublishModal(false)     // close modal immediately
-
-  try {
-    await createQuestion(question)
-
-    showToast("Question created", "success")
-    setQuestion({ ...emptyState })
-    setScoreInput("")
-    navigate("/show-all-questions")
-  } catch (err) {
-    showToast(err.message || "Publish failed", "error")
-  } finally {
-    setIsPublishing(false)       // stop loader
-  }
-}, [question, showToast])
-
+  const confirmPublish = useCallback(async () => {
+    try {
+      await createQuestion(question)
+      showToast("Question created", "success")
+      setQuestion({ ...emptyState })
+      setScoreInput("")
+      navigate("/show-all-questions")
+    } catch (e) {
+      showToast("Publish failed", "error")
+    }
+  }, [question, navigate, showToast])
 
   return (
-    <div className={`${styles.pageContainer} text-gray-100 p-6`}>
-    <div className={styles.contentWrapper}>
-      <Toast toast={toast} />
+    <div className={`${styles.pageContainer} p-6 text-gray-100`}>
+      <AppToast toast={toast} />
+
+      <CodeforcesPrefill
+        onPrefillSuccess={(prefill) => {
+          setQuestion(prev => ({ ...prev, ...prefill }))
+          showToast("Imported from Codeforces", "success")
+        }}
+      />
+
 
       <QuestionForm
         question={question}
         errors={errors}
         slugWarning={slugWarning}
         scoreInput={scoreInput}
+
         onInputChange={handleInputChange}
         onScoreInputChange={handleScoreInputChange}
-        onMakeSlugUnique={makeSlugUnique}
-        onAddTestcase={addTestcase}
-        onRemoveTestcase={removeTestcase}
-        onUpdateTestcase={updateTestcase}
         onValidate={handleValidate}
         onPublishClick={handlePublishClick}
+
+        onAddTestcase={handleAddTestcase}
+        onUpdateTestcase={handleUpdateTestcase}
+        onRemoveTestcase={handleRemoveTestcase}
+        onDuplicateTestcase={handleDuplicateTestcase}
+        onMoveTestcase={handleMoveTestcase}
+
         lastAddedSampleId={lastAddedSampleId}
         lastAddedHiddenId={lastAddedHiddenId}
       />
@@ -186,15 +208,10 @@ const confirmPublish = useCallback(async () => {
         />
       )}
 
-       <div className={styles.gridContainer}>
-        <div className={`${styles.previewCard} rounded-2xl p-6`}>
-          <LivePreview question={question} />
-        </div>
-        <div className={`${styles.previewCard} rounded-2xl p-6`}>
-          <JsonPreview question={question} />
-        </div>
+      <div className={styles.gridContainer}>
+        <LivePreview question={question} />
+        <JsonPreview question={question} />
       </div>
-    </div>
     </div>
   )
 }

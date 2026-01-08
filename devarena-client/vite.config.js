@@ -4,6 +4,8 @@ import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath } from "url"
 import path from "path"
 
+
+
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 // https://vite.dev/config/
@@ -20,6 +22,15 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+    },
+  },
+  server: {
+    proxy: {
+      "/api": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
 })

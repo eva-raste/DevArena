@@ -26,6 +26,7 @@
   background-position: 0 0, 40px 40px;
   opacity: 0.3;
   animation: particleFloat 20s linear infinite;
+  pointer-events: none; /* ✅ FIX */
 }
 
 @keyframes particleFloat {
