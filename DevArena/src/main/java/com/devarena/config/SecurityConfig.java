@@ -41,29 +41,38 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .sessionManagement(sm->sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 //                .httpBasic(Customizer.withDefaults())
-                .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated()
                 )
-                .exceptionHandling(ex->ex.authenticationEntryPoint((request,response,e)->{
-                    e.printStackTrace();
-                    response.setStatus(401);
-                    response.setContentType("application/json");
-                    String error=(String) request.getAttribute("error");
-                    String message=e.getMessage();
+                .exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, e) -> {
 
-                    if(error!=null)
-                    {
-                       message=error;
-                    }
-                    var apiError= ApiError.of(HttpStatus.UNAUTHORIZED.value(),"Unauthorized Access",message,request.getRequestURI(),true);
-                    var objectMapper=new ObjectMapper();
-                    response.getWriter().write(objectMapper.writeValueAsString(apiError));
+                    // ✅ ADD CORS HEADERS HERE
+                    response.setHeader("Access-Control-Allow-Origin", "http://localhost:5173");
+                    response.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+                    response.setHeader("Access-Control-Allow-Headers", "*");
+                    response.setHeader("Access-Control-Allow-Credentials", "true");
+
+                    response.setStatus(HttpStatus.UNAUTHORIZED.value());
+                    response.setContentType("application/json");
+
+                    String error = (String) request.getAttribute("error");
+                    String message = error != null ? error : e.getMessage();
+
+                    ApiError apiError = ApiError.of(
+                            HttpStatus.UNAUTHORIZED.value(),
+                            "Unauthorized Access",
+                            message,
+                            request.getRequestURI(),
+                            true
+                    );
+
+                    new ObjectMapper().writeValue(response.getWriter(), apiError);
                 }))
-        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
@@ -81,14 +90,23 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
+
         config.setAllowedOrigins(List.of("http://localhost:5173"));
-        config.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
-        config.setAllowedHeaders(List.of("*"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+
+        // 🔴 MUST BE EXPLICIT WHEN allowCredentials = true
+        config.setAllowedHeaders(List.of(
+                "Authorization",
+                "Content-Type",
+                "Accept"
+        ));
+
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
     }
+
 
 }

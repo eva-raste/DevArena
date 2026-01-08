@@ -11,13 +11,8 @@ export const TestcaseSection = ({
   onDuplicate,
   onRemove,
   onUpdate,
-  lastAddedId, // New prop to track which testcase was just added
+  lastAddedId,
 }) => {
-  const buttonClasses =
-    type === "sampleTestcases"
-      ? "bg-teal-500 hover:bg-teal-600 hover:shadow-teal-500/50"
-      : "bg-purple-500 hover:bg-purple-600 hover:shadow-purple-500/50"
-
   const rowRefs = useRef({})
 
   useEffect(() => {
@@ -31,40 +26,30 @@ export const TestcaseSection = ({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-gray-200">
-          {title}
-          <span className="ml-2 text-sm text-gray-500">({testcases.length})</span>
-        </h3>
+      <div className="flex justify-between mb-4">
+        <h3 className="font-bold">{title} ({testcases.length})</h3>
         <button
           onClick={() => onAdd(type)}
-          className={`px-4 py-2 ${buttonClasses} text-white rounded-2xl transition-all shadow-lg font-medium`}
+          className="px-4 py-2 rounded-xl bg-teal-500 text-white"
         >
-          + Add {type === "sampleTestcases" ? "Sample" : "Hidden"}
+          + Add
         </button>
       </div>
 
-      <div className="space-y-4">
-        {testcases.map((tc, i) => (
-          <TestcaseRow
-            key={tc.id}
-            ref={(el) => (rowRefs.current[tc.id] = el)}
-            testcase={tc}
-            type={type}
-            index={i}
-            total={testcases.length}
-            onMove={onMove}
-            onDuplicate={onDuplicate}
-            onRemove={onRemove}
-            onUpdate={onUpdate}
-          />
-        ))}
-        {testcases.length === 0 && (
-          <p className="text-center text-gray-500 py-8">
-            No {type === "sampleTestcases" ? "sample" : "hidden"} testcases yet
-          </p>
-        )}
-      </div>
+      {testcases.map((tc, i) => (
+        <TestcaseRow
+          key={tc.id}
+          ref={(el) => (rowRefs.current[tc.id] = el)}
+          testcase={tc}
+          index={i}
+          total={testcases.length}
+          type={type}
+          onMove={onMove}
+          onDuplicate={onDuplicate}
+          onRemove={onRemove}
+          onUpdate={onUpdate}
+        />
+      ))}
     </div>
   )
 }

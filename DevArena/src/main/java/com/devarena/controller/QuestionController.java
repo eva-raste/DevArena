@@ -1,10 +1,16 @@
 package com.devarena.controller;
 
+import com.devarena.dtos.CodeforcesQuestionPrefillDto;
 import com.devarena.dtos.QuestionCardDto;
 import com.devarena.dtos.QuestionCreateDto;
 import com.devarena.dtos.QuestionDto;
+import com.devarena.exception.DuplicateQuestionSlugException;
+import com.devarena.helper.CodeforcesDatasetLoader;
+import com.devarena.mappers.CodeforcesPrefillMapper;
 import com.devarena.models.User;
+import com.devarena.service.CodeforcesDatasetService;
 import com.devarena.service.interfaces.IQuesitonService;
+import jakarta.persistence.Basic;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -19,6 +25,8 @@ import org.springframework.web.bind.annotation.*;
 public class QuestionController {
 
     private final IQuesitonService questionService;
+    private final CodeforcesPrefillMapper prefillMapper;
+    private final CodeforcesDatasetService codeforcesDatasetService;
 
     @PostMapping
     public ResponseEntity<QuestionCreateDto> createQuestion(@Valid @RequestBody QuestionCreateDto question,
@@ -26,9 +34,7 @@ public class QuestionController {
 
         // if same slug exists in db
         if (questionService.existsByQuestionSlug(question.getQuestionSlug())) {
-            return ResponseEntity
-                    .status(409)
-                    .body(null);
+            throw new DuplicateQuestionSlugException("Duplicate QuestionSlug");
         }
 
         QuestionCreateDto created = questionService.createQuestion(question,owner);
@@ -58,5 +64,22 @@ public class QuestionController {
 
         return ResponseEntity.ok(q);
     }
+
+
+    @GetMapping("/prefill/codeforces")
+    public ResponseEntity<QuestionCreateDto> prefill(
+            @RequestParam("slug") String slug,
+            @AuthenticationPrincipal User user
+    ) {
+        System.out.println("Request received on prefill " + slug);
+        CodeforcesQuestionPrefillDto dataset =
+                codeforcesDatasetService.fetch(slug);
+
+        QuestionCreateDto dto =
+                prefillMapper.toQuestionCreateDto(dataset,user.getDisplayName());
+        System.out.println("CF question response " + dto);
+        return ResponseEntity.ok(dto);
+    }
+
 
 }
