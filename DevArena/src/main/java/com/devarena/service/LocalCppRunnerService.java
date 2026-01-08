@@ -13,16 +13,17 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class LocalCppRunnerService {
 
+    private static final long MEMORY_LIMIT_BYTES = 256L * 1024 * 1024; // 256MB
+
     public List<Result> executeBatch(String code, List<String> testcases) {
         List<Result> results = new ArrayList<>();
         String containerName = "cpp-runner-" + System.nanoTime();
 
         try {
-            //Create temp workspace
             Path tempDir = Files.createTempDirectory("cpp");
             Files.writeString(tempDir.resolve("code.cpp"), code, StandardCharsets.UTF_8);
 
-            //Start ONE container (reused)
+            // Start container
             new ProcessBuilder(
                     "docker", "run", "-dit",
                     "--name", containerName,
@@ -36,11 +37,12 @@ public class LocalCppRunnerService {
                     "bash"
             ).start().waitFor();
 
-            //Compile ONCE
+            // Compile
             Process compile = new ProcessBuilder(
                     "docker", "exec", containerName,
                     "g++", "code.cpp", "-O2", "-std=c++17", "-o", "app"
             ).redirectErrorStream(true).start();
+
             compile.waitFor(10, TimeUnit.SECONDS);
 
             String compileOutput = new String(
@@ -55,11 +57,13 @@ public class LocalCppRunnerService {
                 return results;
             }
 
-            // Run EACH testcase inside SAME container
+            // Execute testcases
             for (String input : testcases) {
+
                 Process run = new ProcessBuilder(
                         "docker", "exec", "-i",
                         containerName,
+                        "timeout", "--signal=SIGKILL", "1s",
                         "./app"
                 ).start();
 
@@ -68,31 +72,57 @@ public class LocalCppRunnerService {
                     os.flush();
                 }
 
-                run.waitFor(5, TimeUnit.SECONDS);
+                run.waitFor();
+                int exitCode = run.exitValue();
 
-                String stdout = new String(
-                        run.getInputStream().readAllBytes(),
-                        StandardCharsets.UTF_8
-                );
-                String stderr = new String(
-                        run.getErrorStream().readAllBytes(),
-                        StandardCharsets.UTF_8
-                );
+                long memoryUsed = readContainerMemory(containerName);
 
-                results.add(new Result(stdout.trim(), stderr.trim()));
+                if (exitCode == 124) {
+                    results.add(new Result("", "Time Limit Exceeded"));
+                }
+                else if (exitCode == 137) {
+                    if (memoryUsed >= MEMORY_LIMIT_BYTES) {
+                        results.add(new Result("", "Memory Limit Exceeded"));
+                    } else {
+                        results.add(new Result("", "Time Limit Exceeded"));
+                    }
+                }
+                else if (exitCode != 0) {
+                    results.add(new Result("", "Runtime Error"));
+                }
+                else {
+                    String stdout = new String(run.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+                    String stderr = new String(run.getErrorStream().readAllBytes(), StandardCharsets.UTF_8);
+                    results.add(new Result(stdout.trim(), stderr.trim()));
+                }
             }
 
         } catch (Exception e) {
             results.clear();
             results.add(new Result("", "Execution error: " + e.getMessage()));
         } finally {
-            // Cleanup container
             try {
                 new ProcessBuilder("docker", "rm", "-f", containerName).start();
             } catch (Exception ignored) {}
         }
 
         return results;
+    }
+
+    
+    private long readContainerMemory(String containerName) {
+        try {
+            Process p = new ProcessBuilder(
+                    "docker", "exec", containerName,
+                    "cat", "/sys/fs/cgroup/memory.current"
+            ).start();
+
+            p.waitFor();
+            String output = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
+            return Long.parseLong(output);
+        } catch (Exception e) {
+            return 0;
+        }
     }
 
     public static class Result {

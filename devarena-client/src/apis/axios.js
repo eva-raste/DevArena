@@ -7,33 +7,37 @@ const api = axios.create({
   },
 });
 
+let setLoadingGlobal = null;
+
+export const attachLoader = (setter) => {
+  setLoadingGlobal = setter;
+};
+
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    setLoadingGlobal?.(true);
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    setLoadingGlobal?.(false);
+    return Promise.reject(error);
+  }
 );
 
-// api.interceptors.response.use(
-//   (response) => response,
-//   (error) => {
-//     const status = error.response?.status;
-//     const url = error.config?.url || "";
-
-//     // logout ONLY if auth endpoint fails
-//     if (status === 401 && url.startsWith("/auth")) {
-//       localStorage.removeItem("auth");
-//       window.location.href = "/login";
-//     }
-
-//     return Promise.reject(error);
-//   }
-// );
-
-
+api.interceptors.response.use(
+  (response) => {
+    setLoadingGlobal?.(false);
+    return response;
+  },
+  (error) => {
+    setLoadingGlobal?.(false);
+    return Promise.reject(error);
+  }
+);
 
 export default api;

@@ -11,9 +11,15 @@ import Signup from "./components/authentication/signup";
 import ContestsPage from "./components/contest/ContestsPage";
 import QuestionSolve from "./components/question/QuestionSolve";
 import ContestDetailsPage from "./components/contest/ContestDetailsPage";
+import { useLoader } from "./components/loader/LoaderContext";
+import GlobalLoader from "./components/loader/GlobalLoader";
+
 function App() {
+      const { loading } = useLoader();
+
   return (
     <div>
+        {loading && <GlobalLoader />}
       <Routes>
         <Route path="/" element={<Root />}>
 

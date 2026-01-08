@@ -5,7 +5,6 @@ import { fetchQuestionsApi } from '../../apis/question-api'
 
 const QuestionsList = () => {
   const [questions, setQuestions] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('ALL'); // ALL, EASY, MEDIUM, HARD
   const [searchQuery, setSearchQuery] = useState('');
@@ -17,7 +16,7 @@ const QuestionsList = () => {
 
   const fetchQuestions = async () => {
     try {
-      setLoading(true);
+
 
       // fetching all questions of current user
       const data = await fetchQuestionsApi();
@@ -26,8 +25,6 @@ const QuestionsList = () => {
 
     } catch (err) {
       setError(err.message || "Failed to fetch questions");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -66,13 +63,7 @@ const QuestionsList = () => {
     navigate('/create-question');
   };
 
-  if (loading) {
-    return (
-      <div className={`${styles.pageContainer} flex items-center justify-center`}>
-        <div className={styles.loader}></div>
-      </div>
-    );
-  }
+
 
   return (
     <div className={`${styles.pageContainer} p-6`}>
@@ -173,29 +164,29 @@ const QuestionsList = () => {
         </div>
 
         {/* Questions Grid */}
-        {filteredQuestions.length === 0 ? (
-          <div className="text-center py-20">
-            <svg
-              className="w-20 h-20 mx-auto text-gray-600 mb-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            <p className="text-gray-400 text-lg mb-2">No questions found</p>
-            <p className="text-gray-500 text-sm">
-              {searchQuery || filter !== 'all'
-                ? 'Try adjusting your filters'
-                : 'Create your first question to get started'}
-            </p>
-          </div>
-        ) : (
+{/*         {filteredQuestions.length === 0 ? ( */}
+{/*           <div className="text-center py-20"> */}
+{/*             <svg */}
+{/*               className="w-20 h-20 mx-auto text-gray-600 mb-4" */}
+{/*               fill="none" */}
+{/*               stroke="currentColor" */}
+{/*               viewBox="0 0 24 24" */}
+{/*             > */}
+{/*               <path */}
+{/*                 strokeLinecap="round" */}
+{/*                 strokeLinejoin="round" */}
+{/*                 strokeWidth={1.5} */}
+{/*                 d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" */}
+{/*               /> */}
+{/*             </svg> */}
+{/*             <p className="text-gray-400 text-lg mb-2">No questions found</p> */}
+{/*             <p className="text-gray-500 text-sm"> */}
+{/*               {searchQuery || filter !== 'all' */}
+{/*                 ? 'Try adjusting your filters' */}
+{/*                 : 'Create your first question to get started'} */}
+{/*             </p> */}
+{/*           </div> */}
+{/*         ) : ( */}
           <div className={styles.gridContainer}>
             {filteredQuestions.map((question) => (
                 <div

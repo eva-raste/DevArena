@@ -7,19 +7,15 @@ export default function ContestDetailsPage() {
   const navigate = useNavigate()
 
   const [contest, setContest] = useState(null)
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
   useEffect(() => {
     const fetchContest = async () => {
       try {
-        setLoading(true)
         const data = await fetchContestByIdApi(contestId)
         setContest(data)
       } catch (err) {
         setError(err.message || "Failed to load contest")
-      } finally {
-        setLoading(false)
       }
     }
 
@@ -30,13 +26,6 @@ export default function ContestDetailsPage() {
     navigate(`/question/${slug}`)
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#020617] text-white">
-        Loading contest...
-      </div>
-    )
-  }
 
   if (error) {
     return (
@@ -46,6 +35,9 @@ export default function ContestDetailsPage() {
     )
   }
 
+if (!contest) {
+    return <div className="min-h-screen bg-[#020617]" />;
+  }
   return (
     <main className="min-h-screen bg-[#020617] px-6 py-10 text-white">
       <div className="max-w-5xl mx-auto space-y-8">
