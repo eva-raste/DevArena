@@ -1,0 +1,119 @@
+/* login.module.css */
+
+.container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+}
+
+/* Card */
+.card {
+  width: 380px;
+  padding: 32px;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+}
+
+/* Dark mode card */
+:global(.dark) .card {
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+/* Headings */
+.title {
+  text-align: center;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.subtitle {
+  text-align: center;
+  font-size: 14px;
+  margin-bottom: 24px;
+  color: #64748b;
+}
+
+:global(.dark) .subtitle {
+  color: #94a3b8;
+}
+
+/* Form */
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+}
+
+.label {
+  font-size: 14px;
+  margin-bottom: 6px;
+  color: #334155;
+}
+
+:global(.dark) .label {
+  color: #cbd5f5;
+}
+
+.input {
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+}
+
+/* Dark mode input */
+:global(.dark) .input {
+  background: #020617;
+  color: #f8fafc;
+  border-color: #334155;
+}
+
+/* Button */
+.button {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  background: #3b82f6;
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: #2563eb;
+}
+
+.button:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+/* Messages */
+.error {
+  margin-top: 12px;
+  text-align: center;
+  color: #dc2626;
+  font-size: 14px;
+}
+
+.success {
+  margin-top: 12px;
+  text-align: center;
+  color: #16a34a;
+  font-size: 14px;
+}

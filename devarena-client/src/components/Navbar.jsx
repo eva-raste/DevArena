@@ -1,178 +1,158 @@
-import { Link } from "react-router-dom";
-import { Menu, X, Code2 } from "lucide-react";
-import { useState } from "react";
-import { useAuth } from "./authentication/AuthContext";
+"use client"
+
+import { useState } from "react"
+import { Link } from "react-router-dom"
+import { Menu, X, Code2, Moon, Sun } from "lucide-react"
+import { useAuth } from "./authentication/AuthContext"
+import { useThemeStore } from "@/store/useThemeStore"
+import { useEffect } from "react"
+import { Button } from "@/components/ui/button"
 
 function Navbar() {
-  const [isOpen, setIsOpen] = useState(false);
-  const { user, isAuthenticated, logout } = useAuth();
+  const [isOpen, setIsOpen] = useState(false)
+  const { user, isAuthenticated, logout } = useAuth()
+  const isDark = useThemeStore((state) => state.isDark)
+  const toggleTheme = useThemeStore((state) => state.toggleTheme)
 
-  return (
-    <nav className="bg-gray-900 border-b border-gray-800 fixed top-0 w-full h-16 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          
-          {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <Code2 className="w-8 h-8 text-blue-500" />
-            <span className="text-xl font-bold text-white">DevArena</span>
+  // ensure html sync on refresh
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", isDark)
+  }, [isDark])
+
+
+return (
+  <nav className="bg-background border-b border-border fixed top-0 w-full h-16 z-50 shadow-sm">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="flex items-center justify-between h-16">
+        {/* Logo */}
+        <Link to="/" className="flex items-center space-x-2">
+          <div className="p-1.5 bg-primary rounded-lg">
+            <Code2 className="w-6 h-6 text-primary-foreground" />
+          </div>
+          <span className="text-xl font-bold text-foreground">
+            DevArena
+          </span>
+        </Link>
+
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex items-center space-x-8">
+          <Link to="/" className="text-muted-foreground hover:text-primary font-medium">
+            Home
+          </Link>
+          <Link to="/create-question" className="text-muted-foreground hover:text-primary font-medium">
+            Create Question
+          </Link>
+          <Link to="/show-all-questions" className="text-muted-foreground hover:text-primary font-medium">
+            All Questions
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            <Link to="/" className="text-gray-300 hover:text-white transition">
-              Home
-            </Link>
+          <Button asChild>
+            <Link to="/create-contest">Create Contest</Link>
+          </Button>
 
-            <Link
-              to="/create-question"
-              className="text-gray-300 hover:text-white transition"
-            >
-              Create Question
-            </Link>
+          <Button asChild>
+            <Link to="/my-contests">My Contests</Link>
+          </Button>
 
-            <Link
-              to="/show-all-questions"
-              className="text-gray-300 hover:text-white transition"
-            >
-              All Questions
-            </Link>
-
-            <Link
-              to="/create-contest"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-medium transition"
-            >
-              Create Contest
-            </Link>
-            <Link
-              to="/my-contests"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-medium transition"
-            >
-              My Contests
-            </Link>
-
-            {/* Auth Section */}
-            {isAuthenticated ? (
-              <div className="flex items-center gap-4 ml-4">
-                <span className="text-gray-300 text-sm">
-                  Hello,{" "}
-                  <span className="text-white font-semibold">
-                    {user.displayName}
-                  </span>
-                </span>
-                <button
-                  onClick={logout}
-                  className="px-3 py-1.5 bg-red-600 hover:bg-red-700 rounded-lg text-white text-sm transition"
-                >
-                  Logout
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-4 ml-4">
-                <Link
-                  to="/login"
-                  className="text-gray-300 hover:text-white transition"
-                >
-                  Login
-                </Link>
-                <Link
-                  to="/signup"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white text-sm font-medium transition"
-                >
-                  Sign Up
-                </Link>
-              </div>
-            )}
-          </div>
-
-          {/* Mobile menu button */}
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="md:hidden text-gray-300 hover:text-white"
+          {/* Theme Toggle */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
           >
-            {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+            {isDark ? (
+              <Sun className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )}
+          </Button>
+
+          {/* Auth Section */}
+          {isAuthenticated ? (
+            <div className="flex items-center gap-4 pl-4 border-l border-border">
+              <span className="text-sm text-muted-foreground">
+                Hello,{" "}
+                <span className="font-semibold text-primary">
+                  {user.displayName}
+                </span>
+              </span>
+
+              <Button variant="destructive" size="sm" onClick={logout}>
+                Logout
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-4 pl-4 border-l border-border">
+              <Button variant="ghost" asChild>
+                <Link to="/login">Login</Link>
+              </Button>
+              <Button asChild size="sm">
+                <Link to="/signup">Sign Up</Link>
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Mobile Controls */}
+        <div className="md:hidden flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={toggleTheme}>
+            {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </Button>
+
+          <Button variant="ghost" size="sm" onClick={() => setIsOpen(!isOpen)}>
+            {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
         </div>
       </div>
+    </div>
 
-      {/* Mobile Navigation */}
-      {isOpen && (
-        <div className="md:hidden bg-gray-800 border-t border-gray-700">
-          <div className="px-4 pt-2 pb-4 space-y-2">
-            <Link
-              to="/"
-              className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg"
-              onClick={() => setIsOpen(false)}
+    {/* Mobile Menu */}
+    {isOpen && (
+      <div className="md:hidden bg-background border-t border-border">
+        <div className="px-4 py-4 space-y-2">
+          <Link to="/" onClick={() => setIsOpen(false)} className="block px-3 py-2 text-muted-foreground hover:text-primary">
+            Home
+          </Link>
+          <Link to="/create-question" onClick={() => setIsOpen(false)} className="block px-3 py-2 text-muted-foreground hover:text-primary">
+            Create Question
+          </Link>
+          <Link to="/show-all-questions" onClick={() => setIsOpen(false)} className="block px-3 py-2 text-muted-foreground hover:text-primary">
+            All Questions
+          </Link>
+
+          <Button asChild className="w-full" onClick={() => setIsOpen(false)}>
+            <Link to="/create-contest">Create Contest</Link>
+          </Button>
+
+          {isAuthenticated ? (
+            <Button
+              variant="destructive"
+              className="w-full"
+              onClick={() => {
+                setIsOpen(false)
+                logout()
+              }}
             >
-              Home
-            </Link>
-
-            <Link
-              to="/create-question"
-              className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg"
-              onClick={() => setIsOpen(false)}
-            >
-              Create Question
-            </Link>
-
-            <Link
-              to="/show-all-questions"
-              className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg"
-              onClick={() => setIsOpen(false)}
-            >
-              All Questions
-            </Link>
-
-            <Link
-              to="/create-contest"
-              className="block px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
-              onClick={() => setIsOpen(false)}
-            >
-              Create Contest
-            </Link>
-
-            {/* Mobile Auth Section */}
-            {isAuthenticated ? (
-              <>
-                <div className="px-3 py-2 text-gray-300">
-                  Hello,{" "}
-                  <span className="text-white font-semibold">
-                    {user.displayName}
-                  </span>
-                </div>
-                <button
-                  onClick={() => {
-                    setIsOpen(false);
-                    logout();
-                  }}
-                  className="w-full px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium"
-                >
-                  Logout
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  to="/login"
-                  className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg"
-                  onClick={() => setIsOpen(false)}
-                >
-                  Login
-                </Link>
-                <Link
-                  to="/signup"
-                  className="block px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
-                  onClick={() => setIsOpen(false)}
-                >
-                  Sign Up
-                </Link>
-              </>
-            )}
-          </div>
+              Logout
+            </Button>
+          ) : (
+            <>
+              <Button variant="ghost" asChild className="w-full">
+                <Link to="/login">Login</Link>
+              </Button>
+              <Button asChild className="w-full">
+                <Link to="/signup">Sign Up</Link>
+              </Button>
+            </>
+          )}
         </div>
-      )}
-    </nav>
-  );
+      </div>
+    )}
+  </nav>
+)
+
+
 }
 
-export default Navbar;
+export default Navbar

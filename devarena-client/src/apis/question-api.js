@@ -15,14 +15,17 @@ export async function createQuestion(question) {
   }
 }
 
-export const fetchQuestionsApi = async () => {
+export const fetchQuestionsApi = async (page = 0, size = 10) => {
   try {
-    const res = await api.get("/questions");
-    return res.data;
-  } catch (err) {
+    const res = await api.get("/questions", {
+      params: { page, size }
+    });
+    return res.data; // Page object
+  } catch {
     throw new Error("Failed to fetch questions");
   }
 };
+
 
 export async function fetchQuestionCard(slug) {
   try {

@@ -1,7 +1,5 @@
 import { Routes, Route} from "react-router-dom";
 import Home from "./components/home"
-import Problemset from "./components/ProblemSet"
-import Solve from "./components/solve"
 import CreateQuestion from "./components/question/CreateQuestion";
 import QuestionsList from "./components/question/QuestionsList";
 import CreateContest from "./components/contest/CreateContest";
@@ -24,9 +22,7 @@ function App() {
         <Route path="/" element={<Root />}>
 
           <Route path="/" element={<Home />} />
-          <Route path="/problemset" element={<Problemset />} />
-  {/*         <Route path="/solve/:id" element={<Solve />} /> */}
-          <Route path="/solve/:slug" element={<Solve />} />
+          
           <Route path="/create-question" element={ <CreateQuestion /> }/>
           <Route path="/show-all-questions" element={ <QuestionsList /> }/>
           <Route path="/create-contest" element={<CreateContest />} />

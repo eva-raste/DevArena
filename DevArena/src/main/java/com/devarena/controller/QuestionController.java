@@ -13,10 +13,16 @@ import com.devarena.service.interfaces.IQuesitonService;
 import jakarta.persistence.Basic;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/questions")
@@ -43,8 +49,19 @@ public class QuestionController {
     }
 
     @GetMapping
-    public ResponseEntity<Iterable<QuestionDto>> getAllQuestions(@AuthenticationPrincipal User owner) {
-        return ResponseEntity.ok(questionService.getAllQuestionsByUser(owner));
+    public ResponseEntity<Page<QuestionDto>> getAllQuestions(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt,desc") String sort,
+            @AuthenticationPrincipal User owner) {
+        Sort sortObj = Sort.by(
+                sort.endsWith(",desc") ? Sort.Direction.DESC : Sort.Direction.ASC,
+                sort.split(",")[0]
+        );
+
+        Pageable pageable = PageRequest.of(page, size, sortObj);
+
+        return ResponseEntity.ok(questionService.getAllQuestions(pageable,owner));
     }
 
     @GetMapping(value="/{slug}",produces = MediaType.APPLICATION_JSON_VALUE)
@@ -81,5 +98,25 @@ public class QuestionController {
         return ResponseEntity.ok(dto);
     }
 
+    // UPDATE
+    @PutMapping
+    public ResponseEntity<QuestionDto> updateQuestion(
+            @RequestBody @Valid QuestionDto dto
+    ) {
+        QuestionDto updated = questionService.updateQuestion(dto);
+        return ResponseEntity.ok(updated);
+    }
 
+    // DELETE (soft delete)
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteQuestion(@PathVariable UUID id) {
+
+        boolean deleted = questionService.deleteQuestion(id);
+
+        if (!deleted) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.noContent().build();
+    }
 }

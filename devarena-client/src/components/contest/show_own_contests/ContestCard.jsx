@@ -1,6 +1,12 @@
 "use client"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Lock, Globe, Code2 } from "lucide-react"
 import { formatDistanceToNow, formatDate } from "@/lib/date-utils"
@@ -9,32 +15,26 @@ export function ContestCard({ contest }) {
   const statusConfig = {
     DRAFT: {
       label: "DRAFT",
-      className: "bg-slate-500/15 text-slate-300 border border-slate-500/30",
+      className: "bg-muted text-muted-foreground border border-border",
     },
     SCHEDULED: {
       label: "SCHEDULED",
-      className: "bg-indigo-500/15 text-indigo-300 border border-indigo-500/30",
+      className: "bg-primary/15 text-primary border border-primary/30",
     },
     LIVE: {
       label: "LIVE",
       className:
-        "bg-pink-500/20 text-pink-300 border border-pink-500/40 animate-pulse",
+        "bg-accent/20 text-accent border border-accent/40 animate-pulse",
     },
     ENDED: {
       label: "ENDED",
-      className: "bg-slate-700/30 text-slate-400 border border-slate-600/40",
+      className: "bg-muted/40 text-muted-foreground border border-border",
     },
   }
 
   const visibilityConfig = {
-    PUBLIC: {
-      icon: Globe,
-      label: "Public",
-    },
-    PRIVATE: {
-      icon: Lock,
-      label: "Private",
-    },
+    PUBLIC: { icon: Globe, label: "Public" },
+    PRIVATE: { icon: Lock, label: "Private" },
   }
 
   const status = statusConfig[contest.status]
@@ -48,10 +48,10 @@ export function ContestCard({ contest }) {
     <Card
       className="
         h-full
-        bg-[#020617]/70
-        border border-white/10
-        hover:border-indigo-400/40
-        hover:shadow-[0_0_0_1px_rgba(99,102,241,0.25)]
+        bg-card
+        border border-border
+        hover:border-primary/40
+        hover:shadow-[0_0_0_1px_hsl(var(--primary)/0.25)]
         transition-all
         cursor-pointer
       "
@@ -59,11 +59,11 @@ export function ContestCard({ contest }) {
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1">
-            <CardTitle className="text-lg font-medium text-slate-100 line-clamp-2">
+            <CardTitle className="text-lg font-medium text-foreground line-clamp-2">
               {contest.title}
             </CardTitle>
 
-            <CardDescription className="text-xs text-slate-500 mt-1">
+            <CardDescription className="text-xs text-muted-foreground mt-1">
               Room ID: {contest.roomId}
             </CardDescription>
           </div>
@@ -79,23 +79,23 @@ export function ContestCard({ contest }) {
       <CardContent className="space-y-4">
         {/* Visibility */}
         <div className="flex items-center gap-2">
-          <VisibilityIcon className="w-4 h-4 text-slate-400" />
-          <span className="text-sm text-slate-400">
+          <VisibilityIcon className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">
             {visibility.label}
           </span>
         </div>
 
-        {/* Dates (render only if present) */}
+        {/* Dates */}
         {(startDate || endDate) && (
-          <div className="space-y-3 border-t border-white/10 pt-3">
+          <div className="space-y-3 border-t border-border pt-3">
             {startDate && (
               <div className="flex items-start gap-2">
-                <Calendar className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                <Calendar className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
                 <div className="flex-1 text-sm">
-                  <div className="text-slate-200 font-medium">
+                  <div className="text-foreground font-medium">
                     Starts: {formatDate(startDate)}
                   </div>
-                  <div className="text-xs text-slate-500">
+                  <div className="text-xs text-muted-foreground">
                     {formatDistanceToNow(startDate)} from now
                   </div>
                 </div>
@@ -104,12 +104,12 @@ export function ContestCard({ contest }) {
 
             {endDate && (
               <div className="flex items-start gap-2">
-                <Calendar className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                <Calendar className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
                 <div className="flex-1 text-sm">
-                  <div className="text-slate-200 font-medium">
+                  <div className="text-foreground font-medium">
                     Ends: {formatDate(endDate)}
                   </div>
-                  <div className="text-xs text-slate-500">
+                  <div className="text-xs text-muted-foreground">
                     {formatDistanceToNow(endDate)} from now
                   </div>
                 </div>
@@ -119,9 +119,9 @@ export function ContestCard({ contest }) {
         )}
 
         {/* Footer hint */}
-        <div className="flex items-center gap-2 pt-3 border-t border-white/10">
-          <Code2 className="w-4 h-4 text-indigo-400" />
-          <span className="text-xs text-slate-500">
+        <div className="flex items-center gap-2 pt-3 border-t border-border">
+          <Code2 className="w-4 h-4 text-primary" />
+          <span className="text-xs text-muted-foreground">
             Click to view details
           </span>
         </div>

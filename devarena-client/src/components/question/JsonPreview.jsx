@@ -1,8 +1,12 @@
 "use client"
 
+import { useThemeStore } from "@/store/useThemeStore"
+
 export const JsonPreview = ({ question, onCopy, onPreviewPublish }) => {
+  const theme = useThemeStore(s => s.theme)
+
   return (
-    <div className="bg-gray-800/20 p-4 rounded-2xl border border-gray-700/30">
+    <div data-theme={theme} className="bg-gray-800/20 p-4 rounded-2xl border border-gray-700/30">
       <div className="flex items-center justify-between">
         <div>
           <h4 className="text-lg font-semibold">JSON Preview</h4>

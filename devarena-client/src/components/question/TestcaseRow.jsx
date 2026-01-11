@@ -37,90 +37,168 @@ export const TestcaseRow = forwardRef(
     })
 
     return (
-      <div
-        ref={ref}
-        className={`bg-gray-800/50 p-4 rounded-xl border-2 transition-all ${isEmpty ? "border-red-500/30" : "border-gray-700/50"}`}
-        style={{ animation: "fadeSlideIn 0.25s ease-out" }}
-      >
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-mono text-gray-400">Test #{index + 1}</span>
-          <div className="flex gap-2">
-            <button
-              onClick={() => onMove(type, index, "up")}
-              disabled={index === 0}
-              className="p-1.5 rounded-lg bg-gray-700/50 hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-              aria-label="Move up"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-              </svg>
-            </button>
-            <button
-              onClick={() => onMove(type, index, "down")}
-              disabled={index === total - 1}
-              className="p-1.5 rounded-lg bg-gray-700/50 hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-              aria-label="Move down"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            <button
-              onClick={() => onDuplicate(type, testcase)}
-              className="p-1.5 rounded-lg bg-gray-700/50 hover:bg-teal-500/20 hover:text-teal-400 transition-all"
-              aria-label="Duplicate"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                />
-              </svg>
-            </button>
-            <button
-              onClick={() => onRemove(type, testcase.id)}
-              className="p-1.5 rounded-lg bg-gray-700/50 hover:bg-red-500/20 hover:text-red-400 transition-all"
-              aria-label="Remove"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
+  <div
+    ref={ref}
+    className={`
+      bg-card/80
+      p-4
+      rounded-xl
+      border-2
+      transition-all
+      ${isEmpty ? "border-destructive/40" : "border-border"}
+    `}
+    style={{ animation: "fadeSlideIn 0.25s ease-out" }}
+  >
+    <div className="flex items-center justify-between mb-3">
+      <span className="text-sm font-mono text-muted-foreground">
+        Test #{index + 1}
+      </span>
 
-        <div className="space-y-3">
-          <div>
-            <label className="block text-sm text-gray-400 mb-1 font-mono">Input</label>
-            <textarea
-              ref={inputRef}
-              value={testcase.input}
-              onChange={(e) => handleChange("input", e.target.value)}
-              className="w-full bg-gray-900 text-gray-100 rounded-xl px-4 py-3 font-mono text-sm border-2 border-gray-700/50 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all resize-y min-h-[80px] max-h-[200px]"
-              placeholder="Enter input..."
-            />
-          </div>
+      <div className="flex gap-2">
+        <button
+          onClick={() => onMove(type, index, "up")}
+          disabled={index === 0}
+          className="
+            p-1.5
+            rounded-lg
+            bg-muted
+            hover:bg-muted/80
+            disabled:opacity-30
+            disabled:cursor-not-allowed
+            transition-all
+          "
+          aria-label="Move up"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+          </svg>
+        </button>
 
-          <div>
-            <label className="block text-sm text-gray-400 mb-1 font-mono">Output</label>
-            <textarea
-              ref={outputRef}
-              value={testcase.output}
-              onChange={(e) => handleChange("output", e.target.value)}
-              className="w-full bg-gray-900 text-gray-100 rounded-xl px-4 py-3 font-mono text-sm border-2 border-gray-700/50 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all resize-y min-h-[80px] max-h-[200px]"
-              placeholder="Enter expected output..."
+        <button
+          onClick={() => onMove(type, index, "down")}
+          disabled={index === total - 1}
+          className="
+            p-1.5
+            rounded-lg
+            bg-muted
+            hover:bg-muted/80
+            disabled:opacity-30
+            disabled:cursor-not-allowed
+            transition-all
+          "
+          aria-label="Move down"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        <button
+          onClick={() => onDuplicate(type, testcase)}
+          className="
+            p-1.5
+            rounded-lg
+            bg-muted
+            hover:bg-primary/20
+            hover:text-primary
+            transition-all
+          "
+          aria-label="Duplicate"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
             />
-          </div>
-        </div>
+          </svg>
+        </button>
+
+        <button
+          onClick={() => onRemove(type, testcase.id)}
+          className="
+            p-1.5
+            rounded-lg
+            bg-muted
+            hover:bg-destructive/20
+            hover:text-destructive
+            transition-all
+          "
+          aria-label="Remove"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+            />
+          </svg>
+        </button>
       </div>
-    )
+    </div>
+
+    <div className="space-y-3">
+      <div>
+        <label className="block text-sm text-muted-foreground mb-1 font-mono">
+          Input
+        </label>
+        <textarea
+          ref={inputRef}
+          value={testcase.input}
+          onChange={(e) => handleChange("input", e.target.value)}
+          className="
+            w-full
+            bg-background
+            text-foreground
+            rounded-xl
+            px-4 py-3
+            font-mono text-sm
+            border-2 border-border
+            focus:border-primary
+            focus:ring-2 focus:ring-primary/30
+            outline-none
+            transition-all
+            resize-y
+            min-h-[80px]
+            max-h-[200px]
+          "
+          placeholder="Enter input..."
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm text-muted-foreground mb-1 font-mono">
+          Output
+        </label>
+        <textarea
+          ref={outputRef}
+          value={testcase.output}
+          onChange={(e) => handleChange("output", e.target.value)}
+          className="
+            w-full
+            bg-background
+            text-foreground
+            rounded-xl
+            px-4 py-3
+            font-mono text-sm
+            border-2 border-border
+            focus:border-primary
+            focus:ring-2 focus:ring-primary/30
+            outline-none
+            transition-all
+            resize-y
+            min-h-[80px]
+            max-h-[200px]
+          "
+          placeholder="Enter expected output..."
+        />
+      </div>
+    </div>
+  </div>
+)
+
   },
 )
 

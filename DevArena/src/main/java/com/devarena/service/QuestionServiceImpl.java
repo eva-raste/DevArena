@@ -7,14 +7,18 @@ import com.devarena.models.Question;
 import com.devarena.models.User;
 import com.devarena.repositories.IQuestionRepo;
 import com.devarena.service.interfaces.IQuesitonService;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.Data;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @Data
@@ -44,14 +48,12 @@ public class QuestionServiceImpl implements IQuesitonService {
         return modelMapper.map(newquestion,QuestionCreateDto.class);
     }
 
-    public Iterable<QuestionDto> getAllQuestions()
+    public Page<QuestionDto> getAllQuestions(Pageable page, User owner)
     {
-        return questionRepo.findAll()
-                .stream().map(
-                        (Question q) -> modelMapper.map(q,QuestionDto.class)
-                )
-        .toList();
-
+        return questionRepo.findAllByDeletedFalseAndOwner(owner,page)
+                .map(
+                        (Question q) ->  modelMapper.map(q,QuestionDto.class)
+                );
     }
 
     @Override
@@ -86,6 +88,48 @@ public class QuestionServiceImpl implements IQuesitonService {
         return qu.stream().map(
                 q -> modelMapper.map(q,QuestionDto.class)
         ).toList();
+    }
+
+    @Override
+    @Transactional
+    public QuestionDto updateQuestion(QuestionDto dto) {
+
+        Question question = questionRepo
+                .findByQuestionSlugAndDeletedFalse(dto.getQuestionSlug())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Question not found or deleted: " + dto.getQuestionSlug()
+                ));
+
+        question.setTitle(dto.getTitle());
+        question.setDescription(dto.getDescription());
+        question.setDifficulty(dto.getDifficulty());
+        question.setScore(dto.getScore());
+        question.setConstraints(dto.getConstraints());
+
+        question.getSampleTestcases().clear();
+        question.getSampleTestcases().addAll(dto.getSampleTestcases());
+
+        question.getHiddenTestcases().clear();
+        question.getHiddenTestcases().addAll(dto.getHiddenTestcases());
+
+        return modelMapper.map(question, QuestionDto.class);
+    }
+
+
+    @Override
+    @Transactional
+    public boolean deleteQuestion(UUID id) {
+
+        Question question = questionRepo
+                .findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Question not found"));
+
+        if (question.isDeleted()) {
+            return false;
+        }
+
+        question.setDeleted(true);
+        return true;
     }
 
 }

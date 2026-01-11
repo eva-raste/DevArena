@@ -1,5 +1,6 @@
 package com.devarena.models;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -28,13 +29,14 @@ public class Question {
     @ManyToMany(mappedBy = "questions")
     private List<Contest> contests = new ArrayList<>();
 
-    @Column(nullable = false)
+    @Column(nullable = false,unique = true)
     private String questionSlug;
 
+    @Column(nullable = false)
     private String title;
 
     @ManyToOne
-    @JoinColumn(name = "owner_id")
+    @JoinColumn(name = "owner_id",nullable = false,unique = true)
     private User owner;
 
     @ManyToMany
@@ -45,7 +47,7 @@ public class Question {
     )
     private List<User> modifiers = new ArrayList<>();
 
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT",nullable = false)
     private String description;
 
     @Enumerated(EnumType.STRING)
@@ -54,8 +56,11 @@ public class Question {
 
     private Integer score;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT",nullable = false)
     private String constraints;
+
+    @Column(nullable = false)
+    private boolean deleted = false;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "sample_testcases", columnDefinition = "jsonb")
@@ -64,5 +69,8 @@ public class Question {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "hidden_testcases", columnDefinition = "jsonb")
     private List<Testcase> hiddenTestcases = new ArrayList<>();
+
+    private Instant createdAt=Instant.now();
+    private Instant updatedAt=Instant.now();
 
 }
