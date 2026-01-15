@@ -1,105 +1,154 @@
-import { useEffect, useState } from "react"
-import { useParams, useNavigate } from "react-router-dom"
-import { fetchContestByIdApi } from "../../apis/contest-api"
-import getDifficultyColor from "../helpers/colorDifficulty"
+import { useEffect, useState, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { fetchContestByIdApi } from "../../apis/contest-api";
+import { useContestSocket } from "../../websocket/useContestSocket";
+import getDifficultyColor from "../helpers/colorDifficulty";
 
-/* ---------- helpers ---------- */
 
-const getContestStatus = (start, end) => {
-  const now = new Date()
-  if (now < new Date(start)) return "UPCOMING"
-  if (now > new Date(end)) return "ENDED"
-  return "RUNNING"
-}
+const STATUS_LABELS = {
+  DRAFT: "DRAFT",
+  SCHEDULED: "UPCOMING",
+  LIVE: "RUNNING",
+  ENDED: "ENDED",
+};
 
-const formatRemaining = (target, now) => {
-  let diff = Math.max(0, target - now)
-  if (diff === 0) return "00s"
+const formatRemaining = (targetMs, nowMs) => {
+  const diff = Math.max(0, targetMs - nowMs);
+  if (diff === 0) return "00s";
 
   const units = [
-    { label: "y", ms: 1000 * 60 * 60 * 24 * 365 },
-    { label: "mo", ms: 1000 * 60 * 60 * 24 * 30 },
     { label: "d", ms: 1000 * 60 * 60 * 24 },
     { label: "h", ms: 1000 * 60 * 60 },
     { label: "m", ms: 1000 * 60 },
     { label: "s", ms: 1000 },
-  ]
+  ];
 
-  const parts = []
+  let remaining = diff;
+  const parts = [];
+
   for (const u of units) {
-    const v = Math.floor(diff / u.ms)
+    const v = Math.floor(remaining / u.ms);
     if (v > 0) {
-      parts.push(`${v}${u.label}`)
-      diff %= u.ms
+      parts.push(`${v}${u.label}`);
+      remaining %= u.ms;
     }
   }
 
-  return parts.join(" ")
-}
+  return parts.join(" ");
+};
 
 /* ---------- component ---------- */
 
 export default function ContestDetailsPage() {
-  const { contestId } = useParams()
-  const navigate = useNavigate()
+  const { contestId: roomId } = useParams();
+  const navigate = useNavigate();
 
-  const [contest, setContest] = useState(null)
-  const [error, setError] = useState(null)
-  const [now, setNow] = useState(new Date())
+  const [contest, setContest] = useState(null);
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    fetchContestByIdApi(contestId)
-      .then(setContest)
-      .catch((e) => setError(e.message || "Failed to load contest"))
-  }, [contestId])
+  const [serverOffset, setServerOffset] = useState(0);
+  const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(t)
-  }, [])
+    fetchContestByIdApi(roomId)
+      .then((data) => {
+        console.log("[REST] Contest loaded:", data);
+        setContest(data);
+      })
+      .catch((e) =>
+        setError(e.message || "Failed to load contest")
+      );
+  }, [roomId]);
+
+  const handleSocketEvent = useCallback((event) => {
+    console.log("[WS] Event received:", event);
+
+    if (event.serverTime) {
+      setServerOffset(
+        new Date(event.serverTime).getTime() - Date.now()
+      );
+    }
+
+    // compare WS contestId (UUID) with contest.contestId (UUID)
+    setContest((prev) => {
+      if (!prev) return prev;
+      if (event.contestId !== prev.contestId) return prev;
+
+      return {
+        ...prev,
+        status: event.status,
+      };
+    });
+  }, []);
+
+  useContestSocket({ onEvent: handleSocketEvent });
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      setNow(Date.now() + serverOffset);
+    }, 1000);
+
+    return () => clearInterval(t);
+  }, [serverOffset]);
+
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background text-destructive">
+      <div className="min-h-screen flex items-center justify-center text-destructive">
         {error}
       </div>
-    )
+    );
   }
 
   if (!contest) {
-    return <div className="min-h-screen bg-background" />
+    return <div className="min-h-screen" />;
   }
 
-  const status = getContestStatus(contest.startTime, contest.endTime)
-  const target =
-    status === "UPCOMING"
-      ? new Date(contest.startTime)
-      : new Date(contest.endTime)
+
+  const status = contest.status;
+  const label = STATUS_LABELS[status] ?? status;
+
+  let targetMs = null;
+  if (status === "SCHEDULED" && contest.startTime) {
+    targetMs = new Date(contest.startTime).getTime();
+  } else if (status === "LIVE" && contest.endTime) {
+    targetMs = new Date(contest.endTime).getTime();
+  }
 
   return (
-    <main className="min-h-screen bg-background px-6 py-10 text-foreground">
+    <main className="min-h-screen px-6 py-10">
       <div className="max-w-5xl mx-auto space-y-8">
 
-        {/* Header */}
-        <div className="border border-border rounded-lg p-6 bg-card">
+        {/* ---------- Header ---------- */}
+        <div className="border rounded-xl p-6">
           <h1 className="text-3xl font-bold">{contest.title}</h1>
 
-          <div className="flex gap-6 mt-4 text-sm text-muted-foreground">
+          <div className="mt-4 flex gap-6 text-sm text-muted-foreground">
             <span>Start: {contest.startTime}</span>
             <span>End: {contest.endTime}</span>
+            <span>Status: {label}</span>
           </div>
 
-          {status !== "ENDED" && (
+          {/* Timer */}
+          {targetMs && (
             <div className="mt-4 font-mono text-primary">
-              {status === "UPCOMING" ? "Starts in: " : "Ends in: "}
-              {formatRemaining(target, now)}
+              {status === "SCHEDULED"
+                ? "Starts in: "
+                : "Ends in: "}
+              {formatRemaining(targetMs, now)}
+            </div>
+          )}
+
+          {status === "ENDED" && (
+            <div className="mt-4 font-mono text-primary">
+              Ends in: 00s
             </div>
           )}
         </div>
 
-        {/* Instructions */}
+        {/* ---------- Instructions ---------- */}
         {contest.instructions && (
-          <div className="bg-muted/30 rounded-lg p-4">
+          <div className="border rounded-xl p-4">
             <h3 className="font-semibold mb-1">Instructions</h3>
             <p className="whitespace-pre-line text-muted-foreground">
               {contest.instructions}
@@ -107,28 +156,38 @@ export default function ContestDetailsPage() {
           </div>
         )}
 
-        {/* Questions */}
-        {(status === "RUNNING" || status === "ENDED") && (
+        {/* ---------- Questions ---------- */}
+        {status === "SCHEDULED" ? (
+          <div className="text-warning font-semibold">
+            Contest is not live yet
+          </div>
+        ) : (
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">Questions</h2>
 
-            {contest.questions?.map((q, index) => (
+            {contest.questions.map((q, index) => (
               <div
                 key={q.questionSlug}
-                onClick={() => navigate(`/question/${q.questionSlug}`)}
-                className="border border-border rounded-md p-4 bg-card hover:bg-accent transition cursor-pointer"
+                onClick={() =>
+                  navigate(`/question/${q.questionSlug}`)
+                }
+                className="cursor-pointer border rounded-xl p-4 hover:bg-accent/40"
               >
                 <div className="flex justify-between items-center">
                   <h3 className="font-medium">
                     {index + 1}. {q.title}
                   </h3>
 
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold  ${getDifficultyColor(q.difficulty)}`}>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-bold ${getDifficultyColor(
+                      q.difficulty
+                    )}`}
+                  >
                     {q.difficulty}
                   </span>
                 </div>
 
-                <p className="text-sm text-muted-foreground mt-2">
+                <p className="mt-2 text-sm text-muted-foreground">
                   Score: {q.score}
                 </p>
               </div>
@@ -136,12 +195,7 @@ export default function ContestDetailsPage() {
           </div>
         )}
 
-        {status === "UPCOMING" && (
-          <div className="text-warning font-semibold">
-            Contest has not started yet
-          </div>
-        )}
       </div>
     </main>
-  )
+  );
 }

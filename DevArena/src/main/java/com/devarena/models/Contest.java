@@ -17,6 +17,18 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Setter
 @NoArgsConstructor
 @Entity
+@Table(
+        indexes = {
+                @Index(
+                        name = "idx_contest_status_start",
+                        columnList = "status,startTime"
+                ),
+                @Index(
+                        name = "idx_contest_status_end",
+                        columnList = "status,endTime"
+                )
+        }
+)
 public class Contest
 {
     @Id
@@ -100,4 +112,6 @@ public class Contest
     public void addQuestions(List<Question> questions) {
         this.questions.addAll(questions);
     }
+
+
 }

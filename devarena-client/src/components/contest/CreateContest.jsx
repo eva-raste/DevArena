@@ -13,12 +13,46 @@ const CreateContest = () => {
   const [slugInput, setSlugInput] = useState("");
   const [questions, setQuestions] = useState([]);
   const [questionError, setQuestionError] = useState(null);
+  const [timeError, setTimeError] = useState(null);
+
   const { submit, loading, error, success } = useCreateContest();
 
-  const onChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  /* ---------------- Time Validation ---------------- */
 
-  // Add question on ENTER
+  const validateTime = (updatedForm) => {
+    const now = new Date();
+
+    if (updatedForm.startTime) {
+      const start = new Date(updatedForm.startTime);
+      if (start < now) {
+        return "Start time cannot be in the past";
+      }
+    }
+
+    if (updatedForm.startTime && updatedForm.endTime) {
+      const start = new Date(updatedForm.startTime);
+      const end = new Date(updatedForm.endTime);
+
+      if (end < start) {
+        return "End time cannot be before start time";
+      }
+    }
+
+    return null;
+  };
+
+  const onChange = (e) => {
+    const updatedForm = {
+      ...form,
+      [e.target.name]: e.target.value
+    };
+
+    setForm(updatedForm);
+    setTimeError(validateTime(updatedForm));
+  };
+
+  /* ---------------- Question Slug ---------------- */
+
   const handleSlugKeyDown = async (e) => {
     if (e.key !== "Enter") return;
     e.preventDefault();
@@ -28,19 +62,14 @@ const CreateContest = () => {
     try {
       setQuestionError(null);
 
-      const card = await fetchQuestionCard(
-        slugInput.trim()
-      );
+      const card = await fetchQuestionCard(slugInput.trim());
 
-      // prevent duplicates
-      if (
-        questions.some((q) => q.questionSlug === card.questionSlug)
-      ) {
+      if (questions.some(q => q.questionSlug === card.questionSlug)) {
         setQuestionError("Question already added");
         return;
       }
 
-      setQuestions((prev) => [...prev, card]);
+      setQuestions(prev => [...prev, card]);
       setSlugInput("");
     } catch (err) {
       setQuestionError(err.message);
@@ -48,23 +77,26 @@ const CreateContest = () => {
   };
 
   const removeQuestion = (slug) => {
-    const ok = window.confirm(
-      "Remove this question from contest?"
-    );
-    if (!ok) return;
+    if (!window.confirm("Remove this question from contest?")) return;
 
-    setQuestions((prev) =>
-      prev.filter((q) => q.questionSlug !== slug)
-    );
+    setQuestions(prev => prev.filter(q => q.questionSlug !== slug));
   };
+
+  /* ---------------- Submit ---------------- */
 
   const onSubmit = async (e) => {
     e.preventDefault();
 
+    const validationError = validateTime(form);
+    if (validationError) {
+      setTimeError(validationError);
+      return;
+    }
+
     const payload = {
       title: form.title,
       visibility: form.visibility,
-      questionSlugs: questions.map((q) => q.questionSlug),
+      questionSlugs: questions.map(q => q.questionSlug),
       instructions: form.instructions || null,
       startTime: form.startTime || null,
       endTime: form.endTime || null
@@ -72,6 +104,8 @@ const CreateContest = () => {
 
     await submit(payload);
   };
+
+  /* ---------------- UI ---------------- */
 
   return (
   <div
@@ -312,6 +346,18 @@ const CreateContest = () => {
             "
           />
         </div>
+          {timeError && (
+            <p className="text-red-400 text-sm">{timeError}</p>
+          )}
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={loading || !!timeError}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-md font-medium disabled:opacity-50"
+          >
+            {loading ? "Creating..." : "Create Contest"}
+          </button>
 
         {/* Submit */}
         <button

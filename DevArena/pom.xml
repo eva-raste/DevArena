@@ -22,6 +22,14 @@
     </properties>
 
     <dependencies>
+
+        <!-- WebSocket + STOMP support -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+
+
         <!-- Core Spring Boot starter -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

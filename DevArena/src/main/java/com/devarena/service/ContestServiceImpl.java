@@ -5,6 +5,7 @@ import com.devarena.dtos.ContestResponseDto;
 import com.devarena.dtos.CreateContestRequest;
 import com.devarena.dtos.QuestionDto;
 import com.devarena.models.Contest;
+import com.devarena.models.ContestStatus;
 import com.devarena.models.Question;
 import com.devarena.models.User;
 import com.devarena.repositories.IContestRepo;
@@ -13,17 +14,29 @@ import com.devarena.security.RoomIdGenerator;
 import com.devarena.service.interfaces.IContestService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.scheduling.TaskScheduler;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
+
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
+
+import static com.devarena.helper.userHelper.parseUUID;
 
 
-@Service
 @RequiredArgsConstructor
+@Slf4j
+@Service
 public class ContestServiceImpl implements IContestService {
-
+    private final TaskScheduler taskScheduler;
     private final IContestRepo contestRepo;
     private final IQuestionRepo questionRepo;
+    private final ContestTaskScheduler contestTaskScheduler;
 
     public String createUniqueRoomId() {
         String roomId;
@@ -53,7 +66,20 @@ public class ContestServiceImpl implements IContestService {
                 createUniqueRoomId()
         );
 
+        if (contest.getStartTime() == null) {
+            contest.setStartTime(LocalDateTime.now());
+        }
+
+        contest.setStatus(
+                contest.getStartTime().isAfter(LocalDateTime.now())
+                        ? ContestStatus.SCHEDULED
+                        : ContestStatus.LIVE
+        );
+
+
         Contest saved = contestRepo.save(contest);
+        contestTaskScheduler.scheduleContest(saved);
+
         return toResponseDto(saved);
     }
 
@@ -70,6 +96,7 @@ public class ContestServiceImpl implements IContestService {
         List<Contest> contests =  contestRepo.findAllByOwner(owner);
         return contests.stream().map(this::toResponseDto).toList();
     }
+
 
 //    @Override
 //    public List<ContestResponseDto> getAllPublicContests() {
@@ -90,12 +117,13 @@ public class ContestServiceImpl implements IContestService {
         ContestDetailDto dto = new ContestDetailDto();
 
         dto.setRoomId(contest.getRoomId());
+        dto.setContestId(contest.getContestId());
         dto.setTitle(contest.getTitle());
         dto.setVisibility(contest.getVisibility());
         dto.setInstructions(contest.getInstructions());
         dto.setStartTime(contest.getStartTime());
         dto.setEndTime(contest.getEndTime());
-
+        dto.setStatus(contest.getStatus());
         // Map questions
         List<QuestionDto> questions = contest.getQuestions()
                 .stream()
