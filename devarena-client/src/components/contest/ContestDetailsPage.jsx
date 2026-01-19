@@ -169,7 +169,7 @@ export default function ContestDetailsPage() {
               <div
                 key={q.questionSlug}
                 onClick={() =>
-                  navigate(`/question/${q.questionSlug}`)
+                  navigate(`/contests/${contest.contestId}/questions/${q.questionSlug}`)
                 }
                 className="cursor-pointer border rounded-xl p-4 hover:bg-accent/40"
               >

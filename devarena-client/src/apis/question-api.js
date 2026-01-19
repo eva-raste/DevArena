@@ -61,3 +61,37 @@ export async function fetchCodeforcesQuestionApi(slug)
     throw new Error("Failed to fetch CodeForces question...")
   }
 }
+
+export const submitCode = async (
+  questionId,
+  contestId,
+  code,
+  testcases
+) => {
+  try {
+    const res = await api.post(
+      `/questions/${questionId}/submit`,
+      { code, testcases },
+      {
+        params: contestId ? { contestId } : {}
+      }
+    );
+    return res.data;
+  } catch {
+    throw new Error("Failed to submit code");
+  }
+};
+
+export const fetchMySubmissions = async (questionId, contestId = null) => {
+  try {
+    const res = await api.get(
+      `/questions/${questionId}/submissions`,
+      {
+        params: contestId ? { contestId } : {}
+      }
+    );
+    return res.data;
+  } catch {
+    throw new Error("Failed to fetch submissions");
+  }
+};

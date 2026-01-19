@@ -30,6 +30,7 @@ function App() {
           <Route path="/contests/:contestId" element={<ContestDetailsPage />} />
 
           <Route path="/question/:slug" element={<QuestionSolve />} />
+          <Route path="/contests/:contestId/questions/:slug" element={<QuestionSolve />} />
 
         </Route>
         <Route path="/login" element={<Login/>} />
