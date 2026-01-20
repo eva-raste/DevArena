@@ -13,7 +13,7 @@ public class DatasetWarmup {
 
     @EventListener(ApplicationReadyEvent.class)
     public void warmup() {
-        loader.preloadAsync(); // 🔥 async, app stays responsive
+        loader.preloadAsync(); // async, app stays responsive
     }
 }
 

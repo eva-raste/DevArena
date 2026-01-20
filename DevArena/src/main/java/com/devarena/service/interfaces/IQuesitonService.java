@@ -10,7 +10,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
-import java.util.UUID;
 
 
 public interface IQuesitonService {
@@ -24,10 +23,11 @@ public interface IQuesitonService {
 
     List<QuestionDto> getAllQuestionsByUser(User owner);
 
-    QuestionDto updateQuestion(QuestionDto dto);
+    QuestionDto updateQuestion(String slug,QuestionDto dto);
 
-    boolean deleteQuestion(UUID id);
+    boolean deleteQuestion(String questionSlug);
 
     Page<QuestionDto> getAllQuestions(Pageable pageable,User owner);
 
+    public QuestionDto findByQuestionSlugAndDeletedFalse(String slug);
 }

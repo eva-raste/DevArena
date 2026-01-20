@@ -55,4 +55,16 @@ public class ContestController {
         return ResponseEntity.ok(response);
     }
 
+    @DeleteMapping
+    public ResponseEntity<Void> deleteContest(@RequestParam(name="roomId") String roomId)
+    {
+        boolean deleted = contestService.deleteContest(roomId);
+
+        if (!deleted) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.noContent().build();
+    }
+
 }

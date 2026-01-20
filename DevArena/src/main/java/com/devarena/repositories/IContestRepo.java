@@ -1,24 +1,19 @@
 package com.devarena.repositories;
 
-import com.devarena.dtos.ContestResponseDto;
 import com.devarena.models.Contest;
-import com.devarena.models.ContestStatus;
 import com.devarena.models.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface IContestRepo extends JpaRepository<Contest, UUID> {
 
-    Optional<Contest> findByRoomId(String roomid);
+    Optional<Contest> findByRoomIdAndDeletedFalse(String roomid);
 
     boolean existsByRoomId(String roomId);
 
-    List<Contest> findAllByOwner(User owner);
+    List<Contest> findAllByOwnerAndDeletedFalse(User owner);
 
-
-//    List<Contest> findByVisibilityIsPublic();
 }

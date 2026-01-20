@@ -3,6 +3,7 @@ package com.devarena.service;
 import com.devarena.dtos.QuestionCardDto;
 import com.devarena.dtos.QuestionCreateDto;
 import com.devarena.dtos.QuestionDto;
+import com.devarena.exception.DuplicateQuestionSlugException;
 import com.devarena.models.Question;
 import com.devarena.models.User;
 import com.devarena.repositories.IQuestionRepo;
@@ -18,7 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-import java.util.UUID;
+import java.util.Objects;
 
 @Service
 @Data
@@ -68,12 +69,18 @@ public class QuestionServiceImpl implements IQuesitonService {
     }
 
     @Override
+    public QuestionDto findByQuestionSlugAndDeletedFalse(String slug) {
+        return modelMapper.map(questionRepo.findByQuestionSlugAndDeletedFalse(slug),QuestionDto.class);
+
+    }
+
+    @Override
     public QuestionCardDto getCardByQuestionSlug(
             String slug,
             User owner) {
         Question ques = null;
                 ques = questionRepo
-                        .findByQuestionSlugAndOwner(slug,owner)
+                        .findByQuestionSlugAndOwnerAndDeletedFalse(slug,owner)
                         .orElseThrow(() -> new ResponseStatusException(
                                 HttpStatus.NOT_FOUND,
                                 "Question not found"
@@ -84,7 +91,7 @@ public class QuestionServiceImpl implements IQuesitonService {
 
     @Override
     public List<QuestionDto> getAllQuestionsByUser(User owner) {
-        List<Question> qu = questionRepo.findAllByOwner(owner);
+        List<Question> qu = questionRepo.findAllByOwnerAndDeletedFalse(owner);
         return qu.stream().map(
                 q -> modelMapper.map(q,QuestionDto.class)
         ).toList();
@@ -92,14 +99,22 @@ public class QuestionServiceImpl implements IQuesitonService {
 
     @Override
     @Transactional
-    public QuestionDto updateQuestion(QuestionDto dto) {
+    public QuestionDto updateQuestion(String slug,QuestionDto dto) {
 
         Question question = questionRepo
-                .findByQuestionSlugAndDeletedFalse(dto.getQuestionSlug())
+                .findByQuestionSlugAndDeletedFalse(slug)
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Question not found or deleted: " + dto.getQuestionSlug()
+                        "Question not found or deleted: " + slug
                 ));
+        if(!Objects.equals(slug, dto.getQuestionSlug()) && questionRepo.existsByQuestionSlug(dto.getQuestionSlug()))
+        {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "QUESTION_SLUG_ALREADY_EXISTS"
+            );
 
+        }
+        question.setQuestionSlug(dto.getQuestionSlug());
         question.setTitle(dto.getTitle());
         question.setDescription(dto.getDescription());
         question.setDifficulty(dto.getDifficulty());
@@ -118,10 +133,10 @@ public class QuestionServiceImpl implements IQuesitonService {
 
     @Override
     @Transactional
-    public boolean deleteQuestion(UUID id) {
+    public boolean deleteQuestion(String questionSlug) {
 
         Question question = questionRepo
-                .findById(id)
+                .findByQuestionSlug(questionSlug)
                 .orElseThrow(() -> new EntityNotFoundException("Question not found"));
 
         if (question.isDeleted()) {

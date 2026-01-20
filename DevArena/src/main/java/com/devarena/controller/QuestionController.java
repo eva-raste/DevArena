@@ -5,12 +5,10 @@ import com.devarena.dtos.QuestionCardDto;
 import com.devarena.dtos.QuestionCreateDto;
 import com.devarena.dtos.QuestionDto;
 import com.devarena.exception.DuplicateQuestionSlugException;
-import com.devarena.helper.CodeforcesDatasetLoader;
 import com.devarena.mappers.CodeforcesPrefillMapper;
 import com.devarena.models.User;
 import com.devarena.service.CodeforcesDatasetService;
 import com.devarena.service.interfaces.IQuesitonService;
-import jakarta.persistence.Basic;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -21,8 +19,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/questions")
@@ -101,17 +97,18 @@ public class QuestionController {
     // UPDATE
     @PutMapping
     public ResponseEntity<QuestionDto> updateQuestion(
+            @RequestParam(name = "questionSlug") String questionSlug,
             @RequestBody @Valid QuestionDto dto
     ) {
-        QuestionDto updated = questionService.updateQuestion(dto);
+        QuestionDto updated = questionService.updateQuestion(questionSlug,dto);
         return ResponseEntity.ok(updated);
     }
 
     // DELETE (soft delete)
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteQuestion(@PathVariable UUID id) {
+    @DeleteMapping
+    public ResponseEntity<Void> deleteQuestion(@RequestParam("questionSlug") String questionSlug) {
 
-        boolean deleted = questionService.deleteQuestion(id);
+        boolean deleted = questionService.deleteQuestion(questionSlug);
 
         if (!deleted) {
             return ResponseEntity.notFound().build();

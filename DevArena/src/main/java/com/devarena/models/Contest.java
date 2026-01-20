@@ -73,6 +73,7 @@ public class Contest
     @Enumerated(EnumType.STRING)
     private ContestStatus status = ContestStatus.LIVE;
 
+    private boolean deleted = false;
 
     private LocalDateTime startTime;
     private LocalDateTime endTime;

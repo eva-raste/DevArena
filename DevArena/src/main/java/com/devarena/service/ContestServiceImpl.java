@@ -12,21 +12,15 @@ import com.devarena.repositories.IContestRepo;
 import com.devarena.repositories.IQuestionRepo;
 import com.devarena.security.RoomIdGenerator;
 import com.devarena.service.interfaces.IContestService;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
 import org.springframework.scheduling.TaskScheduler;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
-
-import static com.devarena.helper.userHelper.parseUUID;
 
 
 @RequiredArgsConstructor
@@ -85,7 +79,7 @@ public class ContestServiceImpl implements IContestService {
 
     @Override
     public ContestResponseDto getContestByRoomId(String roomId) {
-        Contest contest = contestRepo.findByRoomId(roomId)
+        Contest contest = contestRepo.findByRoomIdAndDeletedFalse(roomId)
                 .orElseThrow(() -> new RuntimeException("Contest not found"));
 
         return toResponseDto(contest);
@@ -93,7 +87,7 @@ public class ContestServiceImpl implements IContestService {
 
     @Override
     public List<ContestResponseDto> getOwnerContests(User owner) {
-        List<Contest> contests =  contestRepo.findAllByOwner(owner);
+        List<Contest> contests =  contestRepo.findAllByOwnerAndDeletedFalse(owner);
         return contests.stream().map(this::toResponseDto).toList();
     }
 
@@ -111,7 +105,7 @@ public class ContestServiceImpl implements IContestService {
 
     @Override
     public ContestDetailDto getContestDetails(String roomId) {
-        Contest contest = contestRepo.findByRoomId(roomId)
+        Contest contest = contestRepo.findByRoomIdAndDeletedFalse(roomId)
                 .orElseThrow(() -> new RuntimeException("Contest not found"));
 
         ContestDetailDto dto = new ContestDetailDto();
@@ -133,6 +127,22 @@ public class ContestServiceImpl implements IContestService {
         dto.setQuestions(questions);
 
         return dto;
+    }
+
+
+    @Override
+    @Transactional
+    public boolean deleteContest(String roomid) {
+        Contest contest = contestRepo
+                .findByRoomIdAndDeletedFalse(roomid)
+                .orElseThrow(() -> new EntityNotFoundException("Contest not found"));
+
+        if (contest.isDeleted()) {
+            return false;
+        }
+
+        contest.setDeleted(true);
+        return true;
     }
 
     private QuestionDto toQuestionDto(Question question) {

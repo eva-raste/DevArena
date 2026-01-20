@@ -95,3 +95,35 @@ export const fetchMySubmissions = async (questionId, contestId = null) => {
     throw new Error("Failed to fetch submissions");
   }
 };
+
+
+export const deleteQuestionApi = async (questionSlug) => {
+  try{
+    const res = await api.delete(
+      `/questions`,
+      {
+        params : questionSlug ? { questionSlug } : ""
+      }
+    )
+  }
+  catch{
+    throw new Error("Error deleting question...")
+  }
+};
+
+export const updateQuestionApi = async (questionSlug, form) => {
+    // try
+    // {
+        console.log("calling with ",questionSlug)
+        return api.put(
+            "/questions",
+            form, // <-- BODY (QuestionDto)
+            {
+            params: { questionSlug }, // <-- QUERY PARAM
+            }
+        )
+    // }
+    // catch{
+    //     throw new Error("Error updating question...")
+    // }
+};

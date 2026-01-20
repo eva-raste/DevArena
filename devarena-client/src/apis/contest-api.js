@@ -42,3 +42,16 @@ export const fetchContestByIdApi = async (roomId) => {
     )
   }
 }
+
+
+export const deleteContestApi = async (roomId) =>{
+    try
+    {
+        const res = await api.delete('/contests',{
+            params : roomId ? {roomId} : ""
+        })
+    }
+    catch{
+        throw new Error("Could not delete contest...")
+    }
+}

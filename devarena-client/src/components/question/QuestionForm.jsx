@@ -37,7 +37,7 @@ export const QuestionForm = ({
             {errors.map((err, i) => (
               <li key={i}>{err}</li>
             ))}
-          </ul>
+          </ul> 
         </div>
       )}
 

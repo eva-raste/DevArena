@@ -19,4 +19,6 @@ public interface IContestService {
 
 
     ContestDetailDto getContestDetails(String roomId);
+
+    boolean deleteContest(String roomid);
 }

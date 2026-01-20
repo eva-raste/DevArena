@@ -1,4 +1,4 @@
-import { Routes, Route} from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import Home from "./components/home"
 import CreateQuestion from "./components/question/CreateQuestion";
 import QuestionsList from "./components/question/QuestionsList";
@@ -11,35 +11,37 @@ import QuestionSolve from "./components/question/QuestionSolve";
 import ContestDetailsPage from "./components/contest/ContestDetailsPage";
 import { useLoader } from "./components/loader/LoaderContext";
 import GlobalLoader from "./components/loader/GlobalLoader";
+import EditQuestionForm from "./components/question/EditQuestionForm";
 
 function App() {
-      const { loading } = useLoader();
+    const { loading } = useLoader();
 
-  return (
-    <div>
-        {loading && <GlobalLoader />}
-      <Routes>
-        <Route path="/" element={<Root />}>
+    return (
+        <div>
+            {loading && <GlobalLoader />}
+            <Routes>
+                <Route path="/" element={<Root />}>
 
-          <Route path="/" element={<Home />} />
-          
-          <Route path="/create-question" element={ <CreateQuestion /> }/>
-          <Route path="/show-all-questions" element={ <QuestionsList /> }/>
-          <Route path="/create-contest" element={<CreateContest />} />
-          <Route path="/my-contests" element={ < ContestsPage />} />
-          <Route path="/contests/:contestId" element={<ContestDetailsPage />} />
+                    <Route path="/" element={<Home />} />
 
-          <Route path="/question/:slug" element={<QuestionSolve />} />
-          <Route path="/contests/:contestId/questions/:slug" element={<QuestionSolve />} />
+                    <Route path="/create-question" element={<CreateQuestion />} />
+                    <Route path="/show-all-questions" element={<QuestionsList />} />
+                    <Route path="/create-contest" element={<CreateContest />} />
+                    <Route path="/my-contests" element={< ContestsPage />} />
+                    <Route path="/contests/:contestId" element={<ContestDetailsPage />} />
+                    <Route path="/questions/:slug/edit" element={<EditQuestionForm />} />
 
-        </Route>
-        <Route path="/login" element={<Login/>} />
-        <Route path="/signup" element={<Signup/>} />
-        {/* <Route path="/create-contest" element = {<CreateContest />} /> */}
+                    <Route path="/question/:slug" element={<QuestionSolve />} />
+                    <Route path="/contests/:contestId/questions/:slug" element={<QuestionSolve />} />
 
-      </Routes>
-    </div>
-  );
+                </Route>
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                {/* <Route path="/create-contest" element = {<CreateContest />} /> */}
+
+            </Routes>
+        </div>
+    );
 }
 
 export default App;

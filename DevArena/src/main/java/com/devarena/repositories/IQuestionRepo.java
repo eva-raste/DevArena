@@ -28,4 +28,7 @@ public interface IQuestionRepo extends JpaRepository<Question, UUID> {
 
     Page<Question> findAllByDeletedFalseAndOwner(User owner, Pageable pageable);
 
+    Optional<Question> findByQuestionSlugAndOwnerAndDeletedFalse(String slug, User owner);
+
+    List<Question> findAllByOwnerAndDeletedFalse(User owner);
 }

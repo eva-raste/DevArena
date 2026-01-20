@@ -36,7 +36,7 @@ public class Question {
     private String title;
 
     @ManyToOne
-    @JoinColumn(name = "owner_id",nullable = false,unique = true)
+    @JoinColumn(name = "owner_id",nullable = false)
     private User owner;
 
     @ManyToMany
