@@ -1,7 +1,6 @@
 package com.devarena.service.interfaces;
 
 
-import com.devarena.dtos.CursorPageResponse;
 import com.devarena.dtos.contests.ContestDetailDto;
 import com.devarena.dtos.contests.ContestResponseDto;
 import com.devarena.dtos.contests.CreateContestRequest;
@@ -11,9 +10,6 @@ import com.devarena.models.User;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-
-import java.time.Instant;
-import java.util.List;
 
 
 public interface IContestService {

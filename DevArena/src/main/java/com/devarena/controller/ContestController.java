@@ -1,7 +1,6 @@
 package com.devarena.controller;
 
 
-import com.devarena.dtos.CursorPageResponse;
 import com.devarena.dtos.contests.ContestDetailDto;
 import com.devarena.dtos.contests.ContestResponseDto;
 import com.devarena.dtos.contests.CreateContestRequest;
@@ -20,9 +19,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.Instant;
-import java.util.List;
 
 @RestController
 @AllArgsConstructor

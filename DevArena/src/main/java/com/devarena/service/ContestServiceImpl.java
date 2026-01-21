@@ -1,6 +1,5 @@
 package com.devarena.service;
 
-import com.devarena.dtos.CursorPageResponse;
 import com.devarena.dtos.contests.ContestDetailDto;
 import com.devarena.dtos.contests.ContestResponseDto;
 import com.devarena.dtos.contests.CreateContestRequest;
@@ -17,14 +16,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
