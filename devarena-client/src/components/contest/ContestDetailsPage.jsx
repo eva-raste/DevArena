@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { fetchContestByIdApi } from "../../apis/contest-api";
+import { fetchContestByIdApi,fetchMyContestScore ,fetchAcceptedQuestions } from "../../apis/contest-api";
 import { useContestSocket } from "../../websocket/useContestSocket";
 import getDifficultyColor from "../helpers/colorDifficulty";
 
@@ -45,9 +45,10 @@ export default function ContestDetailsPage() {
 
   const [contest, setContest] = useState(null);
   const [error, setError] = useState(null);
-
+  const [myScore, setMyScore] = useState(null);
   const [serverOffset, setServerOffset] = useState(0);
   const [now, setNow] = useState(Date.now());
+  const [acceptedQuestions, setAcceptedQuestions] = useState([]);
 
   useEffect(() => {
     fetchContestByIdApi(roomId)
@@ -59,6 +60,26 @@ export default function ContestDetailsPage() {
         setError(e.message || "Failed to load contest")
       );
   }, [roomId]);
+
+    useEffect(() => {
+      if (!contest?.contestId) return;
+
+      fetchMyContestScore(contest.contestId)
+        .then(setMyScore)
+        .catch(() => {});
+    }, [contest]);
+
+  useEffect(() => {
+    if (!contest?.contestId) return;
+
+    fetchAcceptedQuestions(contest.contestId)
+       .then((data) => {
+               console.log(data);
+               setAcceptedQuestions(data);
+             })
+      .catch(() => {});
+  }, [contest, myScore]);
+
 
   const handleSocketEvent = useCallback((event) => {
     console.log("[WS] Event received:", event);
@@ -128,6 +149,11 @@ export default function ContestDetailsPage() {
             <span>End: {contest.endTime}</span>
             <span>Status: {label}</span>
           </div>
+           {myScore !== null && (
+             <div className="mt-2 text-sm font-semibold text-primary">
+               My Total Score: {myScore}
+             </div>
+           )}
 
           {/* Timer */}
           {targetMs && (
@@ -178,14 +204,23 @@ export default function ContestDetailsPage() {
                     {index + 1}. {q.title}
                   </h3>
 
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-bold ${getDifficultyColor(
-                      q.difficulty
-                    )}`}
-                  >
-                    {q.difficulty}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    {acceptedQuestions.includes(q.questionID) && (
+                      <span className="text-green-600 text-2xl font-bold">
+                        ✔
+                      </span>
+                    )}
+
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-bold ${getDifficultyColor(
+                        q.difficulty
+                      )}`}
+                    >
+                      {q.difficulty}
+                    </span>
+                  </div>
                 </div>
+
 
                 <p className="mt-2 text-sm text-muted-foreground">
                   Score: {q.score}

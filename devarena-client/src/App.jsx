@@ -15,6 +15,7 @@ import EditQuestionForm from "./components/question/EditQuestionForm";
 import EditContestPage from "./components/contest/EditContestPage";
 import Dashboard from "./components/dashboard/Dashboard";
 
+import Profile from "./components/profile";
 function App() {
     const { loading } = useLoader();
 
@@ -38,6 +39,8 @@ function App() {
 
                     <Route path="/question/:slug" element={<QuestionSolve />} />
                     <Route path="/contests/:contestId/questions/:slug" element={<QuestionSolve />} />
+
+                    <Route path="/profile" element={<Profile />} />
 
                 </Route>
                 <Route path="/login" element={<Login />} />

@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
 import java.util.List;
+import java.util.UUID;
 
 
 @Getter
@@ -15,7 +16,7 @@ import java.util.List;
 public class QuestionDto {
 
     private String questionSlug;
-
+    private UUID questionID;
     private String title;
 
     private String description;

@@ -81,6 +81,7 @@ public class ContestServiceImpl implements IContestService {
         return toResponseDto(saved);
     }
 
+
     @Override
     public ContestResponseDto getContestByRoomId(String roomId) {
         Contest contest = contestRepo.findByRoomIdAndDeletedFalse(roomId)
@@ -308,6 +309,7 @@ public class ContestServiceImpl implements IContestService {
     private QuestionDto toQuestionDto(Question question) {
         QuestionDto dto = new QuestionDto();
         dto.setQuestionSlug(question.getQuestionSlug());
+        dto.setQuestionID(question.getQuestionId());
         dto.setHiddenTestcases(question.getHiddenTestcases());
         dto.setSampleTestcases(question.getSampleTestcases());
         dto.setScore(question.getScore());
