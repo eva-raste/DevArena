@@ -1,4 +1,4 @@
-package com.devarena.dtos;
+package com.devarena.dtos.judge0;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 

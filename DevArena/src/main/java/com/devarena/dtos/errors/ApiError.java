@@ -1,4 +1,4 @@
-package com.devarena.dtos;
+package com.devarena.dtos.errors;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;

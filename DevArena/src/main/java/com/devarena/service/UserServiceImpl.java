@@ -1,9 +1,8 @@
 package com.devarena.service;
 
-import com.devarena.dtos.UserDto;
+import com.devarena.dtos.users.UserDto;
 import com.devarena.exception.ResourceNotFoundException;
 import com.devarena.helper.userHelper;
-import com.devarena.models.Provider;
 import com.devarena.models.User;
 import com.devarena.repositories.UserRepository;
 import com.devarena.service.interfaces.UserService;
@@ -12,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.util.UUID;
 
 @Service

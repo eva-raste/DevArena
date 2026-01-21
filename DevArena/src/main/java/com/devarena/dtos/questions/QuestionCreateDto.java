@@ -1,4 +1,4 @@
-package com.devarena.dtos;
+package com.devarena.dtos.questions;
 
 import com.devarena.models.QuestionDifficulty;
 import com.devarena.models.Testcase;

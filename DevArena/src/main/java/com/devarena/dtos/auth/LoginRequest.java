@@ -1,4 +1,4 @@
-package com.devarena.dtos;
+package com.devarena.dtos.auth;
 
 import lombok.*;
 

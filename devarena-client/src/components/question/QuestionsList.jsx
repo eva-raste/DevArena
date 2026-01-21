@@ -25,11 +25,11 @@ import { Card } from "@/components/ui/card"
 import { deleteQuestionApi, fetchQuestionsApi } from "@/apis/question-api"
 import { useNavigate } from "react-router-dom"
 import getDifficultyColor from "../helpers/colorDifficulty"
+
 /* ---------------- Pagination Component ---------------- */
 
 function Pagination({ page, totalPages, onPageChange }) {
     if (totalPages <= 1) return null
-
 
     return (
         <div className="flex justify-center items-center gap-2 mt-10 flex-wrap">
@@ -72,12 +72,11 @@ export default function QuestionsPage() {
     const [filter, setFilter] = useState("ALL")
     const [error, setError] = useState("")
     const [loading, setLoading] = useState(false)
-    const [deleteSlug, setDeleteSlug] = useState(null);
-    const [editingQuestion, setEditingQuestion] = useState(null)
+    const [deleteSlug, setDeleteSlug] = useState(null)
 
     const [pageInfo, setPageInfo] = useState({
         page: 0,
-        size: 9,
+        size: 10,
         totalPages: 1,
         totalElements: 0,
     })
@@ -92,27 +91,35 @@ export default function QuestionsPage() {
         navigate("/create-question")
     }
 
-    /* ---------------- Fetch Questions ---------------- */
+    /* ---------------- Fetch Questions (SERVER FILTERED) ---------------- */
 
-    const fetchQuestions = useCallback(async (pageNum = 0) => {
-        try {
-            setLoading(true)
-            setError("")
-            const data = await fetchQuestionsApi(pageNum, pageInfo.size)
+    const fetchQuestions = useCallback(
+        async (pageNum = 0, difficulty = filter === "ALL" ? undefined : filter) => {
+            try {
+                setLoading(true)
+                setError("")
 
-            setQuestions(data.content)
-            setPageInfo({
-                page: data.number,
-                size: data.size,
-                totalPages: data.totalPages,
-                totalElements: data.totalElements,
-            })
-        } catch {
-            setError("Failed to fetch questions.")
-        } finally {
-            setLoading(false)
-        }
-    }, [pageInfo.size])
+                const data = await fetchQuestionsApi(
+                    pageNum,
+                    pageInfo.size,
+                    difficulty
+                )
+
+                setQuestions(data.content)
+                setPageInfo({
+                    page: data.number,
+                    size: data.size,
+                    totalPages: data.totalPages,
+                    totalElements: data.totalElements,
+                })
+            } catch {
+                setError("Failed to fetch questions.")
+            } finally {
+                setLoading(false)
+            }
+        },
+        [pageInfo.size, filter]
+    )
 
     useEffect(() => {
         fetchQuestions(0)
@@ -130,23 +137,16 @@ export default function QuestionsPage() {
         )
     }
 
-
-
-    /* ---------------- Client-side Search/Filter (current page only) ---------------- */
+    /* ---------------- Client-side Search ONLY ---------------- */
 
     const filteredQuestions = useMemo(() => {
-        return questions.filter(q => {
-            const ql = searchQuery.toLowerCase()
-            const matchesSearch =
-                (q.title || "").toLowerCase().includes(ql) ||
-                (q.description || "").toLowerCase().includes(ql)
+        const ql = searchQuery.toLowerCase()
 
-            const matchesFilter =
-                filter === "ALL" || q.difficulty === filter
-
-            return matchesSearch && matchesFilter
-        })
-    }, [questions, searchQuery, filter])
+        return questions.filter(q =>
+            (q.title || "").toLowerCase().includes(ql) ||
+            (q.description || "").toLowerCase().includes(ql)
+        )
+    }, [questions, searchQuery])
 
     /* ---------------- UI ---------------- */
 
@@ -187,17 +187,20 @@ export default function QuestionsPage() {
                     </div>
                 </div>
 
-                {/* Filters */}
+                {/* Difficulty Filters */}
                 <div className="flex flex-wrap gap-3 mb-6">
                     {["ALL", "EASY", "MEDIUM", "HARD"].map(d => (
                         <button
                             key={d}
-                            onClick={() => setFilter(d)}
+                            onClick={() => {
+                                setFilter(d)
+                                fetchQuestions(0, d === "ALL" ? undefined : d)
+                            }}
                             className={`px-4 py-2 rounded-lg font-semibold border
-            ${filter === d
+                                ${filter === d
                                     ? "bg-blue-600 text-white"
-                                    : "bg-white dark:bg-gray-900 text-slate-600 dark:text-gray-300"}
-            `}
+                                    : "bg-white dark:bg-gray-900 text-slate-600 dark:text-gray-300"
+                                }`}
                         >
                             {d}
                         </button>
@@ -211,15 +214,12 @@ export default function QuestionsPage() {
                                 Delete this question?
                             </AlertDialogTitle>
                             <AlertDialogDescription>
-                                This action cannot be undone. The question and all related data will be permanently removed.
+                                This action cannot be undone.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
 
                         <AlertDialogFooter>
-                            <AlertDialogCancel>
-                                Cancel
-                            </AlertDialogCancel>
-
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
                                 className="bg-red-600 hover:bg-red-700"
                                 onClick={() => {
@@ -245,7 +245,6 @@ export default function QuestionsPage() {
                                 className="cursor-pointer bg-white/80 dark:bg-gray-900/70 hover:-translate-y-1 hover:shadow-xl transition"
                             >
                                 <div className="p-6 space-y-4">
-                                    {/* Header */}
                                     <div className="flex items-start justify-between gap-4">
                                         <h3 className="font-bold text-lg leading-tight">
                                             {q.title}
@@ -253,9 +252,7 @@ export default function QuestionsPage() {
 
                                         <div className="flex items-center gap-2">
                                             <span
-                                                className={`px-3 py-1 rounded-full text-xs font-bold ${getDifficultyColor(
-                                                    q.difficulty
-                                                )}`}
+                                                className={`px-3 py-1 rounded-full text-xs font-bold ${getDifficultyColor(q.difficulty)}`}
                                             >
                                                 {q.difficulty}
                                             </span>
@@ -285,16 +282,10 @@ export default function QuestionsPage() {
                                         </div>
                                     </div>
 
-                                    {/* Body */}
-                                    <p className="text-sm text-slate-600 dark:text-gray-400 line-clamp-2">
-                                        {q.questionSlug}
-                                    </p>
-
                                     <p className="text-sm text-slate-600 dark:text-gray-400 line-clamp-2">
                                         {q.description}
                                     </p>
 
-                                    {/* Footer */}
                                     <div className="flex justify-between items-center text-sm">
                                         <span className="text-slate-500">{q.score} pts</span>
                                         <ChevronRight className="w-5 h-5 text-slate-400" />
@@ -305,8 +296,6 @@ export default function QuestionsPage() {
                     </div>
                 )}
 
-
-                {/* Pagination */}
                 <Pagination
                     page={pageInfo.page}
                     totalPages={pageInfo.totalPages}

@@ -1,11 +1,12 @@
 package com.devarena.controller;
 
-import com.devarena.dtos.CodeforcesQuestionPrefillDto;
-import com.devarena.dtos.QuestionCardDto;
-import com.devarena.dtos.QuestionCreateDto;
-import com.devarena.dtos.QuestionDto;
+import com.devarena.dtos.questions.CodeforcesQuestionPrefillDto;
+import com.devarena.dtos.questions.QuestionCardDto;
+import com.devarena.dtos.questions.QuestionCreateDto;
+import com.devarena.dtos.questions.QuestionDto;
 import com.devarena.exception.DuplicateQuestionSlugException;
 import com.devarena.mappers.CodeforcesPrefillMapper;
+import com.devarena.models.QuestionDifficulty;
 import com.devarena.models.User;
 import com.devarena.service.CodeforcesDatasetService;
 import com.devarena.service.interfaces.IQuesitonService;
@@ -49,7 +50,9 @@ public class QuestionController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt,desc") String sort,
-            @AuthenticationPrincipal User owner) {
+            @RequestParam(required = false) QuestionDifficulty difficulty,
+            @AuthenticationPrincipal User owner
+    ) {
         Sort sortObj = Sort.by(
                 sort.endsWith(",desc") ? Sort.Direction.DESC : Sort.Direction.ASC,
                 sort.split(",")[0]
@@ -57,8 +60,11 @@ public class QuestionController {
 
         Pageable pageable = PageRequest.of(page, size, sortObj);
 
-        return ResponseEntity.ok(questionService.getAllQuestions(pageable,owner));
+        return ResponseEntity.ok(
+                questionService.getAllQuestions(pageable, owner, difficulty)
+        );
     }
+
 
     @GetMapping(value="/{slug}",produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<QuestionDto> findByQuestionSlug(@PathVariable("slug") String slug)

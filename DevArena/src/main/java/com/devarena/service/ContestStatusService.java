@@ -1,6 +1,6 @@
 package com.devarena.service;
 
-import com.devarena.dtos.ContestStatusEvent;
+import com.devarena.dtos.contests.ContestStatusEvent;
 import com.devarena.models.ContestStatus;
 import com.devarena.repositories.IContestRepo;
 import jakarta.transaction.Transactional;

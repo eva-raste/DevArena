@@ -1,13 +1,12 @@
 package com.devarena.service;
 
-import com.devarena.dtos.ContestDetailDto;
-import com.devarena.dtos.ContestResponseDto;
-import com.devarena.dtos.CreateContestRequest;
-import com.devarena.dtos.QuestionDto;
-import com.devarena.models.Contest;
-import com.devarena.models.ContestStatus;
-import com.devarena.models.Question;
-import com.devarena.models.User;
+import com.devarena.dtos.CursorPageResponse;
+import com.devarena.dtos.contests.ContestDetailDto;
+import com.devarena.dtos.contests.ContestResponseDto;
+import com.devarena.dtos.contests.CreateContestRequest;
+import com.devarena.dtos.contests.EditContestRequestDto;
+import com.devarena.dtos.questions.QuestionDto;
+import com.devarena.models.*;
 import com.devarena.repositories.IContestRepo;
 import com.devarena.repositories.IQuestionRepo;
 import com.devarena.security.RoomIdGenerator;
@@ -16,9 +15,16 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -31,6 +37,7 @@ public class ContestServiceImpl implements IContestService {
     private final IContestRepo contestRepo;
     private final IQuestionRepo questionRepo;
     private final ContestTaskScheduler contestTaskScheduler;
+    private final ModelMapper modelMapper;
 
     public String createUniqueRoomId() {
         String roomId;
@@ -86,10 +93,24 @@ public class ContestServiceImpl implements IContestService {
     }
 
     @Override
-    public List<ContestResponseDto> getOwnerContests(User owner) {
-        List<Contest> contests =  contestRepo.findAllByOwnerAndDeletedFalse(owner);
-        return contests.stream().map(this::toResponseDto).toList();
+    public Page<ContestResponseDto> getOwnerContests(
+            User owner,
+            ContestStatus status,
+            Pageable pageable
+    ) {
+        Page<Contest> page;
+
+        if (status == null) {
+            page = contestRepo.findAllByOwnerAndDeletedFalse(owner, pageable);
+        } else {
+            page = contestRepo.findAllByOwnerAndStatusAndDeletedFalse(owner, status, pageable);
+        }
+
+        return page.map(contest ->
+                modelMapper.map(contest, ContestResponseDto.class)
+        );
     }
+
 
 
 //    @Override
@@ -136,6 +157,20 @@ public class ContestServiceImpl implements IContestService {
         Contest contest = contestRepo
                 .findByRoomIdAndDeletedFalse(roomid)
                 .orElseThrow(() -> new EntityNotFoundException("Contest not found"));
+        if (contest.getStatus() != ContestStatus.SCHEDULED) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "CONTEST_STATUS_NOT_SCHEDULED"
+            );
+        }
+
+        if (contest.getStartTime() != null &&
+                LocalDateTime.now().isAfter(contest.getStartTime())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "CONTEST_ALREADY_STARTED"
+            );
+        }
 
         if (contest.isDeleted()) {
             return false;
@@ -144,6 +179,134 @@ public class ContestServiceImpl implements IContestService {
         contest.setDeleted(true);
         return true;
     }
+
+    public void assertEditable(String roomid) {
+        Contest contest = contestRepo
+                .findByRoomIdAndDeletedFalse(roomid)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "CONTEST_NOT_FOUND"
+                ));
+
+        if (contest.getStatus() != ContestStatus.SCHEDULED) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "CONTEST_STATUS_NOT_SCHEDULED"
+            );
+        }
+
+        if (contest.getStartTime() != null &&
+                LocalDateTime.now().isAfter(contest.getStartTime())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "CONTEST_ALREADY_STARTED"
+            );
+        }
+    }
+
+    @Transactional
+    @Override
+    public ContestDetailDto updateContest(
+            String roomId,
+            EditContestRequestDto dto
+    ) {
+        Contest contest = contestRepo
+                .findByRoomIdAndDeletedFalse(roomId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "CONTEST_NOT_FOUND"
+                ));
+
+        // ---- EDIT VALIDITY CHECKS ----
+
+        if (contest.getStatus() != ContestStatus.SCHEDULED) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "CONTEST_STATUS_NOT_SCHEDULED"
+            );
+        }
+
+        if (contest.getStartTime() != null &&
+                LocalDateTime.now().isAfter(contest.getStartTime())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "CONTEST_ALREADY_STARTED"
+            );
+        }
+
+        // ---- TIME VALIDATION ----
+
+        if (dto.getStartTime() != null &&
+                dto.getStartTime().isBefore(LocalDateTime.now())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "START_TIME_IN_PAST"
+            );
+        }
+
+        if (dto.getStartTime() != null &&
+                dto.getEndTime() != null &&
+                dto.getEndTime().isBefore(dto.getStartTime())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "END_BEFORE_START"
+            );
+        }
+
+        // ---- UPDATE FIELDS ----
+
+        contest.setTitle(dto.getTitle());
+        contest.setVisibility(dto.getVisibility());
+        contest.setInstructions(dto.getInstructions());
+        contest.setStartTime(dto.getStartTime());
+        contest.setEndTime(dto.getEndTime());
+
+        // ---- QUESTIONS ----
+        // Resolve question slugs → entities
+        List<Question> questions =
+                questionRepo.findAllByQuestionSlugIn(dto.getQuestionSlugs());
+
+        if (questions.size() != dto.getQuestionSlugs().size()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_QUESTION_SLUG"
+            );
+        }
+
+        contest.setQuestions(questions);
+
+        Contest saved = contestRepo.save(contest);
+
+        return modelMapper.map(saved, ContestDetailDto.class);
+    }
+
+    @Override
+    public Page<ContestResponseDto> getPublicContests(
+            Pageable pageable,
+            ContestStatus status
+    ) {
+        Page<Contest> contests;
+
+        if (status == null) {
+            contests = contestRepo.findByDeletedFalseAndVisibility(
+                    ContestVisibility.PUBLIC,
+                    pageable
+            );
+        } else {
+            contests = contestRepo.findByDeletedFalseAndVisibilityAndStatus(
+                    ContestVisibility.PUBLIC,
+                    status,
+                    pageable
+            );
+        }
+
+        return contests.map(c -> modelMapper.map(c, ContestResponseDto.class));
+    }
+
+
+
+
+
 
     private QuestionDto toQuestionDto(Question question) {
         QuestionDto dto = new QuestionDto();

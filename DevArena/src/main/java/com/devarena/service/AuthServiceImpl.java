@@ -1,6 +1,6 @@
 package com.devarena.service;
 
-import com.devarena.dtos.UserDto;
+import com.devarena.dtos.users.UserDto;
 import com.devarena.service.interfaces.IAuthService;
 import com.devarena.service.interfaces.UserService;
 import lombok.AllArgsConstructor;

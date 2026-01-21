@@ -1,22 +1,17 @@
-package com.devarena.dtos;
+package com.devarena.dtos.users;
 
-import com.devarena.models.Contest;
-import com.devarena.models.Provider;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.*;
 
-import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @Builder
-public class UserDto {
+public class UserProfileDto {
     private UUID userId;
 
     @NotBlank(message = "Username is required")
@@ -26,8 +21,6 @@ public class UserDto {
     @NotBlank(message = "Email is required")
     private String email;
 
-    @NotBlank(message = "Password is required")
-    @Size(min = 8, message = "Password must be at least 8 characters long")
-    private String password;
+
 
 }

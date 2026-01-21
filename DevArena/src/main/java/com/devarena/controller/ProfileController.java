@@ -1,7 +1,6 @@
 package com.devarena.controller;
 
-import com.devarena.dtos.UserDto;
-import com.devarena.dtos.UserProfileDto;
+import com.devarena.dtos.users.UserProfileDto;
 import com.devarena.service.interfaces.UserService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;

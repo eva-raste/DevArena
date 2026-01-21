@@ -1,4 +1,4 @@
-package com.devarena.dtos;
+package com.devarena.dtos.contests;
 
 import com.devarena.models.ContestStatus;
 import lombok.AllArgsConstructor;

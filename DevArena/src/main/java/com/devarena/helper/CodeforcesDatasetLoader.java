@@ -1,6 +1,6 @@
 package com.devarena.helper;
 
-import com.devarena.dtos.CodeforcesQuestionPrefillDto;
+import com.devarena.dtos.questions.CodeforcesQuestionPrefillDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.beans.factory.annotation.Value;

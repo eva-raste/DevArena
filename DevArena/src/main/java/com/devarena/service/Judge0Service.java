@@ -1,7 +1,7 @@
 //package com.devarena.service;
 //
-//import com.devarena.dtos.Judge0Request;
-//import com.devarena.dtos.Judge0Response;
+//import com.devarena.dtos.judge0.Judge0Request;
+//import com.devarena.dtos.judge0.Judge0Response;
 //import org.springframework.http.*;
 //import org.springframework.stereotype.Service;
 //import org.springframework.web.client.RestTemplate;

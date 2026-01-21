@@ -1,18 +1,12 @@
 package com.devarena.service;
 
-import com.devarena.dtos.ContestStatusEvent;
 import com.devarena.models.Contest;
-import com.devarena.models.ContestStatus;
-import com.devarena.repositories.IContestRepo;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor

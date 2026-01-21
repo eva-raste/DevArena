@@ -14,17 +14,26 @@ export async function createQuestion(question) {
     throw new Error("Failed to create question");
   }
 }
-
-export const fetchQuestionsApi = async (page = 0, size = 10) => {
+export const fetchQuestionsApi = async (
+  page = 0,
+  size = 10,
+  difficulty
+) => {
   try {
     const res = await api.get("/questions", {
-      params: { page, size }
-    });
-    return res.data; // Page object
+      params: {
+        page,
+        size,
+        ...(difficulty && { difficulty }),
+      },
+    })
+
+    return res.data
   } catch {
-    throw new Error("Failed to fetch questions");
+    throw new Error("Failed to fetch questions")
   }
-};
+}
+
 
 
 export async function fetchQuestionCard(slug) {

@@ -1,5 +1,9 @@
-import { useEffect, useState, useCallback } from "react"
-import { fetchAllCOntestsApi, deleteContestApi } from "../../apis/contest-api"
+import React, { useEffect, useState, useCallback} from "react"
+import {
+  fetchAllContestsApi,
+  deleteContestApi,
+  checkContestEditValidityApi,
+} from "../../apis/contest-api"
 import { useNavigate } from "react-router-dom"
 import { useContestSocket } from "../../websocket/useContestSocket"
 import {
@@ -26,13 +30,10 @@ const STATUS_LABELS = {
 const STATUS_BADGE_STYLES = {
   LIVE:
     "relative bg-emerald-500/15 text-emerald-500 border-emerald-500/30 font-bold uppercase tracking-wider animate-pulse ring-1 ring-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.4)]",
-
   SCHEDULED:
     "bg-blue-500/10 text-blue-500 border-blue-500/20 font-medium hover:bg-blue-500/20 transition-colors duration-500 ease-in-out",
-
   ENDED:
     "bg-slate-800/40 text-slate-100 border-slate-00/50 grayscale-[0.5] font-normal",
-
   DRAFT:
     "bg-zinc-500/5 text-zinc-500 border-zinc-500/20 border-dashed italic",
 }
@@ -70,29 +71,42 @@ export default function ContestsPage() {
   const [contests, setContests] = useState([])
   const [error, setError] = useState(null)
 
-  // delete modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [selectedRoomId, setSelectedRoomId] = useState(null)
 
-  // server-aligned clock (UI ONLY)
   const [serverOffset, setServerOffset] = useState(0)
   const [now, setNow] = useState(Date.now())
 
-  /* ---------- initial REST fetch ---------- */
-  useEffect(() => {
-    const fetchContests = async () => {
-      try {
-        const data = await fetchAllCOntestsApi()
-        setContests(data)
-      } catch (err) {
-        setError(err.message || "Failed to load contests")
-      }
+  /* ---------- pagination + filter (APPENDED) ---------- */
+
+  const [page, setPage] = useState(0)
+  const [size] = useState(5)
+  const [totalPages, setTotalPages] = useState(0)
+  const [statusFilter, setStatusFilter] = useState("ALL")
+
+  const STATUS_TABS = ["ALL","SCHEDULED", "LIVE", "ENDED"]
+
+  const fetchPaginatedContests = useCallback(async () => {
+    try {
+      const res = await fetchAllContestsApi({
+        page,
+        size,
+        status: statusFilter === "ALL" ? undefined : statusFilter,
+      })
+
+      setContests(res?.content ?? [])
+      setTotalPages(res?.totalPages ?? 0)
+    } catch (err) {
+      setError(err.message || "Failed to load contests")
     }
+  }, [page, size, statusFilter])
 
-    fetchContests()
-  }, [])
+  useEffect(() => {
+    fetchPaginatedContests()
+  }, [fetchPaginatedContests])
 
-  /* ---------- WebSocket handling ---------- */
+  /* ---------- websocket ---------- */
+
   const handleSocketEvent = useCallback((event) => {
     if (event.serverTime) {
       setServerOffset(
@@ -111,22 +125,25 @@ export default function ContestsPage() {
 
   useContestSocket({ onEvent: handleSocketEvent })
 
-  /* ---------- ticking clock ---------- */
   useEffect(() => {
     const t = setInterval(() => {
       setNow(Date.now() + serverOffset)
     }, 1000)
-
     return () => clearInterval(t)
   }, [serverOffset])
 
-  /* ---------- delete handlers ---------- */
+  /* ---------- actions ---------- */
 
-  const onEdit = () => {
-    // intentionally empty
+  const onEdit = async (roomId) => {
+    try {
+      await checkContestEditValidityApi(roomId)
+      navigate(`/contests/edit/${roomId}`)
+    } catch {
+      alert("Contest cannot be edited.")
+    }
   }
 
-  const onDeleteClick = (roomId) => {
+  const onDelete = (roomId) => {
     setSelectedRoomId(roomId)
     setShowDeleteModal(true)
   }
@@ -140,8 +157,6 @@ export default function ContestsPage() {
     setSelectedRoomId(null)
   }
 
-  /* ---------- render ---------- */
-
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background text-destructive">
@@ -150,14 +165,50 @@ export default function ContestsPage() {
     )
   }
 
-  if (!contests.length) {
-    return <div className="min-h-screen bg-background" />
-  }
-
   return (
     <main className="min-h-screen bg-background px-6 py-12 text-foreground">
       <div className="max-w-6xl mx-auto space-y-8">
-        {contests.map((contest) => {
+
+        {/* ---------- FILTER TABS (APPENDED) ---------- */}
+        <div className="flex gap-3 flex-wrap">
+          {STATUS_TABS.map((s) => (
+            <button
+              key={s}
+              onClick={() => {
+                setPage(0)
+                setStatusFilter(s)
+              }}
+              className={`px-4 py-1 rounded-full text-sm font-medium border transition ${
+                statusFilter === s
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/70"
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+
+        {/* ---------- CONTEST CARD (UNCHANGED) ---------- */}
+        {
+            contests.length === 0 ? (
+            <div className="border border-border rounded-xl p-12 bg-card flex flex-col items-center justify-center gap-4">
+                <p className="text-muted-foreground text-sm">
+                No contests match the selected filters
+                </p>
+
+                <button
+                onClick={() => {
+                    setStatusFilter("ALL")
+                    setPage(0)
+                }}
+                className="px-4 py-2 rounded bg-muted hover:bg-muted/70 text-sm"
+                >
+                Reset filters
+                </button>
+            </div>
+            ) : 
+    (    contests.map((contest) => {
           const status = contest.status
           const label = STATUS_LABELS[status] ?? status
 
@@ -175,7 +226,7 @@ export default function ContestsPage() {
             >
               <div className="flex justify-between items-start">
                 <h2 className="text-2xl font-bold">{contest.title}</h2>
-                
+
                 <div className="flex items-center gap-3">
                   <span
                     className={`px-3 py-1 rounded text-sm font-semibold ${
@@ -185,30 +236,46 @@ export default function ContestsPage() {
                     {label}
                   </span>
 
-                  <button
-                    onClick={onEdit}
-                    className="p-2 rounded hover:bg-muted"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
+                  {contest.status === "SCHEDULED" && (
+                    <>
+                      <button
+                        onClick={() => onEdit(contest.roomId)}
+                        className="p-2 rounded hover:bg-muted"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
 
-                  <button
-                    onClick={() => onDeleteClick(contest.roomId)}
-                    className="p-2 rounded hover:bg-destructive/20 text-destructive"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                      <button
+                        onClick={() => onDelete(contest.roomId)}
+                        className="p-2 rounded hover:bg-destructive/20 text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
+
               <div className="text-s text-muted-foreground font-mono mt-1">
-                    Room ID: <span className="text-foreground">{contest.roomId}</span>
-                    </div>
+                Room ID:{" "}
+                <span className="text-foreground">{contest.roomId}</span>
+              </div>
+
+              {contest.startTime && (
+                <div className="text-sm text-muted-foreground">
+                  Start: {contest.startTime}
+                </div>
+              )}
+
+              {contest.endTime && (
+                <div className="text-sm text-muted-foreground">
+                  End: {contest.endTime}
+                </div>
+              )}
 
               {targetMs && (
                 <div className="font-mono text-primary">
-                  {status === "SCHEDULED"
-                    ? "Starts in: "
-                    : "Ends in: "}
+                  {status === "SCHEDULED" ? "Starts in: " : "Ends in: "}
                   {formatRemaining(targetMs, now)}
                 </div>
               )}
@@ -228,10 +295,36 @@ export default function ContestsPage() {
               </button>
             </div>
           )
-        })}
+        }
+    )
+        )}
+
+        {/* ---------- PAGINATION (APPENDED) ---------- */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-4 pt-6">
+            <button
+              disabled={page === 0}
+              onClick={() => setPage((p) => p - 1)}
+              className="px-3 py-1 rounded bg-muted disabled:opacity-50"
+            >
+              Prev
+            </button>
+
+            <span className="text-sm text-muted-foreground">
+              Page {page + 1} of {totalPages}
+            </span>
+
+            <button
+              disabled={page + 1 >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
+              className="px-3 py-1 rounded bg-muted disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* ---------- Delete Confirmation Modal ---------- */}
       <AlertDialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
         <AlertDialogContent>
           <AlertDialogHeader>

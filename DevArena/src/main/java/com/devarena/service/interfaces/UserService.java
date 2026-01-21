@@ -1,6 +1,6 @@
 package com.devarena.service.interfaces;
 
-import com.devarena.dtos.UserDto;
+import com.devarena.dtos.users.UserDto;
 
 public interface UserService {
     UserDto createUser(UserDto userDto);

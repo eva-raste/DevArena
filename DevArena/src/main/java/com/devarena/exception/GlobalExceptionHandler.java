@@ -1,7 +1,7 @@
 package com.devarena.exception;
 
-import com.devarena.dtos.ApiError;
-import com.devarena.dtos.ErrorResponse;
+import com.devarena.dtos.errors.ApiError;
+import com.devarena.dtos.errors.ErrorResponse;
 import com.devarena.security.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -11,7 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.CredentialsExpiredException;
 import org.springframework.security.authentication.DisabledException;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;

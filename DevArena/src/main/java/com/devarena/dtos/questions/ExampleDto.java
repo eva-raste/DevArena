@@ -1,4 +1,4 @@
-package com.devarena.dtos;
+package com.devarena.dtos.questions;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

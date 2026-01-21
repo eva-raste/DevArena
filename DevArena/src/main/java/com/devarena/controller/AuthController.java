@@ -1,9 +1,9 @@
 package com.devarena.controller;
 
-import com.devarena.dtos.LoginRequest;
-import com.devarena.dtos.LoginUserDto;
-import com.devarena.dtos.TokenResponse;
-import com.devarena.dtos.UserDto;
+import com.devarena.dtos.auth.LoginRequest;
+import com.devarena.dtos.auth.LoginUserDto;
+import com.devarena.dtos.auth.TokenResponse;
+import com.devarena.dtos.users.UserDto;
 import com.devarena.models.User;
 import com.devarena.repositories.UserRepository;
 import com.devarena.security.JwtService;

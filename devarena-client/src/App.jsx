@@ -12,6 +12,8 @@ import ContestDetailsPage from "./components/contest/ContestDetailsPage";
 import { useLoader } from "./components/loader/LoaderContext";
 import GlobalLoader from "./components/loader/GlobalLoader";
 import EditQuestionForm from "./components/question/EditQuestionForm";
+import EditContestPage from "./components/contest/EditContestPage";
+import Dashboard from "./components/dashboard/Dashboard";
 
 function App() {
     const { loading } = useLoader();
@@ -23,13 +25,16 @@ function App() {
                 <Route path="/" element={<Root />}>
 
                     <Route path="/" element={<Home />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
 
                     <Route path="/create-question" element={<CreateQuestion />} />
+                    <Route path="/questions/:slug/edit" element={<EditQuestionForm />} />
                     <Route path="/show-all-questions" element={<QuestionsList />} />
+                    
                     <Route path="/create-contest" element={<CreateContest />} />
                     <Route path="/my-contests" element={< ContestsPage />} />
                     <Route path="/contests/:contestId" element={<ContestDetailsPage />} />
-                    <Route path="/questions/:slug/edit" element={<EditQuestionForm />} />
+                    <Route path="/contests/edit/:roomId" element={<EditContestPage />} />
 
                     <Route path="/question/:slug" element={<QuestionSolve />} />
                     <Route path="/contests/:contestId/questions/:slug" element={<QuestionSolve />} />

@@ -1,10 +1,10 @@
 package com.devarena.service;
 
-import com.devarena.dtos.QuestionCardDto;
-import com.devarena.dtos.QuestionCreateDto;
-import com.devarena.dtos.QuestionDto;
-import com.devarena.exception.DuplicateQuestionSlugException;
+import com.devarena.dtos.questions.QuestionCardDto;
+import com.devarena.dtos.questions.QuestionCreateDto;
+import com.devarena.dtos.questions.QuestionDto;
 import com.devarena.models.Question;
+import com.devarena.models.QuestionDifficulty;
 import com.devarena.models.User;
 import com.devarena.repositories.IQuestionRepo;
 import com.devarena.service.interfaces.IQuesitonService;
@@ -49,13 +49,26 @@ public class QuestionServiceImpl implements IQuesitonService {
         return modelMapper.map(newquestion,QuestionCreateDto.class);
     }
 
-    public Page<QuestionDto> getAllQuestions(Pageable page, User owner)
-    {
-        return questionRepo.findAllByDeletedFalseAndOwner(owner,page)
-                .map(
-                        (Question q) ->  modelMapper.map(q,QuestionDto.class)
-                );
+    public Page<QuestionDto> getAllQuestions(
+            Pageable pageable,
+            User owner,
+            QuestionDifficulty difficulty
+    ) {
+        Page<Question> page;
+
+        if (difficulty == null) {
+            page = questionRepo.findAllByOwnerAndDeletedFalse(owner, pageable);
+        } else {
+            page = questionRepo.findAllByOwnerAndDifficultyAndDeletedFalse(
+                    owner,
+                    difficulty,
+                    pageable
+            );
+        }
+
+        return page.map(q -> modelMapper.map(q, QuestionDto.class));
     }
+
 
     @Override
     public boolean existsByQuestionSlug(String questionSlug) {

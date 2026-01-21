@@ -36,8 +36,8 @@ return (
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-8">
-          <Link to="/" className="text-muted-foreground hover:text-primary font-medium">
-            Home
+          <Link to="/dashboard" className="text-muted-foreground hover:text-primary font-medium">
+            Dashboard
           </Link>
           <Link to="/create-question" className="text-muted-foreground hover:text-primary font-medium">
             Create Question

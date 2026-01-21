@@ -1,4 +1,4 @@
-package com.devarena.dtos;
+package com.devarena.dtos.errors;
 
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;

@@ -1,17 +1,27 @@
 package com.devarena.controller;
 
 
-import com.devarena.dtos.ContestDetailDto;
-import com.devarena.dtos.ContestResponseDto;
-import com.devarena.dtos.CreateContestRequest;
+import com.devarena.dtos.CursorPageResponse;
+import com.devarena.dtos.contests.ContestDetailDto;
+import com.devarena.dtos.contests.ContestResponseDto;
+import com.devarena.dtos.contests.CreateContestRequest;
+import com.devarena.dtos.contests.EditContestRequestDto;
+import com.devarena.models.ContestStatus;
 import com.devarena.models.User;
 import com.devarena.service.interfaces.IContestService;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
 
 @RestController
@@ -37,15 +47,17 @@ public class ContestController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<List<ContestResponseDto>> getMyContests(
-            @AuthenticationPrincipal User owner
-    )
-    {
-        List<ContestResponseDto> response = contestService.getOwnerContests(owner);
-        System.out.println("Sending owned contests...");
-        System.out.println(response);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<Page<ContestResponseDto>> getMyContests(
+            @AuthenticationPrincipal User owner,
+            @RequestParam(required = false) ContestStatus status,
+            @PageableDefault(page = 0, size = 10, sort = "startTime", direction = Sort.Direction.DESC)
+            Pageable pageable
+    ) {
+        return ResponseEntity.ok(
+                contestService.getOwnerContests(owner, status, pageable)
+        );
     }
+
 
     @GetMapping("/{roomId}")
     public ResponseEntity<ContestDetailDto> getContestDetails(
@@ -66,5 +78,44 @@ public class ContestController {
 
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/edit-validity")
+    public ResponseEntity<Void> checkContestEditValidity(
+            @RequestParam String roomId
+    ) {
+        contestService.assertEditable(roomId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/{roomId}")
+    public ResponseEntity<ContestDetailDto> updateContest(
+            @PathVariable String roomId,
+            @Valid @RequestBody EditContestRequestDto dto
+    ) {
+        ContestDetailDto updated =
+                contestService.updateContest(roomId, dto);
+        return ResponseEntity.ok(updated);
+    }
+
+
+    @GetMapping("/public")
+    public ResponseEntity<Page<ContestResponseDto>> getPublicContests(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) ContestStatus status
+    ) {
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by("startTime").ascending()
+        );
+
+        return ResponseEntity.ok(
+                contestService.getPublicContests(pageable, status)
+        );
+    }
+
+
+
 
 }

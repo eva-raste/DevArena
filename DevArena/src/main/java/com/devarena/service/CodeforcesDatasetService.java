@@ -1,7 +1,6 @@
 package com.devarena.service;
 
-import com.devarena.dtos.CodeforcesQuestionPrefillDto;
-import com.devarena.exception.DatasetNotFoundException;
+import com.devarena.dtos.questions.CodeforcesQuestionPrefillDto;
 import com.devarena.helper.CodeforcesDatasetLoader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

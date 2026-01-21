@@ -1,4 +1,4 @@
-package com.devarena.dtos;
+package com.devarena.dtos.contests;
 
 import com.devarena.models.Question;
 import com.devarena.models.User;
@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @Data
 @AllArgsConstructor
