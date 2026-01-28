@@ -67,9 +67,9 @@ public class SubmissionService {
             Contest contest = contestRepo.findById(contestId)
                     .orElseThrow(() -> new RuntimeException("Contest not found"));
 
-            if (contest.getStatus() != ContestStatus.LIVE) {
-                throw new RuntimeException("Contest not live");
-            }
+//            if (contest.getStatus() != ContestStatus.LIVE) {
+//                throw new RuntimeException("Contest not live");
+//            }
 
             if (!contest.getQuestions().contains(question)) {
                 throw new RuntimeException("Question not in contest");

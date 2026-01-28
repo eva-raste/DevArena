@@ -23,292 +23,326 @@ const textareaClass = `
 /* ---------- component ---------- */
 
 const ContestForm = ({
-  pageTitle,
-  submitLabel,
-  initialForm,
-  initialQuestions,
-  onSubmit,
-  loading,
-  error,
-  success,
+    pageTitle,
+    submitLabel,
+    initialForm,
+    initialQuestions,
+    onSubmit,
+    loading,
+    error,
+    success,
 }) => {
-  const [form, setForm] = useState(
-    initialForm ?? {
-      title: "",
-      visibility: "PUBLIC",
-      instructions: "",
-      startTime: "",
-      endTime: "",
-    }
-  )
+    const [form, setForm] = useState(
+        initialForm ?? {
+            title: "",
+            visibility: "PUBLIC",
+            instructions: "",
+            startTime: "",
+            endTime: "",
+        }
+    )
 
-  const [questions, setQuestions] = useState(initialQuestions ?? [])
-  const [slugInput, setSlugInput] = useState("")
-  const [questionError, setQuestionError] = useState(null)
-  const [timeError, setTimeError] = useState(null)
+    const [questions, setQuestions] = useState(initialQuestions ?? [])
+    const [slugInput, setSlugInput] = useState("")
+    const [questionError, setQuestionError] = useState(null)
+    const [timeError, setTimeError] = useState(null)
 
-  /* ---------- Time Validation ---------- */
+    /* ---------- Time Validation ---------- */
 
-  const validateTime = (updatedForm) => {
-    const now = new Date()
+    const validateTime = (updatedForm) => {
+        const now = new Date()
 
-    if (updatedForm.startTime) {
-      const start = new Date(updatedForm.startTime)
-      if (start < now) {
-        return "Start time cannot be in the past"
-      }
-    }
+        if (updatedForm.startTime) {
+            const start = new Date(updatedForm.startTime)
+            if (start < now) {
+                return "Start time cannot be in the past"
+            }
+        }
 
-    if (updatedForm.startTime && updatedForm.endTime) {
-      const start = new Date(updatedForm.startTime)
-      const end = new Date(updatedForm.endTime)
-      if (end < start) {
-        return "End time cannot be before start time"
-      }
-    }
+        if (updatedForm.startTime && updatedForm.endTime) {
+            const start = new Date(updatedForm.startTime)
+            const end = new Date(updatedForm.endTime)
+            if (end < start) {
+                return "End time cannot be before start time"
+            }
+        }
 
-    return null
-  }
-
-  const onChange = (e) => {
-    const updatedForm = {
-      ...form,
-      [e.target.name]: e.target.value,
+        return null
     }
 
-    setForm(updatedForm)
-    setTimeError(validateTime(updatedForm))
-  }
+    const onChange = (e) => {
+        const updatedForm = {
+            ...form,
+            [e.target.name]: e.target.value,
+        }
 
-  /* ---------- Question Slug ---------- */
-
-  const handleSlugKeyDown = async (e) => {
-    if (e.key !== "Enter") return
-    e.preventDefault()
-
-    if (!slugInput.trim()) return
-
-    try {
-      setQuestionError(null)
-
-      const card = await fetchQuestionCard(slugInput.trim())
-
-      if (questions.some(q => q.questionSlug === card.questionSlug)) {
-        setQuestionError("Question already added")
-        return
-      }
-
-      setQuestions(prev => [...prev, card])
-      setSlugInput("")
-    } catch (err) {
-      setQuestionError(err.message)
-    }
-  }
-
-  const removeQuestion = (slug) => {
-    if (!window.confirm("Remove this question from contest?")) return
-    setQuestions(prev => prev.filter(q => q.questionSlug !== slug))
-  }
-
-  /* ---------- Submit ---------- */
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-
-    const validationError = validateTime(form)
-    if (validationError) {
-      setTimeError(validationError)
-      return
+        setForm(updatedForm)
+        setTimeError(validateTime(updatedForm))
     }
 
-    const payload = {
-      title: form.title,
-      visibility: form.visibility,
-      questionSlugs: questions.map(q => q.questionSlug),
-      instructions: form.instructions || null,
-      startTime: form.startTime || null,
-      endTime: form.endTime || null,
+    /* ---------- Question Slug ---------- */
+
+    const handleSlugKeyDown = async (e) => {
+        if (e.key !== "Enter") return
+        e.preventDefault()
+
+        if (!slugInput.trim()) return
+
+        try {
+            setQuestionError(null)
+
+            const card = await fetchQuestionCard(slugInput.trim())
+
+            if (questions.some(q => q.questionSlug === card.questionSlug)) {
+                setQuestionError("Question already added")
+                return
+            }
+
+            setQuestions(prev => [...prev, card])
+            setSlugInput("")
+        } catch (err) {
+            setQuestionError(err.message)
+        }
     }
 
-    await onSubmit(payload)
-  }
+    const removeQuestion = (slug) => {
+        if (!window.confirm("Remove this question from contest?")) return
+        setQuestions(prev => prev.filter(q => q.questionSlug !== slug))
+    }
 
-  /* ---------- UI ---------- */
+    /* ---------- Submit ---------- */
 
-  return (
-    <div
-      className="
-        min-h-screen
-        bg-gray-50
-        dark:bg-gradient-to-br
-        dark:from-[#020617]
-        dark:via-[#020617]
-        dark:to-[#020617]
-        px-4 sm:px-6 py-14
-        flex justify-center
-      "
-    >
-      <div className="w-full max-w-3xl">
-        <h1 className="text-3xl font-semibold text-gray-900 dark:text-slate-100 mb-8">
-          {pageTitle}
-        </h1>
+    const handleSubmit = async (e) => {
+        e.preventDefault()
 
-        <form
-          onSubmit={handleSubmit}
-          className="
-            bg-white
-            dark:bg-[#0f172a]/90
-            backdrop-blur
-            border border-gray-200
-            dark:border-slate-700/60
-            rounded-2xl
-            p-6 sm:p-8
-            space-y-6
-            shadow-xl
-          "
+        const validationError = validateTime(form)
+        if (validationError) {
+            setTimeError(validationError)
+            return
+        }
+
+        const payload = {
+            title: form.title,
+            visibility: form.visibility,
+            questionSlugs: questions.map(q => q.questionSlug),
+            instructions: form.instructions || null,
+            startTime: form.startTime || null,
+            endTime: form.endTime || null,
+        }
+
+        await onSubmit(payload)
+    }
+
+    /* ---------- UI ---------- */
+
+    return (
+        <div
+            className="
+      min-h-screen
+      bg-gray-50
+      dark:bg-gradient-to-br
+      dark:from-[#020617]
+      dark:via-[#020617]
+      dark:to-[#020617]
+      px-4 sm:px-6 py-14
+      flex justify-center
+    "
         >
-          {/* Title */}
-          <input
-            name="title"
-            value={form.title}
-            onChange={onChange}
-            required
-            className={inputClass}
-          />
+            <div className="w-full max-w-3xl">
+                <h1 className="text-3xl font-semibold text-gray-900 dark:text-slate-100 mb-8">
+                    {pageTitle}
+                </h1>
 
-          {/* Visibility */}
-          <select
-            name="visibility"
-            value={form.visibility}
-            onChange={onChange}
-            className={inputClass}
-          >
-            <option value="PUBLIC">Public</option>
-            <option value="PRIVATE">Private</option>
-            <option value="INVITE_ONLY">Invite only</option>
-          </select>
-
-          {/* Add Question */}
-          <input
-            placeholder="question-slug"
-            value={slugInput}
-            onChange={(e) => setSlugInput(e.target.value)}
-            onKeyDown={handleSlugKeyDown}
-            className={inputClass}
-          />
-
-          {questionError && (
-            <p className="text-sm text-red-500 dark:text-red-400">
-              {questionError}
-            </p>
-          )}
-
-          {/* Question Cards */}
-          {questions.length > 0 && (
-            <div className="space-y-3">
-              {questions.map(q => (
-                <div
-                  key={q.questionSlug}
-                  className="
-                    bg-gray-50
-                    dark:bg-[#020617]
-                    border border-gray-200
-                    dark:border-slate-700/60
-                    rounded-xl
-                    p-4
-                  "
+                <form
+                    onSubmit={handleSubmit}
+                    className="
+          bg-white
+          dark:bg-[#0f172a]/90
+          backdrop-blur
+          border border-gray-200
+          dark:border-slate-700/60
+          rounded-2xl
+          p-6 sm:p-8
+          space-y-6
+          shadow-xl
+        "
                 >
-                  <div className="flex justify-between gap-4">
-                    <div>
-                      <h3 className="text-gray-900 dark:text-slate-100 font-medium">
-                        {q.title}
-                      </h3>
-                      <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
-                        {q.questionSlug} • {q.difficulty} • {q.score} pts
-                      </p>
+                    {/* Title */}
+                    <div className="space-y-1">
+                        <label className="text-sm font-medium text-gray-700 dark:text-slate-300">
+                            Contest Title
+                        </label>
+                        <input
+                            name="title"
+                            value={form.title}
+                            onChange={onChange}
+                            required
+                            className={inputClass}
+                        />
                     </div>
 
+                    {/* Visibility */}
+                    <div className="space-y-1">
+                        <label className="text-sm font-medium text-gray-700 dark:text-slate-300">
+                            Visibility
+                        </label>
+                        <select
+                            name="visibility"
+                            value={form.visibility}
+                            onChange={onChange}
+                            className={inputClass}
+                        >
+                            <option value="PUBLIC">Public</option>
+                            <option value="PRIVATE">Private</option>
+                        </select>
+                    </div>
+                    {/* Add Question */}
+                    <div className="space-y-1">
+                        <label className="text-sm font-medium text-gray-700 dark:text-slate-300">
+                            Add Question (by slug)
+                        </label>
+                        <input
+                            placeholder="question-slug"
+                            value={slugInput}
+                            onChange={(e) => setSlugInput(e.target.value)}
+                            onKeyDown={handleSlugKeyDown}
+                            className={inputClass}
+                        />
+                    </div>
+
+                    {questionError && (
+                        <p className="text-sm text-red-500 dark:text-red-400">
+                            {questionError}
+                        </p>
+                    )}
+
+                    {/* Question Cards */}
+                    {questions.length > 0 && (
+                        <div className="space-y-3">
+                            <label className="text-sm font-medium text-gray-700 dark:text-slate-300">
+                                Added Questions
+                            </label>
+
+                            {questions.map((q) => (
+                                <div
+                                    key={q.questionSlug}
+                                    className="
+                  bg-gray-50
+                  dark:bg-[#020617]
+                  border border-gray-200
+                  dark:border-slate-700/60
+                  rounded-xl
+                  p-4
+                "
+                                >
+                                    <div className="flex justify-between gap-4">
+                                        <div>
+                                            <h3 className="text-gray-900 dark:text-slate-100 font-medium">
+                                                {q.title}
+                                            </h3>
+                                            <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+                                                {q.questionSlug} • {q.difficulty} • {q.score} pts
+                                            </p>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => removeQuestion(q.questionSlug)}
+                                            className="text-red-600 dark:text-red-400 hover:underline"
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+
+                                    <p className="text-sm text-gray-700 dark:text-slate-300 mt-3 line-clamp-2">
+                                        {q.description}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Instructions */}
+                    <div className="space-y-1">
+                        <label className="text-sm font-medium text-gray-700 dark:text-slate-300">
+                            Instructions
+                        </label>
+                        <textarea
+                            name="instructions"
+                            rows={3}
+                            value={form.instructions}
+                            onChange={onChange}
+                            className={textareaClass}
+                        />
+                    </div>
+
+                    {/* Time */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label className="text-sm font-medium text-gray-700 dark:text-slate-300">
+                                Start Time
+                            </label>
+                            <input
+                                type="datetime-local"
+                                name="startTime"
+                                value={form.startTime}
+                                onChange={onChange}
+                                className={inputClass}
+                            />
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="text-sm font-medium text-gray-700 dark:text-slate-300">
+                                End Time
+                            </label>
+                            <input
+                                type="datetime-local"
+                                name="endTime"
+                                value={form.endTime}
+                                onChange={onChange}
+                                className={inputClass}
+                            />
+                        </div>
+                    </div>
+
+                    {timeError && (
+                        <p className="text-sm text-red-400">{timeError}</p>
+                    )}
+
+                    {/* Submit */}
                     <button
-                      type="button"
-                      onClick={() => removeQuestion(q.questionSlug)}
-                      className="text-red-600 dark:text-red-400 hover:underline"
+                        type="submit"
+                        disabled={loading}
+                        className="
+            w-full
+            bg-indigo-600
+            hover:bg-indigo-700
+            text-white
+            py-2.5
+            rounded-lg
+            font-medium
+            disabled:opacity-50
+            disabled:cursor-not-allowed
+          "
                     >
-                      Remove
+                        {loading ? "Saving..." : submitLabel}
                     </button>
-                  </div>
 
-                  <p className="text-sm text-gray-700 dark:text-slate-300 mt-3 line-clamp-2">
-                    {q.description}
-                  </p>
-                </div>
-              ))}
+                    {error && (
+                        <p className="text-sm text-red-500 dark:text-red-400">
+                            {error}
+                        </p>
+                    )}
+                    {success && (
+                        <p className="text-sm text-green-600 dark:text-green-400">
+                            {success}
+                        </p>
+                    )}
+                </form>
             </div>
-          )}
+        </div>
+    )
 
-          {/* Instructions */}
-          <textarea
-            name="instructions"
-            rows={3}
-            value={form.instructions}
-            onChange={onChange}
-            className={textareaClass}
-          />
-
-          {/* Time */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <input
-              type="datetime-local"
-              name="startTime"
-              value={form.startTime}
-              onChange={onChange}
-              className={inputClass}
-            />
-            <input
-              type="datetime-local"
-              name="endTime"
-              value={form.endTime}
-              onChange={onChange}
-              className={inputClass}
-            />
-          </div>
-
-          {timeError && (
-            <p className="text-sm text-red-400">{timeError}</p>
-          )}
-
-          {/* Submit */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="
-              w-full
-              bg-indigo-600
-              hover:bg-indigo-700
-              text-white
-              py-2.5
-              rounded-lg
-              font-medium
-              disabled:opacity-50
-              disabled:cursor-not-allowed
-            "
-          >
-            {loading ? "Saving..." : submitLabel}
-          </button>
-
-          {error && (
-            <p className="text-sm text-red-500 dark:text-red-400">
-              {error}
-            </p>
-          )}
-          {success && (
-            <p className="text-sm text-green-600 dark:text-green-400">
-              {success}
-            </p>
-          )}
-        </form>
-      </div>
-    </div>
-  )
 }
 
 export default ContestForm

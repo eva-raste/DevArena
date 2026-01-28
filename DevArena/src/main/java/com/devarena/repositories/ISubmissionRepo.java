@@ -1,8 +1,13 @@
 package com.devarena.repositories;
 
+import com.devarena.models.QuestionDifficulty;
 import com.devarena.models.Submission;
+import com.devarena.models.User;
 import com.devarena.models.Verdict;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.Collection;
 import java.util.List;
@@ -27,4 +32,51 @@ public interface ISubmissionRepo extends JpaRepository<Submission, UUID> {
             UUID contestId,
             Verdict verdict
     );
+
+    long countByUserId(UUID userId);
+
+    // contests attended (rule B)
+    @Query("""
+        SELECT COUNT(DISTINCT s.contestId)
+        FROM Submission s
+        WHERE s.userId = :userId
+    """)
+    long countDistinctContests(UUID userId);
+
+    // total solved (unique triple)
+    @Query("""
+        SELECT COUNT(DISTINCT s.userId, s.contestId, s.questionId)
+        FROM Submission s
+        WHERE s.userId = :userId AND s.verdict = 'ACCEPTED'
+    """)
+    long countSolved(UUID userId);
+
+    // solved by difficulty
+    @Query("""
+        SELECT COUNT(DISTINCT s.userId, s.contestId, s.questionId)
+        FROM Submission s
+        JOIN Question q ON q.questionId = s.questionId
+        WHERE s.userId = :userId
+          AND s.verdict = 'ACCEPTED'
+          AND q.difficulty = :difficulty
+    """)
+    long countSolvedByDifficulty(UUID userId, QuestionDifficulty difficulty);
+
+    // recent submissions
+    Page<Submission> findByUserIdOrderBySubmittedAtDesc(
+            UUID userId,
+            Pageable pageable
+    );
+
+    // monthly solved
+    @Query("""
+        SELECT YEAR(s.submittedAt), MONTH(s.submittedAt),
+               COUNT(DISTINCT s.userId, s.contestId, s.questionId)
+        FROM Submission s
+        WHERE s.userId = :userId AND s.verdict = 'ACCEPTED'
+        GROUP BY YEAR(s.submittedAt), MONTH(s.submittedAt)
+        ORDER BY YEAR(s.submittedAt), MONTH(s.submittedAt)
+    """)
+    List<Object[]> monthlySolved(UUID userId);
+
 }

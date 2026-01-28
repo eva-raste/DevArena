@@ -31,4 +31,14 @@ public interface IContestRepo extends JpaRepository<Contest, UUID> {
     Page<Contest> findByDeletedFalseAndVisibilityAndStatus(ContestVisibility contestVisibility, ContestStatus status, Pageable pageable);
 
     Page<Contest> findAllByOwnerAndStatusAndDeletedFalse(User owner, ContestStatus status, Pageable pageable);
+
+    @Query("""
+        SELECT DISTINCT c
+        FROM Contest c
+        JOIN Submission s ON s.contestId = c.contestId
+        WHERE s.userId = :userId
+        ORDER BY c.startTime DESC
+    """)
+    Page<Contest> recentAttended(UUID userId, Pageable pageable);
+
 }

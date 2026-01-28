@@ -6,6 +6,8 @@ import com.devarena.models.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,4 +39,5 @@ public interface IQuestionRepo extends JpaRepository<Question, UUID> {
 
     Page<Question> findAllByOwnerAndDifficultyAndDeletedFalse(User owner, QuestionDifficulty difficulty, Pageable pageable);
 
+    long countByDifficultyAndDeletedFalse(QuestionDifficulty difficulty);
 }

@@ -93,7 +93,7 @@ public class QuestionServiceImpl implements IQuesitonService {
             User owner) {
         Question ques = null;
                 ques = questionRepo
-                        .findByQuestionSlugAndOwnerAndDeletedFalse(slug,owner)
+                        .findByQuestionSlugAndOwner(slug,owner)
                         .orElseThrow(() -> new ResponseStatusException(
                                 HttpStatus.NOT_FOUND,
                                 "Question not found"

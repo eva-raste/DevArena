@@ -77,6 +77,7 @@ export const submitCode = async (
   code,
   testcases
 ) => {
+    console.log("submitting")
   try {
     const res = await api.post(
       `/questions/${questionId}/submit`,

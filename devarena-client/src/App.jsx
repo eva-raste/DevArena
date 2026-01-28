@@ -15,7 +15,7 @@ import EditQuestionForm from "./components/question/EditQuestionForm";
 import EditContestPage from "./components/contest/EditContestPage";
 import Dashboard from "./components/dashboard/Dashboard";
 
-import Profile from "./components/profile";
+import Profile from "./components/Profile";
 function App() {
     const { loading } = useLoader();
 
