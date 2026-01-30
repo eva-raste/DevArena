@@ -7,6 +7,7 @@ import com.devarena.repositories.ISubmissionRepo;
 import com.devarena.service.LocalCppRunnerService;
 import com.devarena.service.SubmissionService;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -17,117 +18,63 @@ import java.util.*;
 @CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/api")
+@RequiredArgsConstructor
 public class JudgeController {
 
-    private final LocalCppRunnerService runner;
-    private final IContestRepo contestRepo;
-    private final IQuestionRepo questionRepo;
-    private final ISubmissionRepo submissionRepo;
     private final SubmissionService submissionService;
 
-    public JudgeController(
-            LocalCppRunnerService runner,
-            IContestRepo contestRepo,
-            IQuestionRepo questionRepo,
-            ISubmissionRepo submissionRepo,
-            SubmissionService submissionService
-    ) {
-        this.submissionService = submissionService;
-        this.runner = runner;
-        this.contestRepo = contestRepo;
-        this.questionRepo = questionRepo;
-        this.submissionRepo = submissionRepo;
-    }
 
-    @GetMapping("/contests/{contestId}/my-score")
+    @GetMapping("/contests/{roomId}/my-score")
     public ResponseEntity<?> myScore(
-            @PathVariable UUID contestId,
+            @PathVariable String roomId,
             @AuthenticationPrincipal User user
     ) {
-        Map<UUID, Integer> bestScorePerQuestion = new HashMap<>();
-
-        List<Submission> accepted =
-                submissionRepo.findByUserIdAndContestIdAndVerdict(
-                        user.getUserId(),
-                        contestId,
-                        Verdict.ACCEPTED
-                );
-
-        for (Submission s : accepted) {
-            bestScorePerQuestion.putIfAbsent(
-                    s.getQuestionId(),
-                    s.getScore()
-            );
-        }
-
-        int total = bestScorePerQuestion.values()
-                .stream()
-                .mapToInt(Integer::intValue)
-                .sum();
-
-        return ResponseEntity.ok(Map.of("totalScore", total));
+        int totalScore = submissionService.getMyTotalScore(user.getUserId(), roomId);
+        return ResponseEntity.ok(Map.of("totalScore", totalScore));
     }
 
 
-    @GetMapping("/contests/{contestId}/accepted-questions")
+    @GetMapping("/contests/{roomId}/accepted-questions")
     public ResponseEntity<?> acceptedQuestions(
-            @PathVariable UUID contestId,
+            @PathVariable String roomId,
             @AuthenticationPrincipal User user
     ) {
-        List<UUID> acceptedQuestionIds =
-                submissionRepo
-                        .findByUserIdAndContestIdAndVerdict(
-                                user.getUserId(),
-                                contestId,
-                                Verdict.ACCEPTED
-                        )
-                        .stream()
-                        .map(Submission::getQuestionId)
-                        .distinct()
-                        .toList();
+        List<String> acceptedQuestionSlugs =
+                submissionService.getAcceptedQuestionSlugs(user.getUserId(), roomId);
 
-        return ResponseEntity.ok(acceptedQuestionIds);
+        return ResponseEntity.ok(acceptedQuestionSlugs);
     }
+
 
     @PostMapping("/run")
     public ResponseEntity<?> runBatch(@RequestBody Map<String, Object> body) {
-
-        String code = (String) body.get("code");
-        @SuppressWarnings("unchecked")
-        List<String> testcases = (List<String>) body.get("testcases");
-
-        if (code == null || testcases == null)
-            return ResponseEntity.badRequest().body("Missing code or testcases");
-
-        List<LocalCppRunnerService.Result> results =
-                runner.executeBatch(code, testcases);
-
-        return ResponseEntity.ok(Map.of("results", results));
+        return ResponseEntity.ok(submissionService.run(body));
     }
 
-    @PostMapping("/questions/{questionId}/submit")
+
+    @PostMapping("/questions/{questionSlug}/submit")
     public ResponseEntity<?> submit(
-            @PathVariable UUID questionId,
-            @RequestParam(required = false) UUID contestId,
+            @PathVariable String questionSlug,
+            @RequestParam(required = false) String roomId,
             @RequestBody Map<String, Object> body,
             @AuthenticationPrincipal User user
     ) {
         return ResponseEntity.ok(
-                submissionService.submit(contestId, questionId, body, user)
+                submissionService.submit(roomId, questionSlug, body, user)
         );
     }
 
 
-    @GetMapping("/questions/{questionId}/submissions")
+    @GetMapping("/questions/{questionSlug}/submissions")
     public ResponseEntity<?> submissions(
-            @PathVariable UUID questionId,
-            @RequestParam(required = false) UUID contestId,
+            @PathVariable String questionSlug,
+            @RequestParam(required = false) String roomId,
             @AuthenticationPrincipal User user
     ) {
         return ResponseEntity.ok(
                 submissionService.getSubmissions(
-                        questionId,
-                        contestId,
+                        questionSlug,
+                        roomId,
                         user
                 )
         );

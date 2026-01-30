@@ -18,9 +18,9 @@ import java.util.UUID;
 @Table(
         name = "submissions",
         indexes = {
-                @Index(name = "idx_contest", columnList = "contestId"),
-                @Index(name = "idx_user_contest", columnList = "userId, contestId"),
-                @Index(name = "idx_contest_question", columnList = "contestId, questionId")
+                @Index(name = "idx_contest", columnList = "roomId"),
+                @Index(name = "idx_user_contest", columnList = "userId, roomId"),
+                @Index(name = "idx_contest_question", columnList = "roomId, questionSlug")
         }
 )
 public class Submission {
@@ -30,8 +30,8 @@ public class Submission {
     private UUID submissionId;
 
     private UUID userId;
-    private UUID contestId;
-    private UUID questionId;
+    private String roomId;
+    private String questionSlug;
 
     @Column(columnDefinition = "TEXT", nullable = false)
     private String code;

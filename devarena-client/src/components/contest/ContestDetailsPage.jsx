@@ -40,7 +40,7 @@ const formatRemaining = (targetMs, nowMs) => {
 /* ---------- component ---------- */
 
 export default function ContestDetailsPage() {
-  const { contestId: roomId } = useParams();
+  const { roomId } = useParams();
   const navigate = useNavigate();
 
   const [contest, setContest] = useState(null);
@@ -62,17 +62,17 @@ export default function ContestDetailsPage() {
   }, [roomId]);
 
     useEffect(() => {
-      if (!contest?.contestId) return;
+      if (!contest?.roomId) return;
 
-      fetchMyContestScore(contest.contestId)
+      fetchMyContestScore(contest.roomId)
         .then(setMyScore)
         .catch(() => {});
     }, [contest]);
 
   useEffect(() => {
-    if (!contest?.contestId) return;
+    if (!contest?.roomId) return;
 
-    fetchAcceptedQuestions(contest.contestId)
+    fetchAcceptedQuestions(contest.roomId)
        .then((data) => {
                console.log(data);
                setAcceptedQuestions(data);
@@ -90,10 +90,9 @@ export default function ContestDetailsPage() {
       );
     }
 
-    // compare WS contestId (UUID) with contest.contestId (UUID)
     setContest((prev) => {
       if (!prev) return prev;
-      if (event.contestId !== prev.contestId) return prev;
+      if (event.roomId !== prev.roomId) return prev;
 
       return {
         ...prev,
@@ -183,11 +182,7 @@ export default function ContestDetailsPage() {
         )}
 
         {/* ---------- Questions ---------- */}
-        {status === "SCHEDULED" ? (
-          <div className="text-warning font-semibold">
-            Contest is not live yet
-          </div>
-        ) : (
+        {status === "LIVE" || status === "ENDED" ? (
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">Questions</h2>
 
@@ -195,7 +190,7 @@ export default function ContestDetailsPage() {
               <div
                 key={q.questionSlug}
                 onClick={() =>
-                  navigate(`/contests/${contest.contestId}/questions/${q.questionSlug}`)
+                  navigate(`/contests/${contest.roomId}/questions/${q.questionSlug}`)
                 }
                 className="cursor-pointer border rounded-xl p-4 hover:bg-accent/40"
               >
@@ -205,10 +200,8 @@ export default function ContestDetailsPage() {
                   </h3>
 
                   <div className="flex items-center gap-3">
-                    {acceptedQuestions.includes(q.questionID) && (
-                      <span className="text-green-600 text-2xl font-bold">
-                        ✔
-                      </span>
+                    {acceptedQuestions.includes(q.questionSlug) && (
+                      <span className="text-green-600 text-2xl font-bold">✔</span>
                     )}
 
                     <span
@@ -221,12 +214,15 @@ export default function ContestDetailsPage() {
                   </div>
                 </div>
 
-
                 <p className="mt-2 text-sm text-muted-foreground">
                   Score: {q.score}
                 </p>
               </div>
             ))}
+          </div>
+        ) : (
+          <div className="text-warning font-semibold">
+            Contest is not live yet
           </div>
         )}
 

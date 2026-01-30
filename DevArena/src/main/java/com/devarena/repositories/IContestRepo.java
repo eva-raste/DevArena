@@ -35,10 +35,11 @@ public interface IContestRepo extends JpaRepository<Contest, UUID> {
     @Query("""
         SELECT DISTINCT c
         FROM Contest c
-        JOIN Submission s ON s.contestId = c.contestId
+        JOIN Submission s ON s.roomId = c.roomId
         WHERE s.userId = :userId
         ORDER BY c.startTime DESC
     """)
     Page<Contest> recentAttended(UUID userId, Pageable pageable);
 
+    Contest findByRoomId(String roomId);
 }

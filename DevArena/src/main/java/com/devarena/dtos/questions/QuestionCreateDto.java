@@ -18,7 +18,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class QuestionCreateDto {
 
-    private UUID questionId;
+    //private UUID questionId;
 
     @NotBlank
     private String questionSlug;

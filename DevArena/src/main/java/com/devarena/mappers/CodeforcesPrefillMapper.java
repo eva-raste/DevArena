@@ -45,7 +45,7 @@ public class CodeforcesPrefillMapper {
         dto.setScore(null);
         dto.setConstraints(null);
         dto.setHiddenTestcases(null);
-        dto.setQuestionId(null);
+//        dto.setQuestionId(null);
 
         return dto;
     }

@@ -10,7 +10,7 @@ import java.util.UUID;
 @Getter
 @AllArgsConstructor
 public class ContestStatusEvent {
-    private UUID contestId;
+    private String roomId;
     private ContestStatus status;
     private LocalDateTime serverTime;
 }

@@ -13,8 +13,7 @@ import java.time.LocalDateTime;
 public class ContestTaskScheduler {
 
     private final TaskScheduler taskScheduler;
-    private final ContestStatusService contestStatusService;
-
+    private final ContestLifecycleService lifecycleService;
     public void scheduleContest(Contest contest) {
 
         LocalDateTime now = LocalDateTime.now();
@@ -23,18 +22,26 @@ public class ContestTaskScheduler {
                 contest.getStartTime().isAfter(now)) {
 
             taskScheduler.schedule(
-                    () -> contestStatusService.startContest(contest.getContestId()),
+                    () -> lifecycleService.startContest(
+                            contest.getRoomId(),
+                            contest.getStartTime()
+                    ),
                     Timestamp.valueOf(contest.getStartTime())
             );
+
         }
 
         if (contest.getEndTime() != null &&
                 contest.getEndTime().isAfter(now)) {
 
             taskScheduler.schedule(
-                    () -> contestStatusService.endContest(contest.getContestId()),
+                    () -> lifecycleService.endContest(
+                            contest.getRoomId(),
+                            contest.getEndTime()
+                    ),
                     Timestamp.valueOf(contest.getEndTime())
             );
+
         }
     }
 }

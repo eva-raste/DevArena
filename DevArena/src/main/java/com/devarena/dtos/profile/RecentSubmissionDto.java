@@ -13,8 +13,8 @@ import java.util.UUID;
 @AllArgsConstructor
 public class RecentSubmissionDto {
     private UUID submissionId;
-    private UUID contestId;
-    private UUID questionId;
+    private String roomId;
+    private String questionSlug;
     private Verdict verdict;
     private LocalDateTime submittedAt;
 }

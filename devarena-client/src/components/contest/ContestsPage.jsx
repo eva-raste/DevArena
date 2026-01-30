@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useCallback} from "react"
+import React, { useRef,useEffect, useState, useCallback} from "react"
 import {
+    fetchContestByIdApi,
   fetchAllContestsApi,
   deleteContestApi,
   checkContestEditValidityApi,
@@ -76,6 +77,7 @@ export default function ContestsPage() {
 
   const [serverOffset, setServerOffset] = useState(0)
   const [now, setNow] = useState(Date.now())
+  const contestCacheRef = useRef(new Map());
 
   /* ---------- pagination + filter (APPENDED) ---------- */
 
@@ -87,6 +89,7 @@ export default function ContestsPage() {
   const STATUS_TABS = ["ALL","SCHEDULED", "LIVE", "ENDED"]
 
   const fetchPaginatedContests = useCallback(async () => {
+       console.log("🔥 REST FETCH");
     try {
       const res = await fetchAllContestsApi({
         page,
@@ -94,8 +97,13 @@ export default function ContestsPage() {
         status: statusFilter === "ALL" ? undefined : statusFilter,
       })
 
-      setContests(res?.content ?? [])
+      setContests(res?.content ?? []);
+      res?.content?.forEach(c =>
+        contestCacheRef.current.set(c.roomId, c)
+      );
+
       setTotalPages(res?.totalPages ?? 0)
+      console.log(res);
     } catch (err) {
       setError(err.message || "Failed to load contests")
     }
@@ -106,24 +114,84 @@ export default function ContestsPage() {
   }, [fetchPaginatedContests])
 
   /* ---------- websocket ---------- */
+    const handleSocketEvent = useCallback((event) => {
+      console.log(" SOCKET EVENT RECEIVED", event);
 
-  const handleSocketEvent = useCallback((event) => {
-    if (event.serverTime) {
-      setServerOffset(
-        new Date(event.serverTime).getTime() - Date.now()
-      )
-    }
+      if (!event?.roomId || !event?.status) {
+        console.log(" Invalid socket payload");
+        return;
+      }
 
-    setContests((prev) =>
-      prev.map((c) =>
-        c.contestId === event.contestId
-          ? { ...c, status: event.status }
-          : c
-      )
-    )
-  }, [])
+      setContests((prev) => {
+        const cached = contestCacheRef.current.get(event.roomId);
+        const exists = prev.find(c => c.roomId === event.roomId);
 
-  useContestSocket({ onEvent: handleSocketEvent })
+        //  Contest already visible
+        if (exists) {
+          console.log(" Updating existing contest in list", event.roomId);
+
+          const updated = prev.map(c =>
+            c.roomId === event.roomId
+              ? { ...c, status: event.status }
+              : c
+          );
+
+          if (statusFilter !== "ALL") {
+            console.log(" Reapplying filter:", statusFilter);
+            return updated.filter(c => c.status === statusFilter);
+          }
+
+          return updated;
+        }
+
+        //  Contest entering current tab
+        if (statusFilter === "ALL" || statusFilter === event.status) {
+          console.log(" Contest entering active tab:", event.roomId);
+
+          // cache hit
+          if (cached) {
+            console.log(" CACHE HIT — no API call", event.roomId);
+            return [{ ...cached, status: event.status }, ...prev];
+          }
+
+          //  Cache miss
+          console.log("CACHE MISS — fetching contest", event.roomId);
+
+          const placeholder = {
+            roomId: event.roomId,
+            status: event.status,
+            _loading: true,
+          };
+
+          //  Targeted hydration (ONE call)
+          fetchContestByRoomIdApi(event.roomId)
+            .then(full => {
+              console.log(" API RESPONSE RECEIVED", full);
+
+              contestCacheRef.current.set(full.roomId, full);
+
+              setContests(curr =>
+                curr.map(c =>
+                  c.roomId === full.roomId ? full : c
+                )
+              );
+            })
+            .catch((err) => {
+              console.error(" Failed to fetch contest", err);
+            });
+
+          return [placeholder, ...prev];
+        }
+
+        console.log(" Contest does not match current filter, ignoring");
+        return prev;
+      });
+    }, [statusFilter]);
+
+
+
+
+   useContestSocket({ onEvent: handleSocketEvent })
 
   useEffect(() => {
     const t = setInterval(() => {

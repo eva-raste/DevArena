@@ -72,18 +72,18 @@ export async function fetchCodeforcesQuestionApi(slug)
 }
 
 export const submitCode = async (
-  questionId,
-  contestId,
+  questionSlug,
+  roomId,
   code,
   testcases
 ) => {
     console.log("submitting")
   try {
     const res = await api.post(
-      `/questions/${questionId}/submit`,
+      `/questions/${questionSlug}/submit`,
       { code, testcases },
       {
-        params: contestId ? { contestId } : {}
+        params: roomId ? { roomId } : {}
       }
     );
     return res.data;
@@ -92,12 +92,12 @@ export const submitCode = async (
   }
 };
 
-export const fetchMySubmissions = async (questionId, contestId = null) => {
+export const fetchMySubmissions = async (questionSlug, roomId = null) => {
   try {
     const res = await api.get(
-      `/questions/${questionId}/submissions`,
+      `/questions/${questionSlug}/submissions`,
       {
-        params: contestId ? { contestId } : {}
+        params: roomId ? { roomId } : {}
       }
     );
     return res.data;

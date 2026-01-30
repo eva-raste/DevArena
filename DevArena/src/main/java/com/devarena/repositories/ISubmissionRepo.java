@@ -15,21 +15,21 @@ import java.util.UUID;
 
 public interface ISubmissionRepo extends JpaRepository<Submission, UUID> {
     // Practice submissions
-    List<Submission> findByUserIdAndQuestionIdOrderBySubmittedAtDesc(
-            UUID userId,
-            UUID questionId
-    );
+//    List<Submission> findByUserIdAndQuestionIdOrderBySubmittedAtDesc(
+//            UUID userId,
+//            UUID questionId
+//    );
 
     // Contest submissions
-    List<Submission> findByUserIdAndContestIdAndQuestionIdOrderBySubmittedAtDesc(
-            UUID userId,
-            UUID contestId,
-            UUID questionId
-    );
+//    List<Submission> findByUserIdAndContestIdAndQuestionIdOrderBySubmittedAtDesc(
+//            UUID userId,
+//            UUID contestId,
+//            UUID questionId
+//    );
 
-    List<Submission> findByUserIdAndContestIdAndVerdict(
+    List<Submission> findByUserIdAndRoomIdAndVerdict(
             UUID userId,
-            UUID contestId,
+            String roomId,
             Verdict verdict
     );
 
@@ -37,7 +37,7 @@ public interface ISubmissionRepo extends JpaRepository<Submission, UUID> {
 
     // contests attended (rule B)
     @Query("""
-        SELECT COUNT(DISTINCT s.contestId)
+        SELECT COUNT(DISTINCT s.roomId)
         FROM Submission s
         WHERE s.userId = :userId
     """)
@@ -45,7 +45,7 @@ public interface ISubmissionRepo extends JpaRepository<Submission, UUID> {
 
     // total solved (unique triple)
     @Query("""
-        SELECT COUNT(DISTINCT s.userId, s.contestId, s.questionId)
+        SELECT COUNT(DISTINCT s.userId, s.roomId, s.questionSlug)
         FROM Submission s
         WHERE s.userId = :userId AND s.verdict = 'ACCEPTED'
     """)
@@ -53,9 +53,9 @@ public interface ISubmissionRepo extends JpaRepository<Submission, UUID> {
 
     // solved by difficulty
     @Query("""
-        SELECT COUNT(DISTINCT s.userId, s.contestId, s.questionId)
+        SELECT COUNT(DISTINCT s.userId, s.roomId, s.questionSlug)
         FROM Submission s
-        JOIN Question q ON q.questionId = s.questionId
+        JOIN Question q ON q.questionSlug = s.questionSlug
         WHERE s.userId = :userId
           AND s.verdict = 'ACCEPTED'
           AND q.difficulty = :difficulty
@@ -71,7 +71,7 @@ public interface ISubmissionRepo extends JpaRepository<Submission, UUID> {
     // monthly solved
     @Query("""
         SELECT YEAR(s.submittedAt), MONTH(s.submittedAt),
-               COUNT(DISTINCT s.userId, s.contestId, s.questionId)
+               COUNT(DISTINCT s.userId, s.roomId, s.questionSlug)
         FROM Submission s
         WHERE s.userId = :userId AND s.verdict = 'ACCEPTED'
         GROUP BY YEAR(s.submittedAt), MONTH(s.submittedAt)
@@ -79,4 +79,15 @@ public interface ISubmissionRepo extends JpaRepository<Submission, UUID> {
     """)
     List<Object[]> monthlySolved(UUID userId);
 
+    List<Submission> findByUserIdAndQuestionSlugOrderBySubmittedAtDesc(
+            UUID userId,
+            String questionSlug
+    );
+
+
+    List<Submission> findByUserIdAndRoomIdAndQuestionSlugOrderBySubmittedAtDesc(
+            UUID userId,
+            String roomId,
+            String questionSlug
+    );
 }

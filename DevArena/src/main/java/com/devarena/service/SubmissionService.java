@@ -8,6 +8,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -20,22 +21,42 @@ public class SubmissionService {
     private final IContestRepo contestRepo;
     private final IQuestionRepo questionRepo;
     private final ISubmissionRepo submissionRepo;
+    private final ContestEventPublisher eventPublisher;
 
     public SubmissionService(
             LocalCppRunnerService runner,
             IContestRepo contestRepo,
             IQuestionRepo questionRepo,
-            ISubmissionRepo submissionRepo
+            ISubmissionRepo submissionRepo,
+            ContestEventPublisher eventPublisher
     ) {
         this.runner = runner;
         this.contestRepo = contestRepo;
         this.questionRepo = questionRepo;
         this.submissionRepo = submissionRepo;
+        this.eventPublisher=eventPublisher;
+    }
+
+    public Map<String, Object> run(Map<String, Object> body) {
+
+        String code = (String) body.get("code");
+
+        @SuppressWarnings("unchecked")
+        List<String> testcases = (List<String>) body.get("testcases");
+
+        if (code == null || testcases == null) {
+            throw new IllegalArgumentException("Missing code or testcases");
+        }
+
+        List<LocalCppRunnerService.Result> results =
+                runner.executeBatch(code, testcases);
+
+        return Map.of("results", results);
     }
 
     public Map<String, Object> submit(
-            UUID contestId,
-            UUID questionId,
+            String roomId,
+            String questionSlug,
             Map<String, Object> body,
             User user
     ) {
@@ -58,13 +79,13 @@ public class SubmissionService {
 
         // Load question 
 
-        Question question = questionRepo.findById(questionId)
+        Question question = questionRepo.findByQuestionSlug(questionSlug)
                 .orElseThrow(() -> new RuntimeException("Question not found"));
 
         // Contest validation 
-
-        if (contestId != null) {
-            Contest contest = contestRepo.findById(contestId)
+        Contest contest = null;
+        if (roomId != null) {
+            contest = contestRepo.findByRoomIdAndDeletedFalse(roomId)
                     .orElseThrow(() -> new RuntimeException("Contest not found"));
 
 //            if (contest.getStatus() != ContestStatus.LIVE) {
@@ -79,8 +100,8 @@ public class SubmissionService {
 
         Submission submission = new Submission();
         submission.setUserId(user.getUserId());
-        submission.setContestId(contestId);   //contestid is nullale
-        submission.setQuestionId(questionId);
+        submission.setRoomId(roomId);   //contestid is nullale
+        submission.setQuestionSlug(questionSlug);
         submission.setCode(code);
         submission.setSubmittedAt(LocalDateTime.now());
         submission.setVerdict(Verdict.PENDING);
@@ -99,9 +120,9 @@ public class SubmissionService {
 
 
         Verdict verdict = Verdict.ACCEPTED;
+        int passed = 0;
 
         for (int i = 0; i < results.size(); i++) {
-
             LocalCppRunnerService.Result r = results.get(i);
 
             if (r.stderr != null && !r.stderr.isBlank()) {
@@ -112,7 +133,9 @@ public class SubmissionService {
             String actual = r.stdout == null ? "" : r.stdout.trim();
             String expected = allTestcases.get(i).getOutput().trim();
 
-            if (!actual.equals(expected)) {
+            if (actual.equals(expected)) {
+                passed++;
+            } else {
                 verdict = Verdict.WRONG_ANSWER;
                 break;
             }
@@ -127,13 +150,25 @@ public class SubmissionService {
             );
         }
 
+//        eventPublisher.publishSubmissionResult(
+//                contest.getRoomId(),
+//                question.getQuestionSlug(),
+//                user.getUserId(),
+//                verdict,
+//                submission.getScore()
+//        );
+
+
         submissionRepo.save(submission);
 
 
         return Map.of(
                 "verdict", verdict,
+                "passed", passed,
+                "total", results.size(),
                 "score", submission.getScore()
         );
+
     }
 
     private Verdict mapErrorToVerdict(String error) {
@@ -147,24 +182,63 @@ public class SubmissionService {
     }
 
     public List<Submission> getSubmissions(
-            UUID questionId,
-            UUID contestId,
+            String questionSlug,
+            String roomId,
             User user
     ) {
-        if (contestId == null) {
+        if (roomId == null) {
             return submissionRepo
-                    .findByUserIdAndQuestionIdOrderBySubmittedAtDesc(
+                    .findByUserIdAndQuestionSlugOrderBySubmittedAtDesc(
                             user.getUserId(),
-                            questionId
+                            questionSlug
                     );
         }
 
         return submissionRepo
-                .findByUserIdAndContestIdAndQuestionIdOrderBySubmittedAtDesc(
+                .findByUserIdAndRoomIdAndQuestionSlugOrderBySubmittedAtDesc(
                         user.getUserId(),
-                        contestId,
-                        questionId
+                        roomId,
+                        questionSlug
                 );
+    }
+
+    public int getMyTotalScore(UUID userId, String roomId) {
+
+        List<Submission> accepted =
+                submissionRepo.findByUserIdAndRoomIdAndVerdict(
+                        userId,
+                        roomId,
+                        Verdict.ACCEPTED
+                );
+
+        Map<String, Integer> bestScorePerQuestion = new HashMap<>();
+
+        for (Submission s : accepted) {
+            bestScorePerQuestion.putIfAbsent(
+                    s.getQuestionSlug(),
+                    s.getScore()
+            );
+        }
+
+        return bestScorePerQuestion.values()
+                .stream()
+                .mapToInt(Integer::intValue)
+                .sum();
+    }
+
+
+    public List<String> getAcceptedQuestionSlugs(UUID userId, String roomId) {
+
+        return submissionRepo
+                .findByUserIdAndRoomIdAndVerdict(
+                        userId,
+                        roomId,
+                        Verdict.ACCEPTED
+                )
+                .stream()
+                .map(Submission::getQuestionSlug)
+                .distinct()
+                .toList();
     }
 }
 

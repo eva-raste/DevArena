@@ -92,9 +92,9 @@ export const fetchPublicContests = async ({
     //   }
 }
 
-export const fetchMyContestScore = async (contestId) => {
+export const fetchMyContestScore = async (roomId) => {
     try {
-        const res = await api.get(`/contests/${contestId}/my-score`);
+        const res = await api.get(`/contests/${roomId}/my-score`);
         return res.data.totalScore;
     } catch {
         throw new Error("Failed to fetch contest score");
@@ -103,10 +103,10 @@ export const fetchMyContestScore = async (contestId) => {
 
 // contest-api.js
 
-export const fetchAcceptedQuestions = async (contestId) => {
+export const fetchAcceptedQuestions = async (roomId) => {
     try {
         const res = await api.get(
-            `/contests/${contestId}/accepted-questions`
+            `/contests/${roomId}/accepted-questions`
         );
         return res.data; // Array of questionId strings
     } catch {

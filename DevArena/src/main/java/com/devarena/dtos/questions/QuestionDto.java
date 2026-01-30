@@ -16,7 +16,7 @@ import java.util.UUID;
 public class QuestionDto {
 
     private String questionSlug;
-    private UUID questionID;
+    //private UUID questionID;
     private String title;
 
     private String description;

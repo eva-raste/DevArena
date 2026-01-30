@@ -10,7 +10,7 @@ import java.util.UUID;
 @Data
 public class QuestionCardDto {
 
-    private UUID questionId;
+   // private UUID questionId;
 
     private String questionSlug;
 

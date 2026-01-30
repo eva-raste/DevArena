@@ -34,11 +34,11 @@ function App() {
                     
                     <Route path="/create-contest" element={<CreateContest />} />
                     <Route path="/my-contests" element={< ContestsPage />} />
-                    <Route path="/contests/:contestId" element={<ContestDetailsPage />} />
+                    <Route path="/contests/:roomId" element={<ContestDetailsPage />} />
                     <Route path="/contests/edit/:roomId" element={<EditContestPage />} />
 
                     <Route path="/question/:slug" element={<QuestionSolve />} />
-                    <Route path="/contests/:contestId/questions/:slug" element={<QuestionSolve />} />
+                    <Route path="/contests/:roomId/questions/:slug" element={<QuestionSolve />} />
 
                     <Route path="/profile" element={<Profile />} />
 

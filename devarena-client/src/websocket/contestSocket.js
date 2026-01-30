@@ -4,10 +4,13 @@ export function connectContestSocket(onEvent) {
   const client = new Client({
     brokerURL: "ws://localhost:8080/ws",
     reconnectDelay: 5000,
-    debug: (str) => console.log(str),
+    //debug: (str) => console.log("[STOMP]", str),
 
     onConnect: () => {
-      client.subscribe("/topic/contests", (msg) => {
+      //console.log(" STOMP CONNECTED");
+
+      client.subscribe("/topic/contest/status", (msg) => {
+        //console.log("📩 RAW MSG", msg.body);
         onEvent(JSON.parse(msg.body));
       });
     },

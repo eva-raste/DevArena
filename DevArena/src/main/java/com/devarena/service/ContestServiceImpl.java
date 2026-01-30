@@ -56,6 +56,26 @@ public class ContestServiceImpl implements IContestService {
             throw new RuntimeException("Invalid question slugs");
         }
 
+        LocalDateTime now = LocalDateTime.now();
+
+        if (req.getStartTime() != null && !req.getStartTime().isAfter(now)) {
+            throw new RuntimeException("Start time must be greater than current time");
+        }
+
+        if (req.getEndTime() != null) {
+            if (req.getStartTime() == null) {
+                throw new RuntimeException("End time cannot exist without start time");
+            }
+
+            if (!req.getEndTime().isAfter(req.getStartTime())) {
+                throw new RuntimeException("End time must be greater than start time");
+            }
+
+            if (!req.getEndTime().isAfter(now)) {
+                throw new RuntimeException("End time must be greater than current time");
+            }
+        }
+
         System.out.println("adding owner to contest\n" + owner);
         Contest contest = Contest.create(
                 req,
@@ -127,17 +147,9 @@ public class ContestServiceImpl implements IContestService {
         Contest contest = contestRepo.findByRoomIdAndDeletedFalse(roomId)
                 .orElseThrow(() -> new RuntimeException("Contest not found"));
 
-        ContestDetailDto dto = new ContestDetailDto();
+        ContestDetailDto dto =
+                modelMapper.map(contest, ContestDetailDto.class);
 
-        dto.setRoomId(contest.getRoomId());
-        dto.setContestId(contest.getContestId());
-        dto.setTitle(contest.getTitle());
-        dto.setVisibility(contest.getVisibility());
-        dto.setInstructions(contest.getInstructions());
-        dto.setStartTime(contest.getStartTime());
-        dto.setEndTime(contest.getEndTime());
-        dto.setStatus(contest.getStatus());
-        // Map questions
         List<QuestionDto> questions = contest.getQuestions()
                 .stream()
                 .map(this::toQuestionDto)
@@ -146,6 +158,7 @@ public class ContestServiceImpl implements IContestService {
         dto.setQuestions(questions);
 
         return dto;
+
     }
 
 
@@ -309,7 +322,6 @@ public class ContestServiceImpl implements IContestService {
     private QuestionDto toQuestionDto(Question question) {
         QuestionDto dto = new QuestionDto();
         dto.setQuestionSlug(question.getQuestionSlug());
-        dto.setQuestionID(question.getQuestionId());
         dto.setHiddenTestcases(question.getHiddenTestcases());
         dto.setSampleTestcases(question.getSampleTestcases());
         dto.setScore(question.getScore());
@@ -323,7 +335,6 @@ public class ContestServiceImpl implements IContestService {
     private ContestResponseDto toResponseDto(Contest contest) {
         ContestResponseDto dto = new ContestResponseDto();
 
-        dto.setContestId(contest.getContestId());
         dto.setRoomId(contest.getRoomId());
         dto.setTitle(contest.getTitle());
         dto.setVisibility(contest.getVisibility());

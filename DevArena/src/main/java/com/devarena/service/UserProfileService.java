@@ -54,8 +54,8 @@ public class UserProfileService {
                 submissionRepo.findByUserIdOrderBySubmittedAtDesc(userId, pageable)
                         .map(s -> new RecentSubmissionDto(
                                 s.getSubmissionId(),
-                                s.getContestId(),
-                                s.getQuestionId(),
+                                s.getRoomId(),
+                                s.getQuestionSlug(),
                                 s.getVerdict(),
                                 s.getSubmittedAt()
                         ))

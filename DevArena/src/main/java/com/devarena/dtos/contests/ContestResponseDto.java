@@ -9,7 +9,7 @@ import java.util.UUID;
 @Data
 public class ContestResponseDto {
 
-    private UUID contestId;
+    //private UUID contestId;
     private String roomId;
     private String title;
 

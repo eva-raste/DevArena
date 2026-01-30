@@ -19,7 +19,7 @@ import java.util.UUID;
 public class ContestDetailDto {
 
     private String roomId;
-    private UUID contestId;
+
     private String title;
 
     private ContestVisibility visibility;
