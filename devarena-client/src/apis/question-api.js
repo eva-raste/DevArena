@@ -137,3 +137,31 @@ export const updateQuestionApi = async (questionSlug, form) => {
     //     throw new Error("Error updating question...")
     // }
 };
+
+export const saveDraft = async ({
+  questionSlug,
+  roomId,
+  language,
+  code,
+}) => {
+  return api.post("/drafts", {
+    questionSlug,
+    roomId,
+    language,
+    code,
+  });
+};
+
+
+export const fetchDraft = async ({
+  questionSlug,
+  language,
+  roomId,
+  inContest,
+}) => {
+  const res = await api.get("/drafts", {
+    params: { questionSlug, language, roomId, inContest },
+  });
+  return res.data?.code ?? null;
+};
+
