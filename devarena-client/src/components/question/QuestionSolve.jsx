@@ -31,6 +31,7 @@ const QuestionSolve = () => {
 
   const editorRef = useRef(null);
   const monacoEditor = useRef(null);
+  const lastSavedRef = useRef("");
 
   const isDark = useThemeStore((s) => s.isDark);
 
@@ -87,33 +88,44 @@ const QuestionSolve = () => {
     };
   }, [question]);
 
-  useEffect(() => {
-    if (!monacoEditor.current || !question) return;
+    useEffect(() => {
+      if (!monacoEditor.current || !question) return;
 
-    (async () => {
-      const code = await loadInitialCode();
-      monacoEditor.current.setValue(code);
-    })();
-  }, [question, language, roomId]);
+      const load = async () => {
+        const code = await loadInitialCode();
+        monacoEditor.current.setValue(code);
+        lastSavedRef.current = code;
+      };
+
+      load();
+    }, [monacoEditor.current, question, language, roomId]);
 
   useEffect(() => {
     if (!monacoEditor.current || !question) return;
 
     let timer;
+
     const disposable = monacoEditor.current.onDidChangeModelContent(() => {
+      const currentCode = monacoEditor.current.getValue();
+
       clearTimeout(timer);
+
       timer = setTimeout(async () => {
+        if (currentCode === lastSavedRef.current) return;
+
         try {
           await saveDraft({
             questionSlug: question.questionSlug,
             roomId: roomId ?? null,
             language,
-            code: monacoEditor.current.getValue(),
+            code: currentCode,
           });
+
+          lastSavedRef.current = currentCode;
         } catch (err) {
           console.error("Auto-save failed:", err);
         }
-      }, 1000);
+      }, 15000);
     });
 
     return () => {
@@ -126,6 +138,55 @@ const QuestionSolve = () => {
     if (!monacoEditor.current) return;
     monaco.editor.setTheme(isDark ? "vs-dark" : "vs-light");
   }, [isDark]);
+
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === "hidden") {
+        const code = monacoEditor.current?.getValue();
+        if (!code || !question || code === lastSavedRef.current) return;
+
+        try {
+          await saveDraft({
+            questionSlug: question.questionSlug,
+            roomId: roomId ?? null,
+            language,
+            code,
+          });
+
+          lastSavedRef.current = code;
+        } catch (err) {
+          console.error("Save on tab switch failed:", err);
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [question, language, roomId]);
+
+  useEffect(() => {
+    const handleBeforeUnload = async (e) => {
+      const code = monacoEditor.current?.getValue();
+      if (!code || !question || code === lastSavedRef.current) return;
+
+      try {
+        await saveDraft({
+          questionSlug: question.questionSlug,
+          roomId: roomId ?? null,
+          language,
+          code,
+        });
+
+        lastSavedRef.current = code;
+      } catch (err) {
+        console.error("Save on page reload failed:", err);
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [question, language, roomId]);
 
   const allCases = [
     ...(question?.sampleTestcases || []).map((tc, i) => ({
@@ -165,14 +226,19 @@ const QuestionSolve = () => {
 
     const code = monacoEditor.current.getValue();
 
-    try {
-      await saveDraft({
-        questionSlug: question.questionSlug,
-        roomId: roomId ?? null,
-        language,
-        code,
-      });
-    } catch {}
+    if (code !== lastSavedRef.current) {
+      try {
+        await saveDraft({
+          questionSlug: question.questionSlug,
+          roomId: roomId ?? null,
+          language,
+          code,
+        });
+        lastSavedRef.current = code;
+      } catch (err) {
+        console.error("Save on run failed:", err);
+      }
+    }
 
     const data = await runCode(
       code,
@@ -190,18 +256,23 @@ const QuestionSolve = () => {
 
   const handleSubmit = async () => {
     if (!question || !monacoEditor.current) return;
-    setVerdict(null);
 
+    setVerdict(null);
     const code = monacoEditor.current.getValue();
 
-    try {
-      await saveDraft({
-        questionSlug: question.questionSlug,
-        roomId: roomId ?? null,
-        language,
-        code,
-      });
-    } catch {}
+    if (code !== lastSavedRef.current) {
+      try {
+        await saveDraft({
+          questionSlug: question.questionSlug,
+          roomId: roomId ?? null,
+          language,
+          code,
+        });
+        lastSavedRef.current = code;
+      } catch (err) {
+        console.error("Save on submit failed:", err);
+      }
+    }
 
     const submitCases = [
       ...(question.sampleTestcases ?? []),
@@ -240,7 +311,6 @@ const QuestionSolve = () => {
 
   return (
     <div className="flex h-screen bg-background text-foreground">
-      {/* Left Panel */}
       <div className="w-1/2 border-r border-border overflow-y-auto p-6">
         <h1 className="text-3xl font-bold mb-2">{question.title}</h1>
 
@@ -302,7 +372,6 @@ const QuestionSolve = () => {
           <p>{question.description}</p>
         </div>
 
-        {/* Sample Testcases */}
         {question.sampleTestcases && question.sampleTestcases.length > 0 && (
           <div className="mt-6">
             <h3 className="text-lg font-semibold mb-3">Sample Testcases</h3>
@@ -326,7 +395,6 @@ const QuestionSolve = () => {
           </div>
         )}
 
-        {/* Constraints */}
         {question.constraints && (
           <div className="mt-6">
             <h3 className="text-lg font-semibold mb-3">Constraints</h3>
@@ -337,7 +405,6 @@ const QuestionSolve = () => {
         )}
       </div>
 
-      {/* Right Panel */}
       <div className="w-1/2 flex flex-col">
         <div className="p-4 border-b border-border flex items-center justify-between">
           <div>

@@ -92,6 +92,7 @@ public class JudgeController {
             @RequestBody Map<String, String> body,
             @AuthenticationPrincipal User user
     ) throws JsonProcessingException {
+
         if (user == null) return;
 
         String questionSlug = body.get("questionSlug");
@@ -99,8 +100,11 @@ public class JudgeController {
         String code = body.get("code");
         String roomId = body.get("roomId");
 
-        String scope = (roomId == null || roomId.isBlank()) ? "global" : "contest:" + roomId;
-        String key = String.format(
+        String scope = (roomId == null || roomId.isBlank())
+                ? "global"
+                : "contest:" + roomId;
+
+        String draftKey = String.format(
                 "draft:%s:%s:%s:%s",
                 user.getUserId(),
                 scope,
@@ -108,13 +112,38 @@ public class JudgeController {
                 language
         );
 
+        long now = System.currentTimeMillis();
+
         Map<String, Object> value = Map.of(
                 "code", code,
-                "updatedAt", System.currentTimeMillis()
+                "updatedAt", now
+        );
+
+        // Save actual draft
+        redisTemplate.opsForValue()
+                .set(draftKey,
+                        objectMapper.writeValueAsString(value),
+                        Duration.ofHours(24));
+
+        // Update index key (O(1) lookup pointer)
+        // This points to the MOST RECENT draft for this question+language
+        String indexKey = String.format(
+                "draft:index:%s:%s:%s",
+                user.getUserId(),
+                questionSlug,
+                language
+        );
+
+        Map<String, Object> indexValue = Map.of(
+                "draftKey", draftKey,
+                "updatedAt", now,
+                "scope", scope
         );
 
         redisTemplate.opsForValue()
-                .set(key, objectMapper.writeValueAsString(value), Duration.ofHours(24));
+                .set(indexKey,
+                        objectMapper.writeValueAsString(indexValue),
+                        Duration.ofHours(24));
     }
 
     @GetMapping("/drafts")
@@ -144,70 +173,46 @@ public class JudgeController {
             }
 
             // Return saved contest code
-            Map<String, Object> value = objectMapper.readValue(raw, new TypeReference<>() {});
+            Map<String, Object> value = objectMapper.readValue(raw, new TypeReference<>() {
+            });
             return Map.of("code", (String) value.get("code"));
         }
 
-        // CASE 2: OUTSIDE CONTEST
-        String pattern = String.format(
-                "draft:%s:*:%s:%s",
+        // OUTSIDE CONTEST
+        // Use index for O(1) lookup of most recent draft
+        String indexKey = String.format(
+                "draft:index:%s:%s:%s",
                 user.getUserId(),
                 questionSlug,
                 language
         );
 
-        Set<String> keys = redisTemplate.keys(pattern);
-        if (keys == null || keys.isEmpty()) {
-            return Map.of(); // No drafts found → return empty
-        }
+        String indexRaw = redisTemplate.opsForValue().get(indexKey);
 
-        Map<String, Object> mostRecentContest = null;
-        Map<String, Object> globalDraft = null;
-        long mostRecentContestTime = -1;
-        long globalTime = -1;
-
-        for (String key : keys) {
-            String raw = redisTemplate.opsForValue().get(key);
-            if (raw == null) continue;
-
-            Map<String, Object> v = objectMapper.readValue(raw, new TypeReference<>() {});
-            Object ts = v.get("updatedAt");
-            if (ts == null) continue;
-
-            long timestamp = ((Number) ts).longValue();
-
-            if (key.contains(":contest:")) {
-                // Track the most recent contest draft
-                if (timestamp > mostRecentContestTime) {
-                    mostRecentContestTime = timestamp;
-                    mostRecentContest = v;
-                }
-            } else if (key.contains(":global:")) {
-                globalTime = timestamp;
-                globalDraft = v;
-            }
-        }
-
-        // 1. If no drafts at all → return empty
-        if (globalDraft == null && mostRecentContest == null) {
+        // No drafts exist at all → return empty (frontend shows template)
+        if (indexRaw == null) {
             return Map.of();
         }
 
-        // 2. If only global exists → return global
-        if (mostRecentContest == null) {
-            return Map.of("code", (String) globalDraft.get("code"));
+        Map<String, Object> index =
+                objectMapper.readValue(indexRaw, new TypeReference<>() {
+                });
+
+        String draftKey = (String) index.get("draftKey");
+        if (draftKey == null) {
+            return Map.of();
         }
 
-        // 3. If only contest exists → return most recent contest
-        if (globalDraft == null) {
-            return Map.of("code", (String) mostRecentContest.get("code"));
+        // Fetch the actual draft
+        String draftRaw = redisTemplate.opsForValue().get(draftKey);
+        if (draftRaw == null) {
+            return Map.of();
         }
 
-        // 4. Both exist → return the NEWER one
-        if (globalTime > mostRecentContestTime) {
-            return Map.of("code", (String) globalDraft.get("code"));
-        } else {
-            return Map.of("code", (String) mostRecentContest.get("code"));
-        }
+        Map<String, Object> draft =
+                objectMapper.readValue(draftRaw, new TypeReference<>() {
+                });
+
+        return Map.of("code", (String) draft.get("code"));
     }
 }

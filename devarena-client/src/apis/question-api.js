@@ -127,9 +127,9 @@ export const updateQuestionApi = async (questionSlug, form) => {
         console.log("calling with ",questionSlug)
         return api.put(
             "/questions",
-            form, // <-- BODY (QuestionDto)
+            form, 
             {
-            params: { questionSlug }, // <-- QUERY PARAM
+            params: { questionSlug }, 
             }
         )
     // }
@@ -157,11 +157,16 @@ export const fetchDraft = async ({
   questionSlug,
   language,
   roomId,
-  inContest,
 }) => {
   const res = await api.get("/drafts", {
-    params: { questionSlug, language, roomId, inContest },
+    params: {
+      questionSlug,
+      language,
+      roomId: roomId ?? undefined,
+    },
   });
-  return res.data?.code ?? null;
+
+  return res.data?.code;
 };
+
 
