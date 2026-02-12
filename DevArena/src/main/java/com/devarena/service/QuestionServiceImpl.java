@@ -3,6 +3,9 @@ package com.devarena.service;
 import com.devarena.dtos.questions.QuestionCardDto;
 import com.devarena.dtos.questions.QuestionCreateDto;
 import com.devarena.dtos.questions.QuestionDto;
+import com.devarena.dtos.questions.Testcase;
+import com.devarena.exception.testcases.TestcaseApiException;
+import com.devarena.exception.testcases.TestcaseErrorCode;
 import com.devarena.models.Question;
 import com.devarena.models.QuestionDifficulty;
 import com.devarena.models.User;
@@ -18,6 +21,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -36,6 +40,8 @@ public class QuestionServiceImpl implements IQuesitonService {
         }
         Question newquestion = modelMapper.map(question,Question.class);
         System.out.println("Saving question \n" + newquestion);
+        validateTestcases(newquestion.getHiddenTestcases());
+        validateTestcases(newquestion.getSampleTestcases());
 
         // Owner (Many-to-One)
         newquestion.setOwner(owner);
@@ -134,6 +140,10 @@ public class QuestionServiceImpl implements IQuesitonService {
         question.setScore(dto.getScore());
         question.setConstraints(dto.getConstraints());
 
+        // validate testcases first
+        validateTestcases(dto.getHiddenTestcases());
+        validateTestcases(dto.getSampleTestcases());
+
         question.getSampleTestcases().clear();
         question.getSampleTestcases().addAll(dto.getSampleTestcases());
 
@@ -158,6 +168,63 @@ public class QuestionServiceImpl implements IQuesitonService {
 
         question.setDeleted(true);
         return true;
+    }
+
+
+    private void validateTestcases(List<Testcase> testcases) {
+
+        if (testcases == null || testcases.isEmpty()) {
+            throw new TestcaseApiException(
+                    TestcaseErrorCode.TESTCASE_VALIDATION_FAILED,
+                    "Testcases cannot be empty"
+            );
+        }
+
+        // Enforce deterministic order
+        testcases.sort(Comparator.comparingInt(Testcase::getOrder));
+
+        for (int i = 0; i < testcases.size(); i++) {
+            if (testcases.get(i).getOrder() != i + 1) {
+                throw new TestcaseApiException(
+                        TestcaseErrorCode.TESTCASE_VALIDATION_FAILED,
+                        "Testcase order must be continuous starting from 1"
+                );
+            }
+        }
+
+        final int MAX_INPUT_SIZE = 50_000;
+        final int MAX_OUTPUT_SIZE = 10_000;
+
+        for (Testcase tc : testcases) {
+
+            if (tc.getInput() == null || tc.getInput().isBlank()) {
+                throw new TestcaseApiException(
+                        TestcaseErrorCode.TESTCASE_VALIDATION_FAILED,
+                        "Testcase input cannot be empty"
+                );
+            }
+
+            if (tc.getOutput() == null || tc.getOutput().isBlank()) {
+                throw new TestcaseApiException(
+                        TestcaseErrorCode.TESTCASE_VALIDATION_FAILED,
+                        "Testcase output cannot be empty"
+                );
+            }
+
+            if (tc.getInput().length() > MAX_INPUT_SIZE) {
+                throw new TestcaseApiException(
+                        TestcaseErrorCode.TESTCASE_VALIDATION_FAILED,
+                        "Testcase input too large"
+                );
+            }
+
+            if (tc.getOutput().length() > MAX_OUTPUT_SIZE) {
+                throw new TestcaseApiException(
+                        TestcaseErrorCode.TESTCASE_VALIDATION_FAILED,
+                        "Testcase output too large"
+                );
+            }
+        }
     }
 
 }

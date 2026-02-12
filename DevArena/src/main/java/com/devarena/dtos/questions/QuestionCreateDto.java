@@ -1,7 +1,6 @@
 package com.devarena.dtos.questions;
 
 import com.devarena.models.QuestionDifficulty;
-import com.devarena.models.Testcase;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -41,6 +40,7 @@ public class QuestionCreateDto {
     @NotEmpty
     private List<Testcase> sampleTestcases;
 
+    @NotEmpty
     private List<Testcase> hiddenTestcases;
 }
 

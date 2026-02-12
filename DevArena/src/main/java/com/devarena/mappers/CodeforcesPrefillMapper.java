@@ -5,7 +5,7 @@ package com.devarena.mappers;
 import com.devarena.dtos.questions.CodeforcesQuestionPrefillDto;
 import com.devarena.dtos.questions.ExampleDto;
 import com.devarena.dtos.questions.QuestionCreateDto;
-import com.devarena.models.Testcase;
+import com.devarena.dtos.questions.Testcase;
 import com.devarena.repositories.IQuestionRepo;
 import lombok.Data;
 import org.springframework.stereotype.Component;

@@ -26,9 +26,14 @@ export const TestcaseSection = ({
   return (
   <div>
     <div className="flex justify-between mb-4">
-      <h3 className="font-bold text-foreground">
-        {title} ({testcases.length})
-      </h3>
+      <div className="flex items-center gap-3 pl-4 border-l-4 border-primary py-1">
+  <h3 className="text-xl font-bold tracking-tight text-foreground">
+    {title}
+  </h3>
+  <span className="flex items-center justify-center px-2.5 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium shadow-sm">
+    {testcases.length}
+  </span>
+</div>
 
       <button
         onClick={() => onAdd(type)}

@@ -281,7 +281,9 @@ export default function QuestionsPage() {
                                             </Button>
                                         </div>
                                     </div>
-
+                                    <h2 className="font-bold text-sm leading-tight">
+                                            {q.questionSlug}
+                                        </h2>
                                     <p className="text-sm text-slate-600 dark:text-gray-400 line-clamp-2">
                                         {q.description}
                                     </p>

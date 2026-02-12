@@ -1,40 +1,60 @@
 /* eslint-disable no-unused-vars */
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import React, { useEffect, useState, useCallback } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { fetchQuestionCard, updateQuestionApi } from "@/apis/question-api"
 import { QuestionForm } from "./QuestionForm"
+import { appendTestcasesWithLimit, normalizeOrder } from "@/utils/testcaseMerge"
+import { validateQuestion } from "@/apis/question-utils"
+import { QUESTION_TABS } from "@/types/question_tab"
+import { getHiddenTestcaseLimit, getSampleTestcaseLimit } from "@/types/testcase"
+import { LivePreview } from "./LivePreview"
+import { TestcaseImportBlock } from "./TestcaseImportBlock"
+import { TestcaseSection } from "./TestcaseSection"
+import { AppToast } from "./AppToast"
+
 
 export default function EditQuestionForm() {
   const { slug } = useParams()
   const navigate = useNavigate()
 
   const [question, setQuestion] = useState({
-  title: "",
-  questionSlug: "",
-  description: "",
-  difficulty: null,
-  score: null,
-  constraints: "",
-  sampleTestcases: [],
-  hiddenTestcases: [],
-})
+    title: "",
+    questionSlug: "",
+    description: "",
+    difficulty: null,
+    score: null,
+    constraints: "",
+    sampleTestcases: [],
+    hiddenTestcases: [],
+  })
+
+  const [activeTab, setActiveTab] = useState(QUESTION_TABS.DETAILS);
+  const [importedSampleTestcases, setImportedSampleTestcases] = useState(null);
+  const [importedHiddenTestcases, setImportedHiddenTestcases] = useState(null);
+  const sampleTestcaseLimit = getSampleTestcaseLimit();
+  const hiddenTestcaseLimit = getHiddenTestcaseLimit();
+
   const [errors, setErrors] = useState([])
   const [slugWarning, setSlugWarning] = useState(false)
   const [showConstraintsGuide, setShowConstraintsGuide] = useState(false)
   const [scoreInput, setScoreInput] = useState("")
-  const [lastAddedSampleId, setLastAddedSampleId] = useState(null)
-  const [lastAddedHiddenId, setLastAddedHiddenId] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [toast, setToast] = useState(null)
+  
 
   /* ================== FETCH ================== */
   useEffect(() => {
     const load = async () => {
-        // console.log("Calling api")
+      // console.log("Calling api")
       const q = await fetchQuestionCard(slug)
-        // console.log(q);
-      setQuestion(q)
+      // console.log(q);
+      setQuestion({
+        ...q,
+        sampleTestcases: normalizeOrder(q.sampleTestcases),
+        hiddenTestcases: normalizeOrder(q.hiddenTestcases),
+      });
       setScoreInput(q.score?.toString() ?? "")
       setLoading(false)
     }
@@ -42,21 +62,26 @@ export default function EditQuestionForm() {
     load()
   }, [slug])
 
+  const showToast = useCallback((message, type = "info") => {
+          setToast({ message, type })
+          setTimeout(() => setToast(null), 2500)
+      }, [])
+
   const handleBackendError = (err) => {
     const status = err.response?.status
     const message = err.response?.data?.message
 
     if (
-        status === 409 &&
-        message === "QUESTION_SLUG_ALREADY_EXISTS"
+      status === 409 &&
+      message === "QUESTION_SLUG_ALREADY_EXISTS"
     ) {
-        setSlugWarning(true)
-        setErrors(["Question slug already exists"])
-        return
+      setSlugWarning(true)
+      setErrors(["Question slug already exists"])
+      return
     }
 
     setErrors([message || "Something went wrong"])
-    }
+  }
 
 
   /* ================== GENERIC FIELD UPDATE ================== */
@@ -64,12 +89,12 @@ export default function EditQuestionForm() {
     setQuestion((prev) => ({ ...prev, [field]: value }))
 
     if (field === "questionSlug") {
-        setSlugWarning(false)
-        setErrors((errs) =>
+      setSlugWarning(false)
+      setErrors((errs) =>
         errs.filter((e) => e !== "Question slug already exists")
-        )
+      )
     }
-    }, [])
+  }, [])
 
 
   /* ================== SCORE ================== */
@@ -89,119 +114,233 @@ export default function EditQuestionForm() {
     setShowConstraintsGuide((v) => !v)
 
   /* ================== TESTCASES ================== */
+
+  const createEmptyTestcase = (nextOrder) => ({
+    order: nextOrder,
+    input: "",
+    output: "",
+  });
+
   const onAddTestcase = (type) => {
-    const id = crypto.randomUUID()
-
-    setQuestion((prev) => ({
-      ...prev,
-      [type]: [
-        ...(prev[type] ?? []),
-        { id, input: "", output: "" },
-      ],
-    }))
-
-    type === "sampleTestcases"
-      ? setLastAddedSampleId(id)
-      : setLastAddedHiddenId(id)
-  }
-
-  const onUpdateTestcase = (type, id, field, value) => {
-        setQuestion((prev) => {
-            const list = prev[type].map((tc) =>
-            tc.id === id ? { ...tc, [field]: value } : tc
-            )
-            return { ...prev, [type]: list }
-        })  
-    }   
-
-
-  const onRemoveTestcase = (type, id) => {
-    setQuestion((prev) => ({
+    setQuestion(prev => {
+      const nextOrder = prev[type].length + 1;
+      return {
         ...prev,
-        [type]: prev[type].filter((tc) => tc.id !== id),
-    }))
-    }   
+        [type]: [...prev[type], createEmptyTestcase(nextOrder)],
+      };
+    });
+  };
 
+  const onUpdateTestcase = (type, order, field, value) => {
+    setQuestion(prev => ({
+      ...prev,
+      [type]: prev[type].map(tc =>
+        tc.order === order ? { ...tc, [field]: value } : tc
+      ),
+    }));
+  };
 
-  const onDuplicateTestcase = (type, testcase) => {
-    setQuestion((prev) => {
-        const index = prev[type].findIndex((tc) => tc.id === testcase.id)
-        const copy = { ...testcase, id: crypto.randomUUID() }
+  const onRemoveTestcase = (type, order) => {
+    setQuestion(prev => {
+      const filtered = prev[type].filter(tc => tc.order !== order);
+      const normalized = filtered.map((tc, i) => ({
+        ...tc,
+        order: i + 1,
+      }));
+      return { ...prev, [type]: normalized };
+    });
+  };
 
-        const list = [...prev[type]]
-        list.splice(index + 1, 0, copy)
+  const onDuplicateTestcase = (type, order) => {
+    setQuestion(prev => {
+      const list = [...prev[type]];
+      const index = list.findIndex(tc => tc.order === order);
+      if (index === -1) return prev;
 
-        return { ...prev, [type]: list }
-    })
-    }
+      list.splice(index + 1, 0, { ...list[index] });
 
+      const normalized = list.map((tc, i) => ({
+        ...tc,
+        order: i + 1,
+      }));
 
-    const onMoveTestcase = (type, index, direction) => {
-        setQuestion((prev) => {
-            const list = [...prev[type]]
-            const target =
-            direction === "up" ? index - 1 : index + 1
+      return { ...prev, [type]: normalized };
+    });
+  };
 
-            if (target < 0 || target >= list.length) return prev
+  const onMoveTestcase = (type, order, direction) => {
+    setQuestion(prev => {
+      const list = [...prev[type]];
+      const index = list.findIndex(tc => tc.order === order);
+      if (index === -1) return prev;
 
-            ;[list[index], list[target]] = [list[target], list[index]]
-            return { ...prev, [type]: list }
-        })
-    }
+      const target = direction === "up" ? index - 1 : index + 1;
+      if (target < 0 || target >= list.length) return prev;
+
+      const [item] = list.splice(index, 1);
+      list.splice(target, 0, item);
+
+      const normalized = list.map((tc, i) => ({
+        ...tc,
+        order: i + 1,
+      }));
+
+      return { ...prev, [type]: normalized };
+    });
+  };
+
+  const applyImportedSampleTestcases = () => {
+    if (!importedSampleTestcases?.length) return;
+
+    const { merged } = appendTestcasesWithLimit(
+      question.sampleTestcases,
+      importedSampleTestcases,
+      sampleTestcaseLimit
+    );
+
+    setQuestion(prev => ({
+      ...prev,
+      sampleTestcases: merged,
+    }));
+
+    setImportedSampleTestcases(null);
+  };
+
+  const applyImportedHiddenTestcases = () => {
+    if (!importedHiddenTestcases?.length) return;
+
+    const { merged } = appendTestcasesWithLimit(
+      question.hiddenTestcases,
+      importedHiddenTestcases,
+      hiddenTestcaseLimit
+    );
+
+    setQuestion(prev => ({
+      ...prev,
+      hiddenTestcases: merged,
+    }));
+
+    setImportedHiddenTestcases(null);
+  };
+
 
 
   /* ================== SAVE ================== */
   const onSaveDraft = async () => {
     // await updateQuestionApi(slug, question)
     // navigate("/show-all-questions")
-  } 
-
-  const onValidate = () => {
-    const errs = []
-    if (!question.title) errs.push("Title is required")
-    if (!question.difficulty) errs.push("Difficulty is required")
-    if (!question.score) errs.push("Score is required")
-
-    setErrors(errs)
   }
+
+  const onValidate = useCallback(() => {
+          const errs = validateQuestion(question)
+          setErrors(errs)
+          errs.length === 0
+              ? showToast("Validation passed", "success")
+              : showToast(`${errs.length} error(s) found`, "error")
+      }, [question, showToast])
 
   const onPublishClick = async () => {
     console.log(slug);
     onValidate()
     try {
-        setErrors([])
-        setSlugWarning(false)
+      setErrors([])
+      setSlugWarning(false)
 
-        await updateQuestionApi(slug, question)
-        navigate("/show-all-questions")
+      await updateQuestionApi(slug, question)
+      navigate("/show-all-questions")
     } catch (err) {
-        handleBackendError(err)
+      handleBackendError(err)
     }
   }
 
   if (loading || !question) return <div className="p-10">Loading...</div>
 
   return (
-    <QuestionForm
-      question={question}
-      errors={errors}
-      slugWarning={slugWarning}
-      showConstraintsGuide={showConstraintsGuide}
-      scoreInput={scoreInput}
-      onInputChange={onInputChange}
-      onScoreInputChange={onScoreInputChange}
-      onMakeSlugUnique={() => {}}
-      onToggleConstraintsGuide={onToggleConstraintsGuide}
-      onAddTestcase={onAddTestcase}
-      onMoveTestcase={onMoveTestcase}
-      onDuplicateTestcase={onDuplicateTestcase}
-      onRemoveTestcase={onRemoveTestcase}
-      onUpdateTestcase={onUpdateTestcase}
-      onSaveDraft={onSaveDraft}
-      onValidate={onValidate}
-      onPublishClick={onPublishClick}
-      lastAddedSampleId={lastAddedSampleId}
-      lastAddedHiddenId={lastAddedHiddenId}
-    />
-  )
+    <div className="p-6 space-y-6">
+      <AppToast toast={toast} />
+      {/* Tabs */}
+      <div className="flex gap-2">
+        {Object.values(QUESTION_TABS).map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-4 py-2 rounded-xl font-medium transition-all ${activeTab === tab
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
+              }`}
+          >
+            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {/* DETAILS */}
+      {activeTab === QUESTION_TABS.DETAILS && (
+        <QuestionForm
+          question={question}
+          errors={errors}
+          slugWarning={slugWarning}
+          showConstraintsGuide={showConstraintsGuide}
+          scoreInput={scoreInput}
+          onInputChange={onInputChange}
+          onScoreInputChange={onScoreInputChange}
+          onToggleConstraintsGuide={onToggleConstraintsGuide}
+          
+          onSaveDraft={onSaveDraft}
+          onValidate={onValidate}
+          onPublishClick={onPublishClick}
+        />
+      )}
+
+      {/* TESTCASES */}
+      {activeTab === QUESTION_TABS.TESTCASES && (
+        <div className="space-y-8">
+
+          <TestcaseImportBlock
+            title="Import Sample Testcases (ZIP)"
+            testcases={importedSampleTestcases}
+            onImport={setImportedSampleTestcases}
+            onApply={applyImportedSampleTestcases}
+          />
+
+          <TestcaseImportBlock
+            title="Import Hidden Testcases (ZIP)"
+            testcases={importedHiddenTestcases}
+            onImport={setImportedHiddenTestcases}
+            onApply={applyImportedHiddenTestcases}
+          />
+
+          <TestcaseSection
+            title="Sample Testcases"
+            type="sampleTestcases"
+            testcases={question.sampleTestcases}
+            onAdd={onAddTestcase}
+            onMove={onMoveTestcase}
+            onDuplicate={onDuplicateTestcase}
+            onRemove={onRemoveTestcase}
+            onUpdate={onUpdateTestcase}
+          />
+
+          <TestcaseSection
+            title="Hidden Testcases"
+            type="hiddenTestcases"
+            testcases={question.hiddenTestcases}
+            onAdd={onAddTestcase}
+            onMove={onMoveTestcase}
+            onDuplicate={onDuplicateTestcase}
+            onRemove={onRemoveTestcase}
+            onUpdate={onUpdateTestcase}
+          />
+
+        </div>
+      )}
+
+      {/* PREVIEW */}
+      {activeTab === QUESTION_TABS.PREVIEW && (
+        <LivePreview question={question} />
+      )}
+
+    </div>
+  );
+
 }

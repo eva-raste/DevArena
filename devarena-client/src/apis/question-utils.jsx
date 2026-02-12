@@ -18,7 +18,7 @@ export const generateUUID = () => {
 
 // Convert title to slug - simple: replace spaces with dashes and lower-case
 export const slugify = (title) => {
-  
+
   return String(title || "").trim().replace(/\s+/g, "-").toLowerCase()
 }
 
@@ -82,27 +82,97 @@ export const renderMarkdown = (text) => {
 
 // Helper: Validate question (returns array of error strings)
 export const validateQuestion = (state) => {
-  const errors = []
+  const errors = [];
 
-  if (!state || !state.title || !state.title.trim()) {
-    errors.push("Title is required")
+  if (!state) {
+    return ["Invalid question state"];
   }
 
-  if (!state || !state.difficulty) {
-    errors.push("Difficulty must be selected")
+  // ---------- BASIC FIELDS ----------
+
+  if (!state.title || !state.title.trim()) {
+    errors.push("Title is required");
   }
 
-  if (!state || !Number.isInteger(state.score) || state.score <= 0) {
-    errors.push("Score must be a positive integer")
+  if (!state.difficulty) {
+    errors.push("Difficulty must be selected");
   }
 
-  const validSampleTests = (state && state.sampleTestcases ? state.sampleTestcases : []).filter(
-    (tc) => tc && tc.input && tc.input.trim() && tc.output && tc.output.trim(),
-  )
-
-  if (validSampleTests.length === 0) {
-    errors.push("At least one complete sample testcase is required")
+  if (!Number.isInteger(state.score) || state.score <= 0) {
+    errors.push("Score must be a positive integer");
   }
 
-  return errors
-}
+  // ---------- TESTCASE LIMITS ----------
+
+  const sample = Array.isArray(state.sampleTestcases)
+    ? state.sampleTestcases
+    : [];
+
+  const hidden = Array.isArray(state.hiddenTestcases)
+    ? state.hiddenTestcases
+    : [];
+
+  if (sample.length > 4) {
+    errors.push("Sample testcases cannot exceed 4");
+  }
+
+  if (hidden.length > 20) {
+    errors.push("Hidden testcases cannot exceed 20");
+  }
+
+  // ---------- SAMPLE REQUIRED ----------
+
+  if (sample.length === 0) {
+    errors.push("At least one sample testcase is required");
+  }
+
+  // ---------- CONTENT VALIDATION ----------
+
+  const hasInvalidSample = sample.some(
+    (tc) =>
+      !tc ||
+      typeof tc.input !== "string" ||
+      typeof tc.output !== "string" ||
+      !tc.input.trim() ||
+      !tc.output.trim()
+  );
+
+  if (hasInvalidSample) {
+    errors.push("All sample testcases must have non-empty input and output");
+  }
+
+  const hasInvalidHidden = hidden.some(
+    (tc) =>
+      !tc ||
+      typeof tc.input !== "string" ||
+      typeof tc.output !== "string" ||
+      !tc.input.trim() ||
+      !tc.output.trim()
+  );
+
+  if (hasInvalidHidden) {
+    errors.push("All hidden testcases must have non-empty input and output");
+  }
+
+  // ---------- ORDER CONTINUITY CHECK ----------
+
+  const isContinuous = (list) => {
+    for (let i = 0; i < list.length; i++) {
+      if (list[i].order !== i + 1) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  if (!isContinuous(sample)) {
+    errors.push("Sample testcase order is invalid");
+  }
+
+  if (!isContinuous(hidden)) {
+    errors.push("Hidden testcase order is invalid");
+  }
+
+  return errors;
+};
+

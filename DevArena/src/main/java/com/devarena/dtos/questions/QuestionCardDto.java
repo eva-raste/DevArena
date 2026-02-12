@@ -1,7 +1,6 @@
 package com.devarena.dtos.questions;
 
 import com.devarena.models.QuestionDifficulty;
-import com.devarena.models.Testcase;
 import lombok.Data;
 
 import java.util.List;

@@ -12,16 +12,11 @@ export const QuestionForm = ({
   onScoreInputChange,
   onMakeSlugUnique,
   onToggleConstraintsGuide,
-  onAddTestcase,
-  onMoveTestcase,
-  onDuplicateTestcase,
-  onRemoveTestcase,
-  onUpdateTestcase,
+
   onSaveDraft,
   onValidate,
   onPublishClick,
-  lastAddedSampleId,
-  lastAddedHiddenId,
+  
 }) => {
   return (
     <div className={`${styles.container} p-8 rounded-3xl shadow-2xl space-y-6 bg-background`}>
@@ -183,31 +178,6 @@ export const QuestionForm = ({
           className="w-full bg-card text-foreground rounded-2xl px-6 py-3 border-2 border-border focus:border-primary focus:ring-2 focus:ring-primary/30 outline-none transition-all shadow-inner font-mono text-sm resize-y min-h-[120px] max-h-[300px]"
         />
       </div>
-
-      {/* Testcases — untouched */}
-      <TestcaseSection
-        title="Sample Testcases"
-        type="sampleTestcases"
-        testcases={question.sampleTestcases ?? []}
-        onAdd={onAddTestcase}
-        onMove={onMoveTestcase}
-        onDuplicate={onDuplicateTestcase}
-        onRemove={onRemoveTestcase}
-        onUpdate={onUpdateTestcase}
-        lastAddedId={lastAddedSampleId}
-      />
-
-      <TestcaseSection
-        title="Hidden Testcases"
-        type="hiddenTestcases"
-        testcases={question.hiddenTestcases ?? []}
-        onAdd={onAddTestcase}
-        onMove={onMoveTestcase}
-        onDuplicate={onDuplicateTestcase}
-        onRemove={onRemoveTestcase}
-        onUpdate={onUpdateTestcase}
-        lastAddedId={lastAddedHiddenId}
-      />
 
       {/* Buttons */}
       <div className="flex flex-wrap gap-3 pt-4">

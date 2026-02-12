@@ -96,7 +96,7 @@ public class QuestionController {
 
         QuestionCreateDto dto =
                 prefillMapper.toQuestionCreateDto(dataset,user.getDisplayName());
-        System.out.println("CF question response " + dto);
+//        System.out.println("CF question response " + dto);
         return ResponseEntity.ok(dto);
     }
 

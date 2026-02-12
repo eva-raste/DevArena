@@ -1,7 +1,6 @@
 package com.devarena.dtos.questions;
 
 import com.devarena.models.QuestionDifficulty;
-import com.devarena.models.Testcase;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;

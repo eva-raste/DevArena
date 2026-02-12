@@ -3,7 +3,7 @@
 import { useRef, useEffect, useCallback, forwardRef } from "react"
 
 export const TestcaseRow = forwardRef(
-  ({ testcase, type, index, total, onMove, onDuplicate, onRemove, onUpdate }, ref) => {
+  ({ testcase, type, total, onMove, onDuplicate, onRemove, onUpdate }, ref) => {
     const isEmpty = !testcase.input || !testcase.input.trim() || !testcase.output || !testcase.output.trim()
 
     const inputRef = useRef(null)
@@ -19,9 +19,9 @@ export const TestcaseRow = forwardRef(
         } else if (activeElement === outputRef.current) {
           cursorPositionRef.current = { field: "output", position: activeElement.selectionStart }
         }
-        onUpdate(type, testcase.id, field, value)
+        onUpdate(type, testcase.order, field, value)
       },
-      [type, testcase.id, onUpdate],
+      [type, testcase.order, onUpdate],
     )
 
     // Restore cursor position after render
@@ -51,13 +51,13 @@ export const TestcaseRow = forwardRef(
   >
     <div className="flex items-center justify-between mb-3">
       <span className="text-sm font-mono text-muted-foreground">
-        Test #{index + 1}
+        Test #{testcase.order}
       </span>
 
       <div className="flex gap-2">
         <button
-          onClick={() => onMove(type, index, "up")}
-          disabled={index === 0}
+          onClick={() => onMove(type, testcase.order, "up")}
+          disabled={testcase.order === 1}
           className="
             p-1.5
             rounded-lg
@@ -75,8 +75,8 @@ export const TestcaseRow = forwardRef(
         </button>
 
         <button
-          onClick={() => onMove(type, index, "down")}
-          disabled={index === total - 1}
+          onClick={() => onMove(type, testcase.order, "down")}
+          disabled={testcase.order === total}
           className="
             p-1.5
             rounded-lg
@@ -116,7 +116,7 @@ export const TestcaseRow = forwardRef(
         </button>
 
         <button
-          onClick={() => onRemove(type, testcase.id)}
+          onClick={() => onRemove(type, testcase.order)}
           className="
             p-1.5
             rounded-lg
