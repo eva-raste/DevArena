@@ -17,6 +17,7 @@ import { TestcaseSection } from "./TestcaseSection"
 import { appendTestcasesWithLimit, normalizeOrder } from "@/utils/testcaseMerge"
 import { QUESTION_TABS } from "@/types/question_tab"
 import { getHiddenTestcaseLimit, getSampleTestcaseLimit } from "@/types/testcase"
+import { ModifierManager } from "./ModifierManager"
 
 
 
@@ -58,6 +59,7 @@ const CreateQuestion = ({ existingSlugs = [] }) => {
     const [lastAddedSampleId, setLastAddedSampleId] = useState(null)
     const [lastAddedHiddenId, setLastAddedHiddenId] = useState(null)
     const [scoreInput, setScoreInput] = useState("")
+    const [modifiers, setModifiers] = useState([]);
 
     /* auto-generate slug */
     useEffect(() => {
@@ -318,15 +320,23 @@ const handleAddTestcase = useCallback((type) => {
 
     const confirmPublish = useCallback(async () => {
         try {
-            await createQuestion(question)
-            showToast("Question created", "success")
-            setQuestion({ ...emptyState })
-            setScoreInput("")
-            navigate("/show-all-questions")
+            const payload = {
+                ...question,
+                modifierIds: modifiers.map(m => m.userId)
+            };
+
+            await createQuestion(payload);
+
+            showToast("Question created", "success");
+            setQuestion({ ...emptyState });
+            setModifiers([]);
+            setScoreInput("");
+            navigate("/show-all-questions");
         } catch (e) {
-            showToast("Publish failed", "error")
+            showToast("Publish failed", "error");
         }
-    }, [question, navigate, showToast])
+    }, [question, modifiers, navigate, showToast]);
+
 
     return (
         <div className={`${styles.pageContainer} p-6 text-gray-100`}>
@@ -475,9 +485,21 @@ const handleAddTestcase = useCallback((type) => {
             {activeTab === QUESTION_TABS.PREVIEW && (
                 <div className={styles.gridContainer}>
                     <LivePreview question={question} />
-                    <JsonPreview question={question} />
+                    <JsonPreview
+                      question={question}
+                      modifiers={modifiers}
+                    />
+
                 </div>
             )}
+
+            {activeTab === QUESTION_TABS.MODIFIER && (
+                <ModifierManager
+                    modifiers={modifiers}
+                    setModifiers={setModifiers}
+                />
+            )}
+
         </div>
 
     )

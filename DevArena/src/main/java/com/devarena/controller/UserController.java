@@ -1,6 +1,8 @@
 package com.devarena.controller;
 
 import com.devarena.dtos.users.UserDto;
+import com.devarena.dtos.users.UserVerifyDto;
+import com.devarena.service.interfaces.IQuesitonService;
 import com.devarena.service.interfaces.UserService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 @AllArgsConstructor
 public class UserController {
     private final UserService userService;
+    private final IQuesitonService questionService;
 
     @PostMapping
     public ResponseEntity<UserDto> crateUser(@RequestBody UserDto userDto)
@@ -48,4 +51,10 @@ public class UserController {
     {
         return ResponseEntity.ok(userService.updateUser(userDto,userId));
     }
+
+    @GetMapping("/verify-email")
+    public UserVerifyDto verifyUser(@RequestParam String email) {
+        return questionService.verifyUserByEmail(email);
+    }
+
 }

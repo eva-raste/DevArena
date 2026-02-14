@@ -104,7 +104,7 @@ export default function QuestionsPage() {
                     pageInfo.size,
                     difficulty
                 )
-
+                // console.log(data);
                 setQuestions(data.content)
                 setPageInfo({
                     page: data.number,
@@ -246,6 +246,7 @@ export default function QuestionsPage() {
                             >
                                 <div className="p-6 space-y-4">
                                     <div className="flex items-start justify-between gap-4">
+
                                         <h3 className="font-bold text-lg leading-tight">
                                             {q.title}
                                         </h3>
@@ -268,22 +269,38 @@ export default function QuestionsPage() {
                                                 <Pencil className="w-4 h-4" />
                                             </Button>
 
-                                            <Button
+                                            {q.role === "OWNER" && (
+                                              <Button
                                                 variant="ghost"
                                                 size="icon"
                                                 className="text-red-500 hover:text-red-600"
                                                 onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    setDeleteSlug(q.questionSlug)
+                                                  e.stopPropagation()
+                                                  setDeleteSlug(q.questionSlug)
                                                 }}
-                                            >
+                                              >
                                                 <Trash2 className="w-4 h-4" />
-                                            </Button>
+                                              </Button>
+                                            )}
+
                                         </div>
                                     </div>
+
+
                                     <h2 className="font-bold text-sm leading-tight">
                                             {q.questionSlug}
                                         </h2>
+                                        <span
+                                          className={`
+                                            inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold
+                                            ${q.role === "OWNER"
+                                              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                                              : "bg-blue-500/15 text-blue-400 border border-blue-500/30"
+                                            }
+                                          `}
+                                        >
+                                          {q.role}
+                                        </span>
                                     <p className="text-sm text-slate-600 dark:text-gray-400 line-clamp-2">
                                         {q.description}
                                     </p>

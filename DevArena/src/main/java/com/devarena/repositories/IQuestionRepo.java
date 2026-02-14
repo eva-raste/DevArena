@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,7 +28,7 @@ public interface IQuestionRepo extends JpaRepository<Question, UUID> {
             String slug
             , User owner);
 
-    Optional<Question> findByQuestionSlugAndDeletedFalse(String questionSlug);
+//    Optional<Question> findByQuestionSlugAndDeletedFalse(String questionSlug);
 
     Page<Question> findAllByDeletedFalseAndOwner(User owner, Pageable pageable);
 
@@ -40,4 +41,35 @@ public interface IQuestionRepo extends JpaRepository<Question, UUID> {
     Page<Question> findAllByOwnerAndDifficultyAndDeletedFalse(User owner, QuestionDifficulty difficulty, Pageable pageable);
 
     long countByDifficultyAndDeletedFalse(QuestionDifficulty difficulty);
+
+
+    Optional<Question> findByQuestionSlugAndDeletedFalse(String slug);
+
+    Optional<Question> findByQuestionSlugAndOwnerOrModifiersContainingAndDeletedFalse(
+            String slug,
+            User owner,
+            User modifier
+    );
+
+
+
+    @Query("""
+    SELECT DISTINCT q
+    FROM Question q
+    WHERE q.deleted = false
+    AND (
+        q.owner.userId = :userId
+        OR EXISTS (
+            SELECT 1
+            FROM q.modifiers m
+            WHERE m.userId = :userId
+        )
+    )
+""")
+    Page<Question> findAllAccessibleByUser(
+            @Param("userId") UUID userId,
+            Pageable pageable
+    );
+
+
 }

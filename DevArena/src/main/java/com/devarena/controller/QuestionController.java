@@ -21,6 +21,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/questions")
 @CrossOrigin(origins = "http://localhost:5173")
@@ -39,7 +42,6 @@ public class QuestionController {
         if (questionService.existsByQuestionSlug(question.getQuestionSlug())) {
             throw new DuplicateQuestionSlugException("Duplicate QuestionSlug");
         }
-
         QuestionCreateDto created = questionService.createQuestion(question,owner);
         return ResponseEntity
                 .ok(created);
@@ -61,15 +63,17 @@ public class QuestionController {
         Pageable pageable = PageRequest.of(page, size, sortObj);
 
         return ResponseEntity.ok(
-                questionService.getAllQuestions(pageable, owner, difficulty)
-        );
+                questionService.getAllQuestions(pageable, owner.getUserId(), difficulty));
+
+
     }
 
 
     @GetMapping(value="/{slug}",produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<QuestionDto> findByQuestionSlug(@PathVariable("slug") String slug)
+    public ResponseEntity<QuestionDto> findByQuestionSlug(@PathVariable("slug") String slug,@AuthenticationPrincipal User currentUser
+    )
     {
-        return ResponseEntity.ok(questionService.findByQuestionSlug(slug));
+        return ResponseEntity.ok(questionService.findByQuestionSlug(slug,currentUser));
     }
 
     @GetMapping(value = "/card/{slug}",produces = MediaType.APPLICATION_JSON_VALUE)
@@ -104,17 +108,18 @@ public class QuestionController {
     @PutMapping
     public ResponseEntity<QuestionDto> updateQuestion(
             @RequestParam(name = "questionSlug") String questionSlug,
-            @RequestBody @Valid QuestionDto dto
+            @RequestBody @Valid QuestionDto dto,
+            @AuthenticationPrincipal User currentUser
     ) {
-        QuestionDto updated = questionService.updateQuestion(questionSlug,dto);
+        QuestionDto updated = questionService.updateQuestion(questionSlug,dto,currentUser);
         return ResponseEntity.ok(updated);
     }
 
     // DELETE (soft delete)
     @DeleteMapping
-    public ResponseEntity<Void> deleteQuestion(@RequestParam("questionSlug") String questionSlug) {
+    public ResponseEntity<Void> deleteQuestion(@RequestParam("questionSlug") String questionSlug,@AuthenticationPrincipal User currentUser) {
 
-        boolean deleted = questionService.deleteQuestion(questionSlug);
+        boolean deleted = questionService.deleteQuestion(questionSlug,currentUser);
 
         if (!deleted) {
             return ResponseEntity.notFound().build();
@@ -122,4 +127,14 @@ public class QuestionController {
 
         return ResponseEntity.noContent().build();
     }
+
+    @PutMapping("/{slug}/modifiers")
+    public void updateModifiers(
+            @PathVariable String slug,
+            @RequestBody List<UUID> modifierIds,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        questionService.updateModifiers(slug, modifierIds, currentUser);
+    }
+
 }

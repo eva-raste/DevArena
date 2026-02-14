@@ -4,19 +4,22 @@ package com.devarena.service.interfaces;
 import com.devarena.dtos.questions.QuestionCardDto;
 import com.devarena.dtos.questions.QuestionCreateDto;
 import com.devarena.dtos.questions.QuestionDto;
+import com.devarena.dtos.users.UserVerifyDto;
 import com.devarena.models.QuestionDifficulty;
 import com.devarena.models.User;
+import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.UUID;
 
 
 public interface IQuesitonService {
     public QuestionCreateDto createQuestion(QuestionCreateDto q, User owner);
 
-    public QuestionDto findByQuestionSlug(String slug);
+    public QuestionDto findByQuestionSlug(String slug,User currentUser);
 
     QuestionCardDto getCardByQuestionSlug(String slug, User owner);
 
@@ -24,11 +27,21 @@ public interface IQuesitonService {
 
     List<QuestionDto> getAllQuestionsByUser(User owner);
 
-    QuestionDto updateQuestion(String slug,QuestionDto dto);
+    QuestionDto updateQuestion(String slug, QuestionDto dto, User currentUser);
 
-    boolean deleteQuestion(String questionSlug);
 
-    Page<QuestionDto> getAllQuestions(Pageable pageable, User owner, QuestionDifficulty diff);
+//    Page<QuestionDto> getAllQuestions(Pageable pageable, User owner, QuestionDifficulty diff);
 
     public QuestionDto findByQuestionSlugAndDeletedFalse(String slug);
+
+    boolean deleteQuestion(
+            String slug,
+            User currentUser
+    );
+
+    UserVerifyDto verifyUserByEmail(String email);
+
+    void updateModifiers(String slug, List<UUID> modifierIds, User currentUser);
+
+    Page<QuestionDto> getAllQuestions(Pageable pageable, UUID userId, QuestionDifficulty difficulty);
 }

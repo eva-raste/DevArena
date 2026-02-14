@@ -22,6 +22,8 @@ public class QuestionDto {
 
     private QuestionDifficulty difficulty;
 
+    private String role;
+
     private Integer score;
 
     private String constraints;
