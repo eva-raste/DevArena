@@ -34,7 +34,14 @@ export const fetchQuestionsApi = async (
   }
 }
 
-
+export async function fetchEditQuestionCard(slug) {
+  try {
+    const res = await api.get(`/questions/edit/${slug}`);
+    return res.data;
+  } catch (err) {
+    throw new Error("Question not found");
+  }
+}
 
 export async function fetchQuestionCard(slug) {
   try {
@@ -44,6 +51,17 @@ export async function fetchQuestionCard(slug) {
     throw new Error("Question not found");
   }
 }
+
+export const fetchContestQuestion = async (roomId , slug) =>{
+    try{
+        if(!roomId || !slug) throw new Error("RoomId or QuestionSlug missing");
+        const res = await api.get(`/questions/${slug}/contest/${roomId}`);
+        return res.data;
+    }
+    catch{
+        throw new Error("Failed to fetch contest question");
+    }
+};
 
 export async function runCode(code, testcases) {
   try {
@@ -74,16 +92,16 @@ export async function fetchCodeforcesQuestionApi(slug)
 export const submitCode = async (
   questionSlug,
   roomId,
-  code,
-  testcases
+  code
 ) => {
-    console.log("submitting")
+    // console.log(  `submitting backend ${roomId} for ${questionSlug} `)
   try {
     const res = await api.post(
       `/questions/${questionSlug}/submit`,
-      { code, testcases },
+      code , // body
       {
-        params: roomId ? { roomId } : {}
+        headers: { "Content-Type": "text/plain" } ,
+        params: roomId ?  {roomId}  : {}
       }
     );
     return res.data;

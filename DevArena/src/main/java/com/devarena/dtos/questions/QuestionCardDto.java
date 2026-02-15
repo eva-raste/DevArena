@@ -9,8 +9,6 @@ import java.util.UUID;
 @Data
 public class QuestionCardDto {
 
-   // private UUID questionId;
-
     private String questionSlug;
 
     private String title;
@@ -19,13 +17,8 @@ public class QuestionCardDto {
 
     private QuestionDifficulty difficulty;
 
-    private Integer score;
-
     private String constraints;
 
     private List<Testcase> sampleTestcases;
-
-    private List<Testcase> hiddenTestcases;
-
 
 }

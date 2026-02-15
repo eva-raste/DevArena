@@ -56,11 +56,21 @@ public class Contest
     @Column(unique = true,nullable = false)
     private String roomId;
 
-    @ManyToMany
-    @JoinTable(name="contests_questions",
-            joinColumns = @JoinColumn(name = "contest_id"),
-            inverseJoinColumns = @JoinColumn(name = "question_id"))
-    private List<Question> questions = new ArrayList<>();
+//    @ManyToMany
+//    @JoinTable(name="contests_questions",
+//            joinColumns = @JoinColumn(name = "contest_id"),
+//            inverseJoinColumns = @JoinColumn(name = "question_id"))
+//    private List<Question> questions = new ArrayList<>();
+
+
+    @OneToMany(
+            mappedBy = "contest",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<ContestQuestion> contestQuestions = new ArrayList<>();
+
+
     // private Leaderboard leaderboard;
 
     @Enumerated(EnumType.STRING)
@@ -88,7 +98,6 @@ public class Contest
     public static Contest create(
             CreateContestRequest req,
             User owner,
-            List<Question> questions,
             String roomId
     ) {
         Contest contest = new Contest();
@@ -103,16 +112,19 @@ public class Contest
         contest.getModifiers().add(owner);
         contest.status = ContestStatus.SCHEDULED;
 
-        contest.addQuestions(questions);
         System.out.println("Creating contest : \n" + contest);
         return contest;
     }
 
 
 
-    public void addQuestions(List<Question> questions) {
-        this.questions.addAll(questions);
+    public void addContestQuestions(List<ContestQuestion> contestQuestions) {
+        for (ContestQuestion cq : contestQuestions) {
+            cq.setContest(this);
+            this.contestQuestions.add(cq);
+        }
     }
+
 
 
 }

@@ -1,7 +1,9 @@
+/* eslint-disable no-unused-vars */
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
   fetchQuestionCard,
+  fetchContestQuestion,
   submitCode,
   runCode,
   fetchMySubmissions,
@@ -16,7 +18,9 @@ import { VERDICT_STYLES } from "../helpers/colorVerdict";
 const MAX_TESTCASES = 6;
 
 const QuestionSolve = () => {
+
   const { roomId, slug } = useParams();
+
   const [question, setQuestion] = useState(null);
   const [language, setLanguage] = useState("cpp");
   const [error, setError] = useState(null);
@@ -43,14 +47,22 @@ const QuestionSolve = () => {
   useEffect(() => {
     const loadQuestion = async () => {
       try {
-        const data = await fetchQuestionCard(slug);
-        setQuestion(data);
+        let data = undefined;
+        if(roomId)
+        {
+          data = await fetchContestQuestion(roomId , slug);
+        }else{
+
+          data = await fetchQuestionCard(slug);
+        }
+        if(data)
+          setQuestion(data);
       } catch {
         setError("Question not found");
       }
     };
     loadQuestion();
-  }, [slug]);
+  }, [roomId, slug]);
 
   const loadInitialCode = async () => {
     if (!question) return fallbackTemplates[language];
@@ -276,14 +288,14 @@ const QuestionSolve = () => {
 
     const submitCases = [
       ...(question.sampleTestcases ?? []),
-      ...(question.hiddenTestcases ?? []),
+      // ...(question.hiddenTestcases ?? []),
     ];
-
+    // console.log(`submitting ${question.questionSlug} for ${roomId}`)
     const data = await submitCode(
       question.questionSlug,
       roomId ?? null,
       code,
-      submitCases.map((tc) => tc.input)
+      // submitCases.map((tc) => tc.input)
     );
 
     setVerdict(data.verdict);

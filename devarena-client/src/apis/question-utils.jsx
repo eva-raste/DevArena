@@ -73,7 +73,6 @@ export const renderMarkdown = (text) => {
     title: string,
     description: string,
     difficulty: string,
-    score: number,
     constraints: string,
     sampleTestcases: Testcase[],
     hiddenTestcases: Testcase[]
@@ -84,33 +83,64 @@ export const renderMarkdown = (text) => {
 export const validateQuestion = (state) => {
   const errors = [];
 
-  if (!state) {
+  if (!state || typeof state !== "object") {
     return ["Invalid question state"];
   }
 
-  // ---------- BASIC FIELDS ----------
+  const {
+    title,
+    description,
+    difficulty,
+    constraints,
+    sampleTestcases,
+    hiddenTestcases,
+  } = state;
 
-  if (!state.title || !state.title.trim()) {
+  /* ---------- BASIC REQUIRED FIELDS ---------- */
+
+  if (!title?.trim()) {
     errors.push("Title is required");
   }
 
-  if (!state.difficulty) {
-    errors.push("Difficulty must be selected");
+  if (!description?.trim()) {
+    errors.push("Description is required");
   }
 
-  if (!Number.isInteger(state.score) || state.score <= 0) {
-    errors.push("Score must be a positive integer");
+  if (!difficulty?.trim()) {
+    errors.push("Difficulty is required");
   }
 
-  // ---------- TESTCASE LIMITS ----------
+  if (!constraints?.trim()) {
+    errors.push("Constraints are required");
+  }
 
-  const sample = Array.isArray(state.sampleTestcases)
-    ? state.sampleTestcases
+  /* ---------- ARRAY VALIDATION ---------- */
+
+  if (!Array.isArray(sampleTestcases)) {
+    errors.push("Sample testcases must be an array");
+  }
+
+  if (!Array.isArray(hiddenTestcases)) {
+    errors.push("Hidden testcases must be an array");
+  }
+
+  const sample = Array.isArray(sampleTestcases)
+    ? sampleTestcases
     : [];
 
-  const hidden = Array.isArray(state.hiddenTestcases)
-    ? state.hiddenTestcases
+  const hidden = Array.isArray(hiddenTestcases)
+    ? hiddenTestcases
     : [];
+
+  /* ---------- REQUIRED COUNTS ---------- */
+
+  if (sample.length === 0) {
+    errors.push("At least one sample testcase is required");
+  }
+
+  if (hidden.length === 0) {
+    errors.push("At least one hidden testcase is required");
+  }
 
   if (sample.length > 4) {
     errors.push("Sample testcases cannot exceed 4");
@@ -120,59 +150,57 @@ export const validateQuestion = (state) => {
     errors.push("Hidden testcases cannot exceed 20");
   }
 
-  // ---------- SAMPLE REQUIRED ----------
+  /* ---------- TESTCASE STRUCTURE VALIDATION ---------- */
 
-  if (sample.length === 0) {
-    errors.push("At least one sample testcase is required");
-  }
+  const validateTestcaseList = (list, type) => {
+    const orders = new Set();
+    const contentSet = new Set();
 
-  // ---------- CONTENT VALIDATION ----------
+    list.forEach((tc, index) => {
+      if (!tc || typeof tc !== "object") {
+        errors.push(`${type} testcase at position ${index + 1} is invalid`);
+        return;
+      }
 
-  const hasInvalidSample = sample.some(
-    (tc) =>
-      !tc ||
-      typeof tc.input !== "string" ||
-      typeof tc.output !== "string" ||
-      !tc.input.trim() ||
-      !tc.output.trim()
-  );
+      if (!tc.input?.trim()) {
+        errors.push(`${type} testcase ${index + 1} input is required`);
+      }
 
-  if (hasInvalidSample) {
-    errors.push("All sample testcases must have non-empty input and output");
-  }
+      if (!tc.output?.trim()) {
+        errors.push(`${type} testcase ${index + 1} output is required`);
+      }
 
-  const hasInvalidHidden = hidden.some(
-    (tc) =>
-      !tc ||
-      typeof tc.input !== "string" ||
-      typeof tc.output !== "string" ||
-      !tc.input.trim() ||
-      !tc.output.trim()
-  );
+      if (typeof tc.order !== "number") {
+        errors.push(`${type} testcase ${index + 1} must have order`);
+      } else {
+        if (orders.has(tc.order)) {
+          errors.push(`${type} testcases contain duplicate order`);
+        }
+        orders.add(tc.order);
+      }
 
-  if (hasInvalidHidden) {
-    errors.push("All hidden testcases must have non-empty input and output");
-  }
+      // Duplicate testcase content check
+      const signature = `${tc.input.trim()}__${tc.output.trim()}`;
+      if (contentSet.has(signature)) {
+        errors.push(`${type} testcases contain duplicate input-output pair`);
+      }
+      contentSet.add(signature);
+    });
 
-  // ---------- ORDER CONTINUITY CHECK ----------
-
-  const isContinuous = (list) => {
-    for (let i = 0; i < list.length; i++) {
-      if (list[i].order !== i + 1) {
-        return false;
+    // Order continuity check
+    const sortedOrders = [...orders].sort((a, b) => a - b);
+    for (let i = 0; i < sortedOrders.length; i++) {
+      if (sortedOrders[i] !== i + 1) {
+        errors.push(`${type} testcase order must be continuous starting from 1`);
+        break;
       }
     }
-    return true;
   };
 
-  if (!isContinuous(sample)) {
-    errors.push("Sample testcase order is invalid");
-  }
-
-  if (!isContinuous(hidden)) {
-    errors.push("Hidden testcase order is invalid");
-  }
+  validateTestcaseList(sample, "Sample");
+  validateTestcaseList(hidden, "Hidden");
 
   return errors;
 };
+
 

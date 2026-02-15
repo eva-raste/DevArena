@@ -11,11 +11,11 @@ import QuestionSolve from "./components/question/QuestionSolve";
 import ContestDetailsPage from "./components/contest/ContestDetailsPage";
 import { useLoader } from "./components/loader/LoaderContext";
 import GlobalLoader from "./components/loader/GlobalLoader";
-import EditQuestionForm from "./components/question/EditQuestionForm";
 import EditContestPage from "./components/contest/EditContestPage";
 import Dashboard from "./components/dashboard/Dashboard";
 
 import Profile from "./components/Profile";
+import EditQuestionForm from "./components/question/EditQuestionForm.jsx";
 function App() {
     const { loading } = useLoader();
 

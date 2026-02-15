@@ -1,5 +1,6 @@
 package com.devarena.dtos.contests;
 
+import com.devarena.dtos.questions.ContestQuestionDto;
 import com.devarena.dtos.questions.QuestionDto;
 import com.devarena.models.ContestStatus;
 import com.devarena.models.ContestVisibility;
@@ -24,11 +25,12 @@ public class ContestDetailDto {
 
     private ContestVisibility visibility;
 
-    private List<QuestionDto> questions;
+    private List<ContestQuestionDto> questions;
 
     private String instructions;
 
     private LocalDateTime startTime;
+
     private LocalDateTime endTime;
 
     private ContestStatus status;

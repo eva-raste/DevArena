@@ -7,9 +7,7 @@ import com.devarena.dtos.questions.Testcase;
 import com.devarena.dtos.users.UserVerifyDto;
 import com.devarena.exception.testcases.TestcaseApiException;
 import com.devarena.exception.testcases.TestcaseErrorCode;
-import com.devarena.models.Question;
-import com.devarena.models.QuestionDifficulty;
-import com.devarena.models.User;
+import com.devarena.models.*;
 import com.devarena.repositories.IQuestionRepo;
 import com.devarena.repositories.UserRepository;
 import com.devarena.service.interfaces.IQuesitonService;
@@ -17,6 +15,7 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.Data;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -70,7 +69,7 @@ public class QuestionServiceImpl implements IQuesitonService {
             QuestionDifficulty difficulty
     ) {
         Page<Question> page = questionRepo
-                .findAllAccessibleByUser(userId, pageable);
+                .findAllAccessibleByUser(userId,difficulty, pageable);
 
         return page.map(q -> {
             QuestionDto dto = modelMapper.map(q, QuestionDto.class);
@@ -91,12 +90,6 @@ public class QuestionServiceImpl implements IQuesitonService {
     public boolean existsByQuestionSlug(String questionSlug) {
         return questionRepo.existsByQuestionSlug(questionSlug);
     }
-
-//    @Override
-//    public QuestionDto findByQuestionSlug(String slug) {
-//        return modelMapper.map(questionRepo.findByQuestionSlug(slug),QuestionDto.class);
-//
-//    }
 
     @Override
     public QuestionDto findByQuestionSlugAndDeletedFalse(String slug) {
@@ -134,6 +127,58 @@ public class QuestionServiceImpl implements IQuesitonService {
 
         return dto;
     }
+    public QuestionCardDto fetchContestQuestion(String questionSlug, String roomId, User user) {
+        Question ques = questionRepo.findByQuestionSlug(questionSlug)
+                .orElseThrow(() -> new EntityNotFoundException("Question not found"));
+
+        ContestQuestion contestQuestion = ques.getContestQuestions()
+                .stream()
+                .filter(cq -> Objects.equals(
+                        cq.getContest().getRoomId(),
+                        roomId
+                ))
+                .findFirst()
+                .orElse(null);
+
+        if (contestQuestion == null) {
+            throw new RuntimeException("Question not part of contest...");
+        }
+
+        Contest contest = contestQuestion.getContest();
+
+
+
+        if(contest == null)
+        {
+            throw new RuntimeException("Question not part of contest...");
+        }
+
+        if (contest.getStatus() == ContestStatus.SCHEDULED) {
+            throw new RuntimeException("Contest not started");
+        }
+
+        if (contest.getVisibility() == ContestVisibility.PRIVATE && contest.getStatus() == ContestStatus.ENDED) {
+            // TODO : do that when we keep functionality of registration in contest. then for LIVE also check registered or not
+            // if contests is private and ended, then only attendees can access it...
+            if (!contest.getAttendees().contains(user)) {
+                throw new RuntimeException("Not allowed");
+            }
+        }
+
+
+        return modelMapper.map(ques,QuestionCardDto.class);
+    }
+
+    @Override
+    public QuestionDto findByQuestionSlugAndModifier(String slug, User user) {
+        Question ques = questionRepo.findByQuestionSlugAndModifiersContains(slug,user);
+        if(ques == null)
+        {
+            throw new EntityNotFoundException("Question not found");
+        }
+        return modelMapper.map(ques, QuestionDto.class);
+    }
+
 
     @Override
     public QuestionCardDto getCardByQuestionSlug(
@@ -209,7 +254,6 @@ public class QuestionServiceImpl implements IQuesitonService {
         question.setTitle(dto.getTitle());
         question.setDescription(dto.getDescription());
         question.setDifficulty(dto.getDifficulty());
-        question.setScore(dto.getScore());
         question.setConstraints(dto.getConstraints());
 
         // validate testcases first

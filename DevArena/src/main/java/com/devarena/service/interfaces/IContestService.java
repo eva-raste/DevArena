@@ -5,6 +5,7 @@ import com.devarena.dtos.contests.ContestDetailDto;
 import com.devarena.dtos.contests.ContestResponseDto;
 import com.devarena.dtos.contests.CreateContestRequest;
 import com.devarena.dtos.contests.EditContestRequestDto;
+import com.devarena.models.Contest;
 import com.devarena.models.ContestStatus;
 import com.devarena.models.User;
 import jakarta.validation.Valid;
@@ -24,11 +25,11 @@ public interface IContestService {
     );
     ContestDetailDto getContestDetails(String roomId);
 
-    boolean deleteContest(String roomid);
+    boolean deleteContest(String roomid, User owner);
 
-    void assertEditable(String roomId);
+    Contest assertEditable(String roomId, User owner);
 
-    ContestDetailDto updateContest(String roomId, @Valid EditContestRequestDto dto);
+    ContestDetailDto updateContest(String roomId, @Valid EditContestRequestDto dto, User owner);
 
     public Page<ContestResponseDto> getPublicContests(
             Pageable pageable,

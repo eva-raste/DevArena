@@ -36,13 +36,15 @@ public class CodeforcesPrefillMapper {
                             .stream()
                             .map(this::toTestcase)
                             .collect(Collectors.toList());
-
+            int order = 1;
+            for (Testcase testcase : sample) {
+                testcase.setOrder(order++);
+            }
             dto.setSampleTestcases(sample);
         }
 
         // fields dataset MUST NOT decide
         dto.setDifficulty(null);
-        dto.setScore(null);
         dto.setConstraints(null);
         dto.setHiddenTestcases(null);
 //        dto.setQuestionId(null);

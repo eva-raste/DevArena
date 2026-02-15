@@ -6,6 +6,7 @@ import com.devarena.repositories.IQuestionRepo;
 import com.devarena.repositories.ISubmissionRepo;
 import com.devarena.service.LocalCppRunnerService;
 import com.devarena.service.SubmissionService;
+import com.devarena.service.interfaces.ISubmissionService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,7 +27,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class JudgeController {
 
-    private final SubmissionService submissionService;
+    private final ISubmissionService submissionService;
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
 
@@ -63,11 +64,11 @@ public class JudgeController {
     public ResponseEntity<?> submit(
             @PathVariable String questionSlug,
             @RequestParam(required = false) String roomId,
-            @RequestBody Map<String, Object> body,
+            @RequestBody String code,
             @AuthenticationPrincipal User user
     ) {
         return ResponseEntity.ok(
-                submissionService.submit(roomId, questionSlug, body, user)
+                submissionService.submit(roomId, questionSlug, code, user)
         );
     }
 
@@ -78,12 +79,16 @@ public class JudgeController {
             @RequestParam(required = false) String roomId,
             @AuthenticationPrincipal User user
     ) {
+        List<Submission> submissions = submissionService.getSubmissions(
+                questionSlug,
+                roomId,
+                user
+        );
+        submissions.forEach(System.out::println);
+
+//        System.out.println(submissions.toString());
         return ResponseEntity.ok(
-                submissionService.getSubmissions(
-                        questionSlug,
-                        roomId,
-                        user
-                )
+                submissions
         );
     }
 

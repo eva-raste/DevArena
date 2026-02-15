@@ -29,7 +29,7 @@ import getDifficultyColor from "../helpers/colorDifficulty"
 /* ---------------- Pagination Component ---------------- */
 
 function Pagination({ page, totalPages, onPageChange }) {
-    if (totalPages <= 1) return null
+    if (totalPages < 1) return null
 
     return (
         <div className="flex justify-center items-center gap-2 mt-10 flex-wrap">
@@ -94,11 +94,15 @@ export default function QuestionsPage() {
     /* ---------------- Fetch Questions (SERVER FILTERED) ---------------- */
 
     const fetchQuestions = useCallback(
-        async (pageNum = 0, difficulty = filter === "ALL" ? undefined : filter) => {
+        async (pageNum = 0, difficulty) => {
             try {
                 setLoading(true)
                 setError("")
-
+                //  console.log("FETCHING:", {
+                //         page: pageNum,
+                //         size: pageInfo.size,
+                //         difficulty,
+                //       })
                 const data = await fetchQuestionsApi(
                     pageNum,
                     pageInfo.size,
@@ -118,17 +122,20 @@ export default function QuestionsPage() {
                 setLoading(false)
             }
         },
-        [pageInfo.size, filter]
+        [pageInfo.size]
     )
 
     useEffect(() => {
-        fetchQuestions(0)
-    }, [])
+        const difficulty = filter === "ALL" ? undefined : filter
+        fetchQuestions(0, difficulty)
+    }, [filter])
 
     const handlePageChange = (newPage) => {
         if (newPage < 0 || newPage >= pageInfo.totalPages) return
-        fetchQuestions(newPage)
+        const difficulty = filter === "ALL" ? undefined : filter
+        fetchQuestions(newPage, difficulty)
     }
+
 
     const onDelete = async (slug) => {
         await deleteQuestionApi(slug)
@@ -192,10 +199,8 @@ export default function QuestionsPage() {
                     {["ALL", "EASY", "MEDIUM", "HARD"].map(d => (
                         <button
                             key={d}
-                            onClick={() => {
-                                setFilter(d)
-                                fetchQuestions(0, d === "ALL" ? undefined : d)
-                            }}
+                            onClick={() => setFilter(d)}
+
                             className={`px-4 py-2 rounded-lg font-semibold border
                                 ${filter === d
                                     ? "bg-blue-600 text-white"
@@ -270,17 +275,17 @@ export default function QuestionsPage() {
                                             </Button>
 
                                             {q.role === "OWNER" && (
-                                              <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="text-red-500 hover:text-red-600"
-                                                onClick={(e) => {
-                                                  e.stopPropagation()
-                                                  setDeleteSlug(q.questionSlug)
-                                                }}
-                                              >
-                                                <Trash2 className="w-4 h-4" />
-                                              </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="text-red-500 hover:text-red-600"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        setDeleteSlug(q.questionSlug)
+                                                    }}
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
                                             )}
 
                                         </div>
@@ -288,27 +293,24 @@ export default function QuestionsPage() {
 
 
                                     <h2 className="font-bold text-sm leading-tight">
-                                            {q.questionSlug}
-                                        </h2>
-                                        <span
-                                          className={`
+                                        {q.questionSlug}
+                                    </h2>
+                                    <span
+                                        className={`
                                             inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold
                                             ${q.role === "OWNER"
-                                              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-                                              : "bg-blue-500/15 text-blue-400 border border-blue-500/30"
+                                                ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                                                : "bg-blue-500/15 text-blue-400 border border-blue-500/30"
                                             }
                                           `}
-                                        >
-                                          {q.role}
-                                        </span>
+                                    >
+                                        {q.role}
+                                    </span>
                                     <p className="text-sm text-slate-600 dark:text-gray-400 line-clamp-2">
                                         {q.description}
                                     </p>
 
-                                    <div className="flex justify-between items-center text-sm">
-                                        <span className="text-slate-500">{q.score} pts</span>
-                                        <ChevronRight className="w-5 h-5 text-slate-400" />
-                                    </div>
+                                
                                 </div>
                             </Card>
                         ))}

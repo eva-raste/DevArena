@@ -164,7 +164,7 @@ export default function ContestsPage() {
           };
 
           //  Targeted hydration (ONE call)
-          fetchContestByRoomIdApi(event.roomId)
+          fetchContestByIdApi(event.roomId)
             .then(full => {
               console.log(" API RESPONSE RECEIVED", full);
 

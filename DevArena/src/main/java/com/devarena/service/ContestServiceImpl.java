@@ -4,13 +4,14 @@ import com.devarena.dtos.contests.ContestDetailDto;
 import com.devarena.dtos.contests.ContestResponseDto;
 import com.devarena.dtos.contests.CreateContestRequest;
 import com.devarena.dtos.contests.EditContestRequestDto;
+import com.devarena.dtos.questions.ContestQuestionDto;
+import com.devarena.dtos.questions.QuestionConfig;
 import com.devarena.dtos.questions.QuestionDto;
 import com.devarena.models.*;
 import com.devarena.repositories.IContestRepo;
 import com.devarena.repositories.IQuestionRepo;
 import com.devarena.security.RoomIdGenerator;
 import com.devarena.service.interfaces.IContestService;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +24,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 
 @RequiredArgsConstructor
@@ -48,13 +50,30 @@ public class ContestServiceImpl implements IContestService {
     @Transactional
     public ContestResponseDto createContest(CreateContestRequest req, User owner) {
 
+        if(req.getQuestions() == null || req.getQuestions().isEmpty())
+        {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Questions cannot be empty");
+        }
+
+        List<String> questionSlugs = req.getQuestions()
+                .stream().map(QuestionConfig::getQuestionSlug).toList();
+
+        Set<String> uniqueSlugs = new HashSet<>(questionSlugs);
+
+        if (uniqueSlugs.size() != questionSlugs.size()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Duplicate Slugs");
+        }
+
         List<Question> questions =
-                questionRepo.findAllByQuestionSlugIn(req.getQuestionSlugs());
+                questionRepo.findAllByQuestionSlugIn(questionSlugs);
 
         // if req has no questions or fetched questions and req slugs size is unequal
-        if (req.getQuestionSlugs() == null || questions.size() != req.getQuestionSlugs().size()) {
-            throw new RuntimeException("Invalid question slugs");
+        if (questions.size() != questionSlugs.size()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid Question Slugs");
         }
+
+        Map<String, Question> questionMap = questions.stream()
+                .collect(Collectors.toMap(Question::getQuestionSlug, q -> q));
 
         LocalDateTime now = LocalDateTime.now();
 
@@ -71,18 +90,39 @@ public class ContestServiceImpl implements IContestService {
                 throw new RuntimeException("End time must be greater than start time");
             }
 
-            if (!req.getEndTime().isAfter(now)) {
-                throw new RuntimeException("End time must be greater than current time");
-            }
         }
 
         System.out.println("adding owner to contest\n" + owner);
         Contest contest = Contest.create(
                 req,
                 owner,
-                questions,
                 createUniqueRoomId()
         );
+
+        List<ContestQuestion> contestQuestions = new ArrayList<>();
+
+        for (QuestionConfig config : req.getQuestions()) {
+
+            Question question = questionMap.get(config.getQuestionSlug());
+            if (config.getScore() == null || config.getScore() <= 0) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "INVALID_SCORE"
+                );
+            }
+
+            ContestQuestion cq = new ContestQuestion();
+            cq.setContest(contest);
+            cq.setQuestion(question);
+            cq.setScore(config.getScore());
+            cq.setOrderIndex(config.getOrderIndex());
+
+            contestQuestions.add(cq);
+        }
+
+
+        contest.setContestQuestions(contestQuestions);
+
 
         if (contest.getStartTime() == null) {
             contest.setStartTime(LocalDateTime.now());
@@ -129,48 +169,35 @@ public class ContestServiceImpl implements IContestService {
         );
     }
 
-
-
-//    @Override
-//    public List<ContestResponseDto> getAllPublicContests() {
-//        List<Contest> contests = contestRepo.findByVisibilityIsPublic();
-//        return contests.stream().map(
-//            this::toResponseDto
-//        )
-//        .toList();
-//    }
-
-//    public ContestResponseDto
-
     @Override
     public ContestDetailDto getContestDetails(String roomId) {
         Contest contest = contestRepo.findByRoomIdAndDeletedFalse(roomId)
                 .orElseThrow(() -> new RuntimeException("Contest not found"));
 
-        ContestDetailDto dto =
-                modelMapper.map(contest, ContestDetailDto.class);
-
-        List<QuestionDto> questions = contest.getQuestions()
-                .stream()
-                .map(this::toQuestionDto)
-                .toList();
-
-        dto.setQuestions(questions);
-
-        return dto;
-
+        return toContestDetailDto(contest);
     }
 
-
-    @Override
-    @Transactional
-    public boolean deleteContest(String roomid) {
+    public Contest assertEditable(String roomid,User currentUser) {
         Contest contest = contestRepo
                 .findByRoomIdAndDeletedFalse(roomid)
-                .orElseThrow(() -> new EntityNotFoundException("Contest not found"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "CONTEST_NOT_FOUND"
+                ));
+
+
+        if (!contest.getOwner().equals(currentUser)
+                && !contest.getModifiers().contains(currentUser)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "NOT_ALLOWED"
+            );
+        }
+
+
         if (contest.getStatus() != ContestStatus.SCHEDULED) {
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
+                    HttpStatus.CONFLICT,
                     "CONTEST_STATUS_NOT_SCHEDULED"
             );
         }
@@ -178,10 +205,17 @@ public class ContestServiceImpl implements IContestService {
         if (contest.getStartTime() != null &&
                 LocalDateTime.now().isAfter(contest.getStartTime())) {
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
+                    HttpStatus.CONFLICT,
                     "CONTEST_ALREADY_STARTED"
             );
         }
+        return contest;
+    }
+
+    @Override
+    @Transactional
+    public boolean deleteContest(String roomid, User owner) {
+        Contest contest = assertEditable(roomid,owner);
 
         if (contest.isDeleted()) {
             return false;
@@ -191,60 +225,14 @@ public class ContestServiceImpl implements IContestService {
         return true;
     }
 
-    public void assertEditable(String roomid) {
-        Contest contest = contestRepo
-                .findByRoomIdAndDeletedFalse(roomid)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "CONTEST_NOT_FOUND"
-                ));
-
-        if (contest.getStatus() != ContestStatus.SCHEDULED) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "CONTEST_STATUS_NOT_SCHEDULED"
-            );
-        }
-
-        if (contest.getStartTime() != null &&
-                LocalDateTime.now().isAfter(contest.getStartTime())) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "CONTEST_ALREADY_STARTED"
-            );
-        }
-    }
-
     @Transactional
     @Override
     public ContestDetailDto updateContest(
             String roomId,
-            EditContestRequestDto dto
-    ) {
-        Contest contest = contestRepo
-                .findByRoomIdAndDeletedFalse(roomId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "CONTEST_NOT_FOUND"
-                ));
+            EditContestRequestDto dto,
+            User owner) {
 
-        // ---- EDIT VALIDITY CHECKS ----
-
-        if (contest.getStatus() != ContestStatus.SCHEDULED) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "CONTEST_STATUS_NOT_SCHEDULED"
-            );
-        }
-
-        if (contest.getStartTime() != null &&
-                LocalDateTime.now().isAfter(contest.getStartTime())) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "CONTEST_ALREADY_STARTED"
-            );
-        }
-
+        Contest contest = assertEditable(roomId, owner);
         // ---- TIME VALIDATION ----
 
         if (dto.getStartTime() != null &&
@@ -266,6 +254,7 @@ public class ContestServiceImpl implements IContestService {
 
         // ---- UPDATE FIELDS ----
 
+        assert contest != null;
         contest.setTitle(dto.getTitle());
         contest.setVisibility(dto.getVisibility());
         contest.setInstructions(dto.getInstructions());
@@ -273,22 +262,65 @@ public class ContestServiceImpl implements IContestService {
         contest.setEndTime(dto.getEndTime());
 
         // ---- QUESTIONS ----
-        // Resolve question slugs → entities
-        List<Question> questions =
-                questionRepo.findAllByQuestionSlugIn(dto.getQuestionSlugs());
+        if(dto.getQuestions() == null || dto.getQuestions().isEmpty())
+        {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Questions cannot be empty");
+        }
+        List<String> slugs = dto.getQuestions()
+                .stream()
+                .map(QuestionConfig::getQuestionSlug)
+                .toList();
 
-        if (questions.size() != dto.getQuestionSlugs().size()) {
+        List<Question> questions =
+                questionRepo.findAllByQuestionSlugIn(slugs);
+        Set<String> uniqueSlugs = new HashSet<>(slugs);
+
+        if (uniqueSlugs.size() != slugs.size()) {
+            throw new RuntimeException("Duplicate questions not allowed");
+        }
+
+        if (questions.size() != slugs.size()) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "INVALID_QUESTION_SLUG"
             );
         }
 
-        contest.setQuestions(questions);
+        // map slug -> question
+        Map<String, Question> questionMap = questions.stream()
+                .collect(Collectors.toMap(
+                        Question::getQuestionSlug,
+                        q -> q
+                ));
 
+        List<ContestQuestion> contestQuestions = dto.getQuestions()
+                .stream()
+                .map(config -> {
+
+                    if (config.getScore() == null || config.getScore() <= 0) {
+                        throw new ResponseStatusException(
+                                HttpStatus.BAD_REQUEST,
+                                "INVALID_SCORE"
+                        );
+                    }
+
+                    Question q = questionMap.get(config.getQuestionSlug());
+
+                    ContestQuestion cq = new ContestQuestion();
+                    cq.setContest(contest);
+                    cq.setQuestion(q);
+                    cq.setScore(config.getScore());
+                    cq.setOrderIndex(config.getOrderIndex());
+                    return cq;
+                })
+                .toList();
+
+
+        contest.setContestQuestions(new ArrayList<>(contestQuestions));
         Contest saved = contestRepo.save(contest);
 
-        return modelMapper.map(saved, ContestDetailDto.class);
+
+        return toContestDetailDto(saved);
     }
 
     @Override
@@ -324,7 +356,6 @@ public class ContestServiceImpl implements IContestService {
         dto.setQuestionSlug(question.getQuestionSlug());
         dto.setHiddenTestcases(question.getHiddenTestcases());
         dto.setSampleTestcases(question.getSampleTestcases());
-        dto.setScore(question.getScore());
         dto.setConstraints(question.getConstraints());
         dto.setDifficulty(question.getDifficulty());
         dto.setTitle(question.getTitle());
@@ -344,4 +375,28 @@ public class ContestServiceImpl implements IContestService {
 
         return dto;
     }
+
+    private ContestDetailDto toContestDetailDto(Contest contest) {
+        ContestDetailDto res = modelMapper.map(contest, ContestDetailDto.class);
+        List<ContestQuestionDto> questionDtos = contest.getContestQuestions()
+                .stream()
+                .sorted(Comparator.comparing(ContestQuestion::getOrderIndex,
+                        Comparator.nullsLast(Integer::compareTo)))
+                .map(cq -> {
+                    ContestQuestionDto condto = new ContestQuestionDto();
+                    condto.setQuestion(modelMapper.map(
+                            cq.getQuestion(),
+                            QuestionDto.class
+                    ));
+
+                    condto.setScore(cq.getScore());
+                    condto.setOrderIndex(cq.getOrderIndex());
+                    return condto;
+                })
+                .toList();
+
+        res.setQuestions(questionDtos);
+        return res;
+    }
+
 }

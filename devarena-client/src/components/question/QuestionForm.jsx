@@ -1,5 +1,4 @@
 "use client"
-import { TestcaseSection } from "./TestcaseSection"
 import styles from "./css/QuestionForm.module.css"
 
 export const QuestionForm = ({
@@ -7,17 +6,28 @@ export const QuestionForm = ({
   errors,
   slugWarning,
   showConstraintsGuide,
-  scoreInput,
   onInputChange,
-  onScoreInputChange,
-  onMakeSlugUnique,
   onToggleConstraintsGuide,
 
-  onSaveDraft,
   onValidate,
   onPublishClick,
-  
+
 }) => {
+
+  const generateSlugFromTitle = () => {
+    if (!question.title) return;
+
+    const slug = question.title
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, "")   // remove special chars
+      .replace(/\s+/g, "-")           // spaces → hyphen
+      .replace(/-+/g, "-")        // remove duplicate hyphens
+      .replace(/^-+/, "")             // remove leading hyphens
+      .replace(/-+$/, "");            // remove trailing hyphens
+    onInputChange("questionSlug", slug);
+  };
+
   return (
     <div className={`${styles.container} p-8 rounded-3xl shadow-2xl space-y-6 bg-background`}>
       {errors.length > 0 && (
@@ -32,7 +42,7 @@ export const QuestionForm = ({
             {errors.map((err, i) => (
               <li key={i}>{err}</li>
             ))}
-          </ul> 
+          </ul>
         </div>
       )}
 
@@ -63,15 +73,14 @@ export const QuestionForm = ({
             className="flex-1 bg-card text-foreground rounded-2xl px-6 py-3 border-2 border-border focus:border-primary focus:ring-2 focus:ring-primary/30 outline-none transition-all shadow-inner font-mono"
             placeholder="auto-generated-slug"
           />
-          {slugWarning && (
-            <button
-              type="button"
-              onClick={onMakeSlugUnique}
-              className="px-4 py-2 bg-accent text-accent-foreground rounded-2xl hover:bg-accent/90 transition-all border border-accent font-medium"
-            >
-              Make Unique
-            </button>
-          )}
+
+          <button
+            type="button"
+            onClick={generateSlugFromTitle}
+            className="px-4 py-3 rounded-2xl bg-primary text-primary-foreground font-medium hover:opacity-90 transition"
+          >
+            From Title
+          </button>
         </div>
 
         {slugWarning && (
@@ -102,52 +111,37 @@ export const QuestionForm = ({
         />
       </div>
 
-      {/* Difficulty & Score */}
+      {/* Difficulty */}
       <div className="grid md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-500 mb-2">
             Difficulty *
           </label>
           <div className="space-y-2">
-              {["EASY", "MEDIUM", "HARD"].map((diff) => (
-                <label key={diff} className="flex items-center gap-3 cursor-pointer group">
-                  <input
-                    type="radio"
-                    name="difficulty"
-                    value={diff}
-                    checked={question.difficulty === diff}
-                    onChange={(e) => onInputChange("difficulty", e.target.value)}
-                    className="w-5 h-5 text-teal-500 focus:ring-teal-500 focus:ring-2"
-                  />
-                  <span
-                    className={`font-medium ${
-                      diff === "EASY"
-                        ? "text-green-400"
-                        : diff === "MEDIUM"
-                        ? "text-yellow-400"
-                        : "text-red-400"
+            {["EASY", "MEDIUM", "HARD"].map((diff) => (
+              <label key={diff} className="flex items-center gap-3 cursor-pointer group">
+                <input
+                  type="radio"
+                  name="difficulty"
+                  value={diff}
+                  checked={question.difficulty === diff}
+                  onChange={(e) => onInputChange("difficulty", e.target.value)}
+                  className="w-5 h-5 text-teal-500 focus:ring-teal-500 focus:ring-2"
+                />
+                <span
+                  className={`font-medium ${diff === "EASY"
+                    ? "text-green-400"
+                    : diff === "MEDIUM"
+                      ? "text-yellow-400"
+                      : "text-red-400"
                     }`}
-                  >
-                    {diff}
-                  </span>
-                </label>
-              ))}
+                >
+                  {diff}
+                </span>
+              </label>
+            ))}
 
           </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-foreground/80 mb-2">
-            Score *
-          </label>
-          <input
-            type="text"
-            inputMode="numeric"
-            value={scoreInput ?? ""}
-            onChange={onScoreInputChange}
-            className="w-full bg-card text-foreground rounded-2xl px-6 py-3 border-2 border-border focus:border-primary focus:ring-2 focus:ring-primary/30 outline-none transition-all shadow-inner"
-            placeholder="100"
-          />
         </div>
       </div>
 
@@ -181,13 +175,7 @@ export const QuestionForm = ({
 
       {/* Buttons */}
       <div className="flex flex-wrap gap-3 pt-4">
-        <button
-          type="button"
-          onClick={onSaveDraft}
-          className="px-6 py-3 bg-card border border-border text-foreground hover:bg-muted rounded-2xl transition-all shadow-lg font-medium"
-        >
-          Save Draft
-        </button>
+
 
         <button
           type="button"

@@ -5,18 +5,18 @@ import com.devarena.models.*;
 import com.devarena.repositories.IContestRepo;
 import com.devarena.repositories.IQuestionRepo;
 import com.devarena.repositories.ISubmissionRepo;
+import com.devarena.service.interfaces.ISubmissionService;
 import jakarta.transaction.Transactional;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @Transactional
-public class SubmissionService {
+public class SubmissionService implements ISubmissionService {
 
     private final LocalCppRunnerService runner;
     private final IContestRepo contestRepo;
@@ -44,7 +44,7 @@ public class SubmissionService {
 
         @SuppressWarnings("unchecked")
         List<String> testcases = (List<String>) body.get("testcases");
-
+        System.out.println(testcases);
         if (code == null || testcases == null) {
             throw new IllegalArgumentException("Missing code or testcases");
         }
@@ -58,23 +58,11 @@ public class SubmissionService {
     public Map<String, Object> submit(
             String roomId,
             String questionSlug,
-            Map<String, Object> body,
+           String code,
             User user
     ) {
 
-        // Extract & validate input
-
-        Object codeObj = body.get("code");
-        if (!(codeObj instanceof String)) {
-            throw new RuntimeException("Invalid code format");
-        }
-        String code = (String) codeObj;
-
-
-        @SuppressWarnings("unchecked")
-        List<String> inputs = (List<String>) body.get("testcases");
-
-        if (code == null || inputs == null || inputs.isEmpty()) {
+        if (code == null) {
             throw new RuntimeException("Missing code or testcases");
         }
 
@@ -93,12 +81,18 @@ public class SubmissionService {
 //                throw new RuntimeException("Contest not live");
 //            }
 
-            if (!contest.getQuestions().contains(question)) {
+            boolean exists = contest.getContestQuestions()
+                    .stream()
+                    .anyMatch(cq -> cq.getQuestion().getQuestionId()
+                            .equals(question.getQuestionId()));
+
+            if (!exists) {
                 throw new RuntimeException("Question not in contest");
             }
+
         }
 
-
+//        System.out.println("submission " + roomId + " " + questionSlug);
         Submission submission = new Submission();
         submission.setUserId(user.getUserId());
         submission.setRoomId(roomId);   //contestid is nullale
@@ -110,6 +104,13 @@ public class SubmissionService {
 
         submissionRepo.save(submission);
 
+        List<String> inputs = new ArrayList<>(question.getSampleTestcases()
+                .stream().map(Testcase::getInput).toList());
+
+        inputs.addAll(question.getHiddenTestcases()
+                .stream().map(Testcase::getInput).toList());
+//        System.out.println("inputs : " + inputs);
+//        System.out.println(question.getHiddenTestcases());
 
         List<LocalCppRunnerService.Result> results =
                 runner.executeBatch(code, inputs);
@@ -127,6 +128,8 @@ public class SubmissionService {
             LocalCppRunnerService.Result r = results.get(i);
 
             if (r.stderr != null && !r.stderr.isBlank()) {
+//                System.out.println("result " + r.stderr);
+
                 verdict = mapErrorToVerdict(r.stderr);
                 break;
             }
@@ -144,11 +147,17 @@ public class SubmissionService {
 
 
         submission.setVerdict(verdict);
+        assert contest != null;
+        int score = contest.getContestQuestions()
+                .stream().filter(cq -> cq.getQuestion().getQuestionId()
+                        .equals(question.getQuestionId())
+                )
+                .map(ContestQuestion::getScore).findFirst()
+                .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "Score not found"));
+
 
         if (verdict == Verdict.ACCEPTED) {
-            submission.setScore(
-                    question.getScore() != null ? question.getScore() : 100
-            );
+            submission.setScore(score);
         }
 
 //        eventPublisher.publishSubmissionResult(
@@ -174,7 +183,7 @@ public class SubmissionService {
 
     private Verdict mapErrorToVerdict(String error) {
         error = error.toLowerCase();
-
+        System.out.println(error);
         if (error.contains("time")) return Verdict.TIME_LIMIT_EXCEEDED;
         if (error.contains("memory")) return Verdict.RUNTIME_ERROR;
         if (error.contains("runtime")) return Verdict.RUNTIME_ERROR;

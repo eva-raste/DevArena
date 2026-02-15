@@ -136,5 +136,22 @@ public class QuestionController {
     ) {
         questionService.updateModifiers(slug, modifierIds, currentUser);
     }
+    
+    @GetMapping("/{slug}/contest/{roomId}")
+    public ResponseEntity<QuestionCardDto> getContestQuestion
+            (@PathVariable("slug") String questionSlug, @PathVariable("roomId") String roomId,
+             @AuthenticationPrincipal User user){
+        QuestionCardDto res = questionService.fetchContestQuestion(questionSlug,roomId,user);
+
+        return ResponseEntity.ok(res);
+    }
+
+    @GetMapping("/edit/{slug}")
+    public ResponseEntity<QuestionDto> getEditQuestion(@PathVariable("slug") String slug,
+                                                       @AuthenticationPrincipal User user)
+    {
+        QuestionDto dto = questionService.findByQuestionSlugAndModifier(slug,user);
+        return ResponseEntity.ok(dto);
+    }
 
 }

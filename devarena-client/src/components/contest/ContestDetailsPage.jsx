@@ -182,49 +182,61 @@ export default function ContestDetailsPage() {
         )}
 
         {/* ---------- Questions ---------- */}
-        {status === "LIVE" || status === "ENDED" ? (
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold">Questions</h2>
+{status === "LIVE" || status === "ENDED" ? (
+  <div className="space-y-4">
+    <h2 className="text-xl font-semibold">Questions</h2>
 
-            {contest.questions.map((q, index) => (
-              <div
-                key={q.questionSlug}
-                onClick={() =>
-                  navigate(`/contests/${contest.roomId}/questions/${q.questionSlug}`)
-                }
-                className="cursor-pointer border rounded-xl p-4 hover:bg-accent/40"
-              >
-                <div className="flex justify-between items-center">
-                  <h3 className="font-medium">
-                    {index + 1}. {q.title}
-                  </h3>
+    {contest.questions
+      .slice()
+      .sort((a, b) => a.orderIndex - b.orderIndex)
+      .map((cq, index) => {
+        const q = cq.question
 
-                  <div className="flex items-center gap-3">
-                    {acceptedQuestions.includes(q.questionSlug) && (
-                      <span className="text-green-600 text-2xl font-bold">✔</span>
-                    )}
+        return (
+          <div
+            key={q.questionSlug}
+            onClick={() =>
+              navigate(
+                `/contests/${contest.roomId}/questions/${q.questionSlug}`
+              )
+            }
+            className="cursor-pointer border rounded-xl p-4 hover:bg-accent/40"
+          >
+            <div className="flex justify-between items-center">
+              <h3 className="font-medium">
+                {index + 1}. {q.title}
+              </h3>
 
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-bold ${getDifficultyColor(
-                        q.difficulty
-                      )}`}
-                    >
-                      {q.difficulty}
-                    </span>
-                  </div>
-                </div>
+              <div className="flex items-center gap-3">
+                {acceptedQuestions.includes(q.questionSlug) && (
+                  <span className="text-green-600 text-2xl font-bold">
+                    ✔
+                  </span>
+                )}
 
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Score: {q.score}
-                </p>
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-bold ${getDifficultyColor(
+                    q.difficulty
+                  )}`}
+                >
+                  {q.difficulty}
+                </span>
               </div>
-            ))}
+            </div>
+
+            <p className="mt-2 text-sm text-muted-foreground">
+              Score: {cq.score}
+            </p>
           </div>
-        ) : (
-          <div className="text-warning font-semibold">
-            Contest is not live yet
-          </div>
-        )}
+        )
+      })}
+  </div>
+) : (
+  <div className="text-warning font-semibold">
+    Contest is not live yet
+  </div>
+)}
+
 
       </div>
     </main>

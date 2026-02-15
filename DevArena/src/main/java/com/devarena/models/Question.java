@@ -26,8 +26,12 @@ public class Question {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID questionId;
 
-    @ManyToMany(mappedBy = "questions")
-    private List<Contest> contests = new ArrayList<>();
+//    @ManyToMany(mappedBy = "questions")
+//    private List<Contest> contests = new ArrayList<>();
+
+    @OneToMany(mappedBy = "question")
+    private List<ContestQuestion> contestQuestions = new ArrayList<>();
+
 
     @Column(nullable = false,unique = true)
     private String questionSlug;
@@ -54,7 +58,7 @@ public class Question {
     @Column(nullable = false)
     private QuestionDifficulty difficulty;
 
-    private Integer score;
+//    private Integer score;
 
     @Column(columnDefinition = "TEXT",nullable = false)
     private String constraints;

@@ -15,7 +15,7 @@ import java.util.UUID;
 public class QuestionDto {
 
     private String questionSlug;
-    //private UUID questionID;
+
     private String title;
 
     private String description;
@@ -23,8 +23,6 @@ public class QuestionDto {
     private QuestionDifficulty difficulty;
 
     private String role;
-
-    private Integer score;
 
     private String constraints;
 

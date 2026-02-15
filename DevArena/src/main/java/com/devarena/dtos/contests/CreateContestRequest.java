@@ -1,5 +1,6 @@
 package com.devarena.dtos.contests;
 
+import com.devarena.dtos.questions.QuestionConfig;
 import com.devarena.models.ContestVisibility;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -17,7 +18,7 @@ public class CreateContestRequest {
     private ContestVisibility visibility;
 
     @NotNull
-    private List<String> questionSlugs;
+    private List<QuestionConfig> questions;
 
     private String instructions;
 

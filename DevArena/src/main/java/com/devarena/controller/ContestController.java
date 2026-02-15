@@ -35,7 +35,7 @@ public class ContestController {
             @AuthenticationPrincipal User owner
 
     ) {
-        System.out.println("owner is " + owner);
+//        System.out.println("owner is " + owner);
         ContestResponseDto response =
                 contestService.createContest(request,owner);
 
@@ -64,9 +64,11 @@ public class ContestController {
     }
 
     @DeleteMapping
-    public ResponseEntity<Void> deleteContest(@RequestParam(name="roomId") String roomId)
+    public ResponseEntity<Void> deleteContest(@RequestParam(name="roomId") String roomId,
+                                              @AuthenticationPrincipal User owner
+                                              )
     {
-        boolean deleted = contestService.deleteContest(roomId);
+        boolean deleted = contestService.deleteContest(roomId,owner);
 
         if (!deleted) {
             return ResponseEntity.notFound().build();
@@ -77,19 +79,22 @@ public class ContestController {
 
     @GetMapping("/edit-validity")
     public ResponseEntity<Void> checkContestEditValidity(
-            @RequestParam String roomId
+            @RequestParam String roomId,
+            @AuthenticationPrincipal User owner
+
     ) {
-        contestService.assertEditable(roomId);
+        contestService.assertEditable(roomId,owner);
         return ResponseEntity.ok().build();
     }
 
     @PutMapping("/{roomId}")
     public ResponseEntity<ContestDetailDto> updateContest(
             @PathVariable String roomId,
-            @Valid @RequestBody EditContestRequestDto dto
+            @Valid @RequestBody EditContestRequestDto dto,
+            @AuthenticationPrincipal User owner
     ) {
         ContestDetailDto updated =
-                contestService.updateContest(roomId, dto);
+                contestService.updateContest(roomId, dto,owner);
         return ResponseEntity.ok(updated);
     }
 

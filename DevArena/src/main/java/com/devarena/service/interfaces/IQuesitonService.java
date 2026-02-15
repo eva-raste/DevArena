@@ -7,7 +7,6 @@ import com.devarena.dtos.questions.QuestionDto;
 import com.devarena.dtos.users.UserVerifyDto;
 import com.devarena.models.QuestionDifficulty;
 import com.devarena.models.User;
-import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -44,4 +43,7 @@ public interface IQuesitonService {
     void updateModifiers(String slug, List<UUID> modifierIds, User currentUser);
 
     Page<QuestionDto> getAllQuestions(Pageable pageable, UUID userId, QuestionDifficulty difficulty);
+    QuestionCardDto fetchContestQuestion(String questionSlug, String roomId, User user);
+
+    QuestionDto findByQuestionSlugAndModifier(String slug, User user);
 }

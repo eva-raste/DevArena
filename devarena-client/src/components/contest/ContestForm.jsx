@@ -42,7 +42,14 @@ const ContestForm = ({
         }
     )
 
-    const [questions, setQuestions] = useState(initialQuestions ?? [])
+    const [contestQuestions, setContestQuestions] = useState(
+        initialQuestions?.map((q, index) => ({
+            question: q.question ?? q, // handles edit mode vs create mode
+            score: q.score ?? "",
+            orderIndex: q.orderIndex ?? index + 1
+        })) ?? []
+    )
+
     const [slugInput, setSlugInput] = useState("")
     const [questionError, setQuestionError] = useState(null)
     const [timeError, setTimeError] = useState(null)
@@ -93,12 +100,20 @@ const ContestForm = ({
 
             const card = await fetchQuestionCard(slugInput.trim())
 
-            if (questions.some(q => q.questionSlug === card.questionSlug)) {
+            if (
+                contestQuestions.some(
+                    q => q.question.questionSlug === card.questionSlug
+                )
+            ) {
                 setQuestionError("Question already added")
                 return
             }
 
-            setQuestions(prev => [...prev, card])
+            setContestQuestions(prev => [...prev, {
+                question: card,
+                score: "",
+                orderIndex: prev.length + 1
+            }])
             setSlugInput("")
         } catch (err) {
             setQuestionError(err.message)
@@ -107,7 +122,14 @@ const ContestForm = ({
 
     const removeQuestion = (slug) => {
         if (!window.confirm("Remove this question from contest?")) return
-        setQuestions(prev => prev.filter(q => q.questionSlug !== slug))
+        setContestQuestions(prev =>
+            prev
+                .filter(q => q.question.questionSlug !== slug)
+                .map((q, index) => ({
+                    ...q,
+                    orderIndex: index + 1
+                }))
+        )
     }
 
     /* ---------- Submit ---------- */
@@ -115,38 +137,73 @@ const ContestForm = ({
     const handleSubmit = async (e) => {
         e.preventDefault()
 
+        // Time validation
         const validationError = validateTime(form)
         if (validationError) {
             setTimeError(validationError)
             return
         }
 
+        // Question list cannot be empty
+        if (contestQuestions.length === 0) {
+            setQuestionError("At least one question is required")
+            return
+        }
+
+        // Validate scores
+        for (let cq of contestQuestions) {
+            if (!cq.score || Number(cq.score) <= 0) {
+                setQuestionError(
+                    `Score must be greater than 0 for ${cq.question.title}`
+                )
+                return
+            }
+        }
+
+        // Duplicate safety (extra protection)
+        const slugs = contestQuestions.map(q => q.question.questionSlug)
+        const uniqueSlugs = new Set(slugs)
+
+        if (slugs.length !== uniqueSlugs.size) {
+            setQuestionError("Duplicate questions are not allowed")
+            return
+        }
+
+        setQuestionError(null)
+
         const payload = {
             title: form.title,
             visibility: form.visibility,
-            questionSlugs: questions.map(q => q.questionSlug),
             instructions: form.instructions || null,
             startTime: form.startTime || null,
             endTime: form.endTime || null,
+            questions: contestQuestions.map(cq => ({
+                questionSlug: cq.question.questionSlug,
+                score: Number(cq.score),
+                orderIndex: cq.orderIndex
+            }))
         }
 
         await onSubmit(payload)
     }
 
+
+    const updateScore = (slug, value) => {
+        setContestQuestions(prev =>
+            prev.map(cq =>
+                cq.question.questionSlug === slug
+                    ? { ...cq, score: value }
+                    : cq
+            )
+        )
+    }
+
+
     /* ---------- UI ---------- */
 
     return (
         <div
-            className="
-      min-h-screen
-      bg-gray-50
-      dark:bg-gradient-to-br
-      dark:from-[#020617]
-      dark:via-[#020617]
-      dark:to-[#020617]
-      px-4 sm:px-6 py-14
-      flex justify-center
-    "
+            className=" min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-[#020617] dark:via-[#020617] dark:to-[#020617] px-4 sm:px-6 py-14 flex justify-center "
         >
             <div className="w-full max-w-3xl">
                 <h1 className="text-3xl font-semibold text-gray-900 dark:text-slate-100 mb-8">
@@ -155,20 +212,9 @@ const ContestForm = ({
 
                 <form
                     onSubmit={handleSubmit}
-                    className="
-          bg-white
-          dark:bg-[#0f172a]/90
-          backdrop-blur
-          border border-gray-200
-          dark:border-slate-700/60
-          rounded-2xl
-          p-6 sm:p-8
-          space-y-6
-          shadow-xl
-        "
+                    className=" bg-white dark:bg-[#0f172a]/90 backdrop-blur border border-gray-200 dark:border-slate-700/60 rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl "
                 >
-                    {/* Title */}
-                    <div className="space-y-1">
+                    {/* Title */} <div className="space-y-1">
                         <label className="text-sm font-medium text-gray-700 dark:text-slate-300">
                             Contest Title
                         </label>
@@ -217,50 +263,66 @@ const ContestForm = ({
                     )}
 
                     {/* Question Cards */}
-                    {questions.length > 0 && (
+                    {contestQuestions.length > 0 && (
                         <div className="space-y-3">
                             <label className="text-sm font-medium text-gray-700 dark:text-slate-300">
                                 Added Questions
                             </label>
 
-                            {questions.map((q) => (
-                                <div
-                                    key={q.questionSlug}
-                                    className="
-                  bg-gray-50
-                  dark:bg-[#020617]
-                  border border-gray-200
-                  dark:border-slate-700/60
-                  rounded-xl
-                  p-4
-                "
-                                >
-                                    <div className="flex justify-between gap-4">
-                                        <div>
-                                            <h3 className="text-gray-900 dark:text-slate-100 font-medium">
-                                                {q.title}
-                                            </h3>
-                                            <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
-                                                {q.questionSlug} • {q.difficulty} • {q.score} pts
-                                            </p>
+                            {contestQuestions.map((cq) => {
+                                const q = cq.question
+
+                                return (
+                                    <div
+                                        key={q.questionSlug}
+                                        className=" bg-gray-50 dark:bg-[#020617] border border-gray-200 dark:border-slate-700/60 rounded-xl p-4 "
+                                    >
+                                        <div className="flex justify-between gap-4">
+                                            <div>
+                                                <h3 className="text-gray-900 dark:text-slate-100 font-medium">
+                                                    {q.title}
+                                                </h3>
+                                                <div className="flex items-center gap-4 mt-2">
+                                                    <p className="text-xs text-gray-500 dark:text-slate-400">
+                                                        {q.questionSlug} • {q.difficulty}
+                                                    </p>
+
+                                                    <div className="flex items-center gap-2">
+                                                        <label className="text-xs text-gray-600 dark:text-slate-400">
+                                                            Score
+                                                        </label>
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            value={cq.score}
+                                                            onChange={(e) =>
+                                                                updateScore(q.questionSlug, e.target.value)
+                                                            }
+                                                            className="w-20 px-2 py-1 text-sm rounded border border-gray-300 dark:border-slate-700 bg-white dark:bg-[#020617] text-gray-900 dark:text-slate-100"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => removeQuestion(q.questionSlug)}
+                                                className="text-red-600 dark:text-red-400 hover:underline"
+                                            >
+                                                Remove
+                                            </button>
                                         </div>
 
-                                        <button
-                                            type="button"
-                                            onClick={() => removeQuestion(q.questionSlug)}
-                                            className="text-red-600 dark:text-red-400 hover:underline"
-                                        >
-                                            Remove
-                                        </button>
+                                        <p className="text-sm text-gray-700 dark:text-slate-300 mt-3 line-clamp-2">
+                                            {q.description}
+                                        </p>
                                     </div>
-
-                                    <p className="text-sm text-gray-700 dark:text-slate-300 mt-3 line-clamp-2">
-                                        {q.description}
-                                    </p>
-                                </div>
-                            ))}
+                                )
+                            })}
                         </div>
                     )}
+
 
                     {/* Instructions */}
                     <div className="space-y-1">

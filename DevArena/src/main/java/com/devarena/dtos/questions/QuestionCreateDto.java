@@ -17,8 +17,6 @@ import java.util.UUID;
 @AllArgsConstructor
 public class QuestionCreateDto {
 
-    //private UUID questionId;
-
     @NotBlank
     private String questionSlug;
 
@@ -32,10 +30,6 @@ public class QuestionCreateDto {
     private QuestionDifficulty difficulty;
 
     private List<UUID> modifierIds;
-
-    @NotNull
-    @Min(0)
-    private Integer score;
 
     private String constraints;
 

@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState, useCallback } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { fetchQuestionCard, updateQuestionApi } from "@/apis/question-api"
+import { fetchEditQuestionCard, fetchQuestionCard, updateQuestionApi } from "@/apis/question-api"
 import { QuestionForm } from "./QuestionForm"
 import { appendTestcasesWithLimit, normalizeOrder } from "@/utils/testcaseMerge"
 import { validateQuestion } from "@/apis/question-utils"
@@ -24,7 +24,6 @@ export default function EditQuestionForm() {
     questionSlug: "",
     description: "",
     difficulty: null,
-    score: null,
     constraints: "",
     sampleTestcases: [],
     hiddenTestcases: [],
@@ -39,7 +38,6 @@ export default function EditQuestionForm() {
   const [errors, setErrors] = useState([])
   const [slugWarning, setSlugWarning] = useState(false)
   const [showConstraintsGuide, setShowConstraintsGuide] = useState(false)
-  const [scoreInput, setScoreInput] = useState("")
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState(null)
   
@@ -48,14 +46,13 @@ export default function EditQuestionForm() {
   useEffect(() => {
     const load = async () => {
       // console.log("Calling api")
-      const q = await fetchQuestionCard(slug)
+      const q = await fetchEditQuestionCard(slug)
       // console.log(q);
       setQuestion({
         ...q,
         sampleTestcases: normalizeOrder(q.sampleTestcases),
         hiddenTestcases: normalizeOrder(q.hiddenTestcases),
       });
-      setScoreInput(q.score?.toString() ?? "")
       setLoading(false)
     }
 
@@ -96,18 +93,6 @@ export default function EditQuestionForm() {
     }
   }, [])
 
-
-  /* ================== SCORE ================== */
-  const onScoreInputChange = (e) => {
-    const value = e.target.value
-    if (/^\d*$/.test(value)) {
-      setScoreInput(value)
-      setQuestion((prev) => ({
-        ...prev,
-        score: value === "" ? null : Number(value),
-      }))
-    }
-  }
 
   /* ================== CONSTRAINTS GUIDE ================== */
   const onToggleConstraintsGuide = () =>
@@ -281,9 +266,7 @@ export default function EditQuestionForm() {
           errors={errors}
           slugWarning={slugWarning}
           showConstraintsGuide={showConstraintsGuide}
-          scoreInput={scoreInput}
           onInputChange={onInputChange}
-          onScoreInputChange={onScoreInputChange}
           onToggleConstraintsGuide={onToggleConstraintsGuide}
           
           onSaveDraft={onSaveDraft}

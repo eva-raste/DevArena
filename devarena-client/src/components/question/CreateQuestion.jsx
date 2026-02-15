@@ -36,7 +36,6 @@ const CreateQuestion = ({ existingSlugs = [] }) => {
         title: "",
         description: "",
         difficulty: "",
-        score: 0,
         constraints: "",
         sampleTestcases: [],
         hiddenTestcases: [],
@@ -58,7 +57,6 @@ const CreateQuestion = ({ existingSlugs = [] }) => {
     const [slugWarning, setSlugWarning] = useState(false)
     const [lastAddedSampleId, setLastAddedSampleId] = useState(null)
     const [lastAddedHiddenId, setLastAddedHiddenId] = useState(null)
-    const [scoreInput, setScoreInput] = useState("")
     const [modifiers, setModifiers] = useState([]);
 
     /* auto-generate slug */
@@ -85,17 +83,6 @@ const CreateQuestion = ({ existingSlugs = [] }) => {
 
     const handleInputChange = useCallback((field, value) => {
         setQuestion(prev => ({ ...prev, [field]: value }))
-    }, [])
-
-    const handleScoreInputChange = useCallback((e) => {
-        const v = e.target.value
-        if (v === "" || /^\d+$/.test(v)) {
-            setScoreInput(v)
-            setQuestion(prev => ({
-                ...prev,
-                score: v === "" ? 0 : Number(v),
-            }))
-        }
     }, [])
 
     /* ---------------- TESTCASE LOGIC ---------------- */
@@ -330,7 +317,6 @@ const handleAddTestcase = useCallback((type) => {
             showToast("Question created", "success");
             setQuestion({ ...emptyState });
             setModifiers([]);
-            setScoreInput("");
             navigate("/show-all-questions");
         } catch (e) {
             showToast("Publish failed", "error");
@@ -377,21 +363,12 @@ const handleAddTestcase = useCallback((type) => {
                         question={question}
                         errors={errors}
                         slugWarning={slugWarning}
-                        scoreInput={scoreInput}
 
                         onInputChange={handleInputChange}
-                        onScoreInputChange={handleScoreInputChange}
                         onValidate={handleValidate}
                         onPublishClick={handlePublishClick}
 
-                        // onAddTestcase={handleAddTestcase}
-                        // onUpdateTestcase={handleUpdateTestcase}
-                        // onRemoveTestcase={handleRemoveTestcase}
-                        // onDuplicateTestcase={handleDuplicateTestcase}
-                        // onMoveTestcase={handleMoveTestcase}
-
-                        lastAddedSampleId={lastAddedSampleId}
-                        lastAddedHiddenId={lastAddedHiddenId}
+                        
                     />
 
                     {showPublishModal && (
