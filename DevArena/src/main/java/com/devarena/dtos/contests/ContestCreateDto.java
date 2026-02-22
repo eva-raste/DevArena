@@ -27,4 +27,7 @@ public class ContestCreateDto {
 
     private LocalDateTime startTime;
     private LocalDateTime endTime;
+
+    private List<String> modifiers;
+
 }

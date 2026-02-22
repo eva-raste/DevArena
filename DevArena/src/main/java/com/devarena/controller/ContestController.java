@@ -17,6 +17,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,43 +33,45 @@ public class ContestController {
     @PostMapping
     public ResponseEntity<ContestResponseDto> createContest(
             @RequestBody CreateContestRequest request,
-            @AuthenticationPrincipal User owner
+            @AuthenticationPrincipal User currentUser
 
     ) {
 //        System.out.println("owner is " + owner);
         ContestResponseDto response =
-                contestService.createContest(request,owner);
+                contestService.createContest(request,currentUser);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/me")
     public ResponseEntity<Page<ContestResponseDto>> getMyContests(
-            @AuthenticationPrincipal User owner,
+            @AuthenticationPrincipal User currentUser,
             @RequestParam(required = false) ContestStatus status,
             @PageableDefault(page = 0, size = 10, sort = "startTime", direction = Sort.Direction.DESC)
             Pageable pageable
     ) {
         return ResponseEntity.ok(
-                contestService.getOwnerContests(owner, status, pageable)
+                contestService.getOwnerContests(currentUser, status, pageable)
         );
     }
 
 
     @GetMapping("/{roomId}")
     public ResponseEntity<ContestDetailDto> getContestDetails(
-            @PathVariable String roomId
+            @PathVariable String roomId,
+            @AuthenticationPrincipal User currentUser
+
     ) {
-        ContestDetailDto response = contestService.getContestDetails(roomId);
+        ContestDetailDto response = contestService.getContestDetails(roomId,currentUser);
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping
     public ResponseEntity<Void> deleteContest(@RequestParam(name="roomId") String roomId,
-                                              @AuthenticationPrincipal User owner
+                                              @AuthenticationPrincipal User currentUser
                                               )
     {
-        boolean deleted = contestService.deleteContest(roomId,owner);
+        boolean deleted = contestService.deleteContest(roomId,currentUser);
 
         if (!deleted) {
             return ResponseEntity.notFound().build();
@@ -80,10 +83,10 @@ public class ContestController {
     @GetMapping("/edit-validity")
     public ResponseEntity<Void> checkContestEditValidity(
             @RequestParam String roomId,
-            @AuthenticationPrincipal User owner
+            @AuthenticationPrincipal User currentUser
 
     ) {
-        contestService.assertEditable(roomId,owner);
+        contestService.assertEditable(roomId,currentUser);
         return ResponseEntity.ok().build();
     }
 
@@ -91,10 +94,10 @@ public class ContestController {
     public ResponseEntity<ContestDetailDto> updateContest(
             @PathVariable String roomId,
             @Valid @RequestBody EditContestRequestDto dto,
-            @AuthenticationPrincipal User owner
+            @AuthenticationPrincipal User currentUser
     ) {
         ContestDetailDto updated =
-                contestService.updateContest(roomId, dto,owner);
+                contestService.updateContest(roomId, dto,currentUser);
         return ResponseEntity.ok(updated);
     }
 
@@ -116,7 +119,15 @@ public class ContestController {
         );
     }
 
-
+    @DeleteMapping("/{roomId}/modifiers")
+    public ResponseEntity<?> removeModifier(
+            @PathVariable String roomId,
+            @RequestParam String email,
+            Authentication auth
+    ) {
+        contestService.removeModifier(roomId, email, auth.getName());
+        return ResponseEntity.ok().build();
+    }
 
 
 }

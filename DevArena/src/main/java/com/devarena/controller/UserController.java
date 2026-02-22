@@ -2,11 +2,13 @@ package com.devarena.controller;
 
 import com.devarena.dtos.users.UserDto;
 import com.devarena.dtos.users.UserVerifyDto;
+import com.devarena.models.User;
 import com.devarena.service.interfaces.IQuesitonService;
 import com.devarena.service.interfaces.UserService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -53,8 +55,12 @@ public class UserController {
     }
 
     @GetMapping("/verify-email")
-    public UserVerifyDto verifyUser(@RequestParam String email) {
-        return questionService.verifyUserByEmail(email);
+    public UserVerifyDto verifyUser(
+            @RequestParam String email,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        return userService.verifyUserByEmail(email,currentUser);
     }
+
 
 }

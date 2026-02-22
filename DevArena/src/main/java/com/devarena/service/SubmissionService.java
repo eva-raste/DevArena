@@ -147,13 +147,18 @@ public class SubmissionService implements ISubmissionService {
 
 
         submission.setVerdict(verdict);
-        assert contest != null;
-        int score = contest.getContestQuestions()
-                .stream().filter(cq -> cq.getQuestion().getQuestionId()
-                        .equals(question.getQuestionId())
-                )
-                .map(ContestQuestion::getScore).findFirst()
-                .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "Score not found"));
+//        assert contest != null;
+        int score=0;
+        if(contest!=null)
+        {
+             score = contest.getContestQuestions()
+                    .stream().filter(cq -> cq.getQuestion().getQuestionId()
+                            .equals(question.getQuestionId())
+                    )
+                    .map(ContestQuestion::getScore).findFirst()
+                    .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "Score not found"));
+
+        }
 
 
         if (verdict == Verdict.ACCEPTED) {

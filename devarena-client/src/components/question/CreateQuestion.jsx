@@ -308,8 +308,8 @@ const handleAddTestcase = useCallback((type) => {
     const confirmPublish = useCallback(async () => {
         try {
             const payload = {
-                ...question,
-                modifierIds: modifiers.map(m => m.userId)
+              ...question,
+              modifiers: modifiers
             };
 
             await createQuestion(payload);

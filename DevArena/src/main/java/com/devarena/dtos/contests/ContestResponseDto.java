@@ -12,7 +12,7 @@ public class ContestResponseDto {
     //private UUID contestId;
     private String roomId;
     private String title;
-
+    private String role;
     private ContestVisibility visibility;
     private ContestStatus status;
 

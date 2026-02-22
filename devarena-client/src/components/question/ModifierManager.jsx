@@ -1,101 +1,110 @@
-"use client"
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { verifyUserApi } from "../../apis/user-api"
+import { removeModifierApi } from "../../apis/question-api"
+export const ModifierManager = ({ modifiers = [], setModifiers, role = "OWNER" }) => {
 
-import React, { useState } from "react"
-import { verifyUserByEmail } from "@/apis/question-api"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { X } from "lucide-react"
+  const {slug} = useParams()
+  const isOwner = role?.toUpperCase() === "OWNER"
+  const [email, setEmail] = useState("")
+  const [error, setError] = useState(null)
 
-export const ModifierManager = ({ modifiers, setModifiers }) => {
+  const handleVerify = async () => {
+    if (!email) return
 
-    const [email, setEmail] = useState("")
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState(null)
+    try {
+      setError(null)
 
-    const handleVerify = async () => {
-        if (!email) return
+      const user = await verifyUserApi(email)
+      
+      // prevent duplicate
+      if (modifiers.includes(user.email)) {
+        setError("User already added")
+        return
+      }
 
-        try {
-            setLoading(true)
-            setError(null)
+      // store ONLY email
+      setModifiers(prev => [...prev, user.email])
+      setEmail("")
 
-            const user = await verifyUserByEmail(email)
+    } catch (err) {
+          const backendMessage =
+            err.response?.data?.message
 
-            // prevent duplicate
-            if (modifiers.some(m => m.userId === user.userId)) {
-                setError("User already added")
-                return
-            }
+          if (backendMessage === "OWNER_CANNOT_BE_MODIFIER") {
+            setError("You cannot add yourself as a modifier.")
+          } else if (backendMessage === "User not found") {
+            setError("User not found.")
+          } else {
+            setError("Verification failed.")
+          }
+        
+    } 
+  }
 
-            setModifiers(prev => [
-              ...prev,
-              {
-                userId: user.userId,
-                email: user.email,
-                displayName: user.displayName
-              }
-            ]);
-            setEmail("")
-        } catch (e) {
-            setError("User not found")
-        } finally {
-            setLoading(false)
-        }
-    }
+  const removeModifier = async (emailToRemove) => {
+  try {
+    await removeModifierApi(slug, emailToRemove)
 
-    const removeModifier = (userId) => {
-        setModifiers(prev => prev.filter(m => m.userId !== userId))
-    }
-
-    return (
-        <div className="space-y-6">
-
-            <div className="flex gap-3">
-                <Input
-                    placeholder="Enter user email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                />
-                <Button onClick={handleVerify} disabled={loading}>
-                    {loading ? "Verifying..." : "Verify"}
-                </Button>
-            </div>
-
-            {error && (
-                <p className="text-sm text-red-500">{error}</p>
-            )}
-
-            <div className="space-y-2">
-                {modifiers.map(user => (
-                    <div
-                        key={user.userId}
-                        className="flex items-center justify-between bg-muted p-3 rounded-xl"
-                    >
-                        <div>
-                            <p className="font-medium">{user.username}</p>
-                            <p className="text-xs text-muted-foreground">
-                                {user.email}
-                            </p>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                            <Badge variant="secondary">
-                                Modifier
-                            </Badge>
-
-                            <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={() => removeModifier(user.userId)}
-                            >
-                                <X className="w-4 h-4" />
-                            </Button>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-        </div>
+    setModifiers(prev =>
+      prev.filter(email => email !== emailToRemove)
     )
+
+  } catch (e) {
+    console.error("Failed to remove modifier", e)
+    setError("Failed to remove modifier")
+  }
+}
+
+  return (
+    <div className="space-y-4">
+      <label className="text-sm font-medium">
+        Modifiers
+      </label>
+
+      {isOwner  && (
+        <div className="flex gap-2">
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Enter user email"
+            className="border px-3 py-2 rounded"
+          />
+          <button
+            onClick={handleVerify}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded"
+          >
+            Verify
+          </button>
+        </div>
+      )}
+
+      {error && (
+        <p className="text-red-500 text-sm">
+          {error}
+        </p>
+      )}
+      {modifiers.length > 0 && (
+        <div className="space-y-2">
+          {modifiers.map(email => (
+            <div
+              key={email}
+              className="flex justify-between items-center bg-muted p-2 rounded"
+            >
+              <span>{email}</span>
+
+              {role === "OWNER" && (
+                <button
+                  onClick={() => removeModifier(email)}
+                  className="text-red-500"
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }

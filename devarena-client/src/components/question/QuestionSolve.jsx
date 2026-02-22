@@ -36,7 +36,7 @@ const QuestionSolve = () => {
   const editorRef = useRef(null);
   const monacoEditor = useRef(null);
   const lastSavedRef = useRef("");
-
+  const draftLoadedRef = useRef(false);
   const isDark = useThemeStore((s) => s.isDark);
 
   const fallbackTemplates = {
@@ -51,6 +51,7 @@ const QuestionSolve = () => {
         if(roomId)
         {
           data = await fetchContestQuestion(roomId , slug);
+          console.log("coming from conets");
         }else{
 
           data = await fetchQuestionCard(slug);
@@ -101,16 +102,19 @@ const QuestionSolve = () => {
   }, [question]);
 
     useEffect(() => {
-      if (!monacoEditor.current || !question) return;
+  if (!monacoEditor.current || !question) return;
 
-      const load = async () => {
-        const code = await loadInitialCode();
-        monacoEditor.current.setValue(code);
-        lastSavedRef.current = code;
-      };
+  const load = async () => {
+    draftLoadedRef.current = false; // reset
 
-      load();
-    }, [monacoEditor.current, question, language, roomId]);
+    const code = await loadInitialCode();
+    monacoEditor.current.setValue(code);
+    lastSavedRef.current = code;
+
+    draftLoadedRef.current = true; 
+
+  load();
+}, [question, language, roomId]);
 
   useEffect(() => {
     if (!monacoEditor.current || !question) return;
@@ -179,6 +183,7 @@ const QuestionSolve = () => {
 
   useEffect(() => {
     const handleBeforeUnload = async (e) => {
+      if (!draftLoadedRef.current) return;
       const code = monacoEditor.current?.getValue();
       if (!code || !question || code === lastSavedRef.current) return;
 
@@ -235,7 +240,7 @@ const QuestionSolve = () => {
   const handleRun = async () => {
     setVerdict(null);
     setTestResults([]);
-
+    if (!draftLoadedRef.current) return;
     const code = monacoEditor.current.getValue();
 
     if (code !== lastSavedRef.current) {
@@ -270,6 +275,9 @@ const QuestionSolve = () => {
     if (!question || !monacoEditor.current) return;
 
     setVerdict(null);
+
+    if (!draftLoadedRef.current) return;
+
     const code = monacoEditor.current.getValue();
 
     if (code !== lastSavedRef.current) {
@@ -297,9 +305,9 @@ const QuestionSolve = () => {
       code,
       // submitCases.map((tc) => tc.input)
     );
-
+    console.log("submit response", data); 
     setVerdict(data.verdict);
-    setPassedCount(data.verdict === "ACCEPTED" ? submitCases.length : 0);
+    setPassedCount(data.verdict === "ACCEPTED" ? submitCases.length : data.passed);
     setTotalCount(submitCases.length);
   };
 

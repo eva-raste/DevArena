@@ -38,12 +38,13 @@ public interface IQuesitonService {
             User currentUser
     );
 
-    UserVerifyDto verifyUserByEmail(String email);
+   // UserVerifyDto verifyUserByEmail(String email);
 
-    void updateModifiers(String slug, List<UUID> modifierIds, User currentUser);
 
     Page<QuestionDto> getAllQuestions(Pageable pageable, UUID userId, QuestionDifficulty difficulty);
     QuestionCardDto fetchContestQuestion(String questionSlug, String roomId, User user);
 
     QuestionDto findByQuestionSlugAndModifier(String slug, User user);
+
+    void removeModifier(String slug, String email, User currentUser);
 }

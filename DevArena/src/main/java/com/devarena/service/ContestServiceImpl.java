@@ -10,6 +10,7 @@ import com.devarena.dtos.questions.QuestionDto;
 import com.devarena.models.*;
 import com.devarena.repositories.IContestRepo;
 import com.devarena.repositories.IQuestionRepo;
+import com.devarena.repositories.UserRepository;
 import com.devarena.security.RoomIdGenerator;
 import com.devarena.service.interfaces.IContestService;
 import jakarta.transaction.Transactional;
@@ -37,6 +38,7 @@ public class ContestServiceImpl implements IContestService {
     private final IQuestionRepo questionRepo;
     private final ContestTaskScheduler contestTaskScheduler;
     private final ModelMapper modelMapper;
+    private final UserRepository userRepository;
 
     public String createUniqueRoomId() {
         String roomId;
@@ -49,6 +51,7 @@ public class ContestServiceImpl implements IContestService {
     @Override
     @Transactional
     public ContestResponseDto createContest(CreateContestRequest req, User owner) {
+
 
         if(req.getQuestions() == null || req.getQuestions().isEmpty())
         {
@@ -99,6 +102,39 @@ public class ContestServiceImpl implements IContestService {
                 createUniqueRoomId()
         );
 
+        // Prevent duplicate emails
+        Set<String> uniqueEmails = new HashSet<>(req.getModifierEmails());
+        if (uniqueEmails.size() != req.getModifierEmails().size()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "DUPLICATE_MODIFIERS"
+            );
+        }
+
+        // Fetch all modifiers in ONE DB call
+        List<User> modifiers =
+                userRepository.findAllByEmailIn(req.getModifierEmails());
+
+        // If some emails don't exist
+        if (modifiers.size() != req.getModifierEmails().size()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_MODIFIER_EMAIL"
+            );
+        }
+
+        // Prevent owner from being added
+        for (User modifier : modifiers) {
+            if (modifier.getUserId().equals(owner.getUserId())) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "OWNER_CANNOT_BE_MODIFIER"
+                );
+            }
+        }
+
+        contest.getModifiers().addAll(modifiers);
+
         List<ContestQuestion> contestQuestions = new ArrayList<>();
 
         for (QuestionConfig config : req.getQuestions()) {
@@ -138,43 +174,44 @@ public class ContestServiceImpl implements IContestService {
         Contest saved = contestRepo.save(contest);
         contestTaskScheduler.scheduleContest(saved);
 
-        return toResponseDto(saved);
+        return toResponseDto(saved,owner);
     }
 
 
     @Override
-    public ContestResponseDto getContestByRoomId(String roomId) {
+    public ContestResponseDto getContestByRoomId(String roomId, User currentUser) {
         Contest contest = contestRepo.findByRoomIdAndDeletedFalse(roomId)
                 .orElseThrow(() -> new RuntimeException("Contest not found"));
 
-        return toResponseDto(contest);
+        return toResponseDto(contest,currentUser);
     }
+
 
     @Override
     public Page<ContestResponseDto> getOwnerContests(
-            User owner,
+            User currentUser,
             ContestStatus status,
             Pageable pageable
     ) {
+
         Page<Contest> page;
 
         if (status == null) {
-            page = contestRepo.findAllByOwnerAndDeletedFalse(owner, pageable);
+            page = contestRepo.findAccessibleContests(currentUser, pageable);
         } else {
-            page = contestRepo.findAllByOwnerAndStatusAndDeletedFalse(owner, status, pageable);
+            page = contestRepo.findAccessibleContestsByStatus(currentUser, status, pageable);
         }
 
-        return page.map(contest ->
-                modelMapper.map(contest, ContestResponseDto.class)
-        );
+        return page.map(c -> toResponseDto(c, currentUser));
     }
 
+
     @Override
-    public ContestDetailDto getContestDetails(String roomId) {
+    public ContestDetailDto getContestDetails(String roomId, User currentUser) {
         Contest contest = contestRepo.findByRoomIdAndDeletedFalse(roomId)
                 .orElseThrow(() -> new RuntimeException("Contest not found"));
 
-        return toContestDetailDto(contest);
+        return toContestDetailDto(contest,currentUser);
     }
 
     public Contest assertEditable(String roomid,User currentUser) {
@@ -214,9 +251,22 @@ public class ContestServiceImpl implements IContestService {
 
     @Override
     @Transactional
-    public boolean deleteContest(String roomid, User owner) {
-        Contest contest = assertEditable(roomid,owner);
+    public boolean deleteContest(String roomid, User currentUser) {
+        //Contest contest = assertEditable(roomid,owner);
 
+        Contest contest = contestRepo
+                .findByRoomIdAndDeletedFalse(roomid)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "CONTEST_NOT_FOUND"
+                ));
+
+        if (!contest.getOwner().equals(currentUser)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "ONLY_OWNER_CAN_DELETE"
+            );
+        }
         if (contest.isDeleted()) {
             return false;
         }
@@ -230,9 +280,10 @@ public class ContestServiceImpl implements IContestService {
     public ContestDetailDto updateContest(
             String roomId,
             EditContestRequestDto dto,
-            User owner) {
+            User currentUser) {
 
-        Contest contest = assertEditable(roomId, owner);
+        Contest contest = assertEditable(roomId, currentUser);
+
         // ---- TIME VALIDATION ----
 
         if (dto.getStartTime() != null &&
@@ -252,32 +303,38 @@ public class ContestServiceImpl implements IContestService {
             );
         }
 
-        // ---- UPDATE FIELDS ----
+        // ---- UPDATE BASIC FIELDS ----
 
-        assert contest != null;
         contest.setTitle(dto.getTitle());
         contest.setVisibility(dto.getVisibility());
         contest.setInstructions(dto.getInstructions());
         contest.setStartTime(dto.getStartTime());
         contest.setEndTime(dto.getEndTime());
 
-        // ---- QUESTIONS ----
-        if(dto.getQuestions() == null || dto.getQuestions().isEmpty())
-        {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Questions cannot be empty");
+        // ---- QUESTIONS VALIDATION ----
+
+        if (dto.getQuestions() == null || dto.getQuestions().isEmpty()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Questions cannot be empty"
+            );
         }
+
         List<String> slugs = dto.getQuestions()
                 .stream()
                 .map(QuestionConfig::getQuestionSlug)
                 .toList();
 
+        Set<String> uniqueSlugs = new HashSet<>(slugs);
+        if (uniqueSlugs.size() != slugs.size()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "DUPLICATE_QUESTIONS_NOT_ALLOWED"
+            );
+        }
+
         List<Question> questions =
                 questionRepo.findAllByQuestionSlugIn(slugs);
-        Set<String> uniqueSlugs = new HashSet<>(slugs);
-
-        if (uniqueSlugs.size() != slugs.size()) {
-            throw new RuntimeException("Duplicate questions not allowed");
-        }
 
         if (questions.size() != slugs.size()) {
             throw new ResponseStatusException(
@@ -286,42 +343,89 @@ public class ContestServiceImpl implements IContestService {
             );
         }
 
-        // map slug -> question
         Map<String, Question> questionMap = questions.stream()
                 .collect(Collectors.toMap(
                         Question::getQuestionSlug,
                         q -> q
                 ));
 
-        List<ContestQuestion> contestQuestions = dto.getQuestions()
-                .stream()
-                .map(config -> {
+        // ---- SAFE COLLECTION SYNCHRONIZATION ----
 
-                    if (config.getScore() == null || config.getScore() <= 0) {
-                        throw new ResponseStatusException(
-                                HttpStatus.BAD_REQUEST,
-                                "INVALID_SCORE"
-                        );
-                    }
+        // Map existing contest questions by slug
+        Map<String, ContestQuestion> existingMap =
+                contest.getContestQuestions()
+                        .stream()
+                        .collect(Collectors.toMap(
+                                cq -> cq.getQuestion().getQuestionSlug(),
+                                cq -> cq
+                        ));
 
-                    Question q = questionMap.get(config.getQuestionSlug());
+        List<ContestQuestion> updatedList = new ArrayList<>();
 
-                    ContestQuestion cq = new ContestQuestion();
-                    cq.setContest(contest);
-                    cq.setQuestion(q);
-                    cq.setScore(config.getScore());
-                    cq.setOrderIndex(config.getOrderIndex());
-                    return cq;
-                })
-                .toList();
+        for (QuestionConfig config : dto.getQuestions()) {
 
+            if (config.getScore() == null || config.getScore() <= 0) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "INVALID_SCORE"
+                );
+            }
 
-        contest.setContestQuestions(new ArrayList<>(contestQuestions));
+            String slug = config.getQuestionSlug();
+            Question question = questionMap.get(slug);
+
+            ContestQuestion existing = existingMap.get(slug);
+
+            if (existing != null) {
+                // Update existing entity
+                existing.setScore(config.getScore());
+                existing.setOrderIndex(config.getOrderIndex());
+                updatedList.add(existing);
+            } else {
+                // Create new entity
+                ContestQuestion newCq = new ContestQuestion();
+                newCq.setContest(contest);
+                newCq.setQuestion(question);
+                newCq.setScore(config.getScore());
+                newCq.setOrderIndex(config.getOrderIndex());
+                updatedList.add(newCq);
+            }
+        }
+        contest.getContestQuestions().clear();
+
+        contest.getContestQuestions().addAll(updatedList);
+
+        // ---- MODIFIERS SYNC (OWNER ONLY) ----
+
+        if (contest.getOwner().getUserId()
+                .equals(currentUser.getUserId())) {
+
+            contest.getModifiers().clear();
+
+            if (dto.getModifiers() != null && !dto.getModifiers().isEmpty()) {
+
+                List<User> users = userRepository.findAllByEmailIn(dto.getModifiers());
+
+                if (users.size() != dto.getModifiers().size()) {
+                    throw new ResponseStatusException(
+                            HttpStatus.BAD_REQUEST,
+                            "ONE_OR_MORE_USERS_NOT_FOUND"
+                    );
+                }
+
+                contest.getModifiers().addAll(
+                        users.stream()
+                                .filter(u -> !u.getUserId()
+                                        .equals(contest.getOwner().getUserId()))
+                                .toList()
+                );
+            }
+        }
         Contest saved = contestRepo.save(contest);
 
-
-        return toContestDetailDto(saved);
+        return toContestDetailDto(saved, currentUser);
     }
+
 
     @Override
     public Page<ContestResponseDto> getPublicContests(
@@ -346,6 +450,28 @@ public class ContestServiceImpl implements IContestService {
         return contests.map(c -> modelMapper.map(c, ContestResponseDto.class));
     }
 
+    public void removeModifier(String roomId, String email, String currentUserEmail) {
+
+        Contest contest = contestRepo.findByRoomId(roomId)
+                .orElseThrow(() -> new RuntimeException("Contest not found"));
+
+        // Only owner can remove modifiers
+        if (!contest.getOwner().getEmail().equals(currentUserEmail)) {
+            throw new RuntimeException("Only owner can remove modifiers");
+        }
+
+        // Cannot remove owner
+        if (contest.getOwner().getEmail().equals(email)) {
+            throw new RuntimeException("Owner cannot be removed");
+        }
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        contest.getModifiers().remove(user);
+
+        contestRepo.save(contest);
+    }
 
 
 
@@ -363,7 +489,8 @@ public class ContestServiceImpl implements IContestService {
         return dto;
     }
 
-    private ContestResponseDto toResponseDto(Contest contest) {
+    private ContestResponseDto toResponseDto(Contest contest, User currentUser) {
+
         ContestResponseDto dto = new ContestResponseDto();
 
         dto.setRoomId(contest.getRoomId());
@@ -373,30 +500,66 @@ public class ContestServiceImpl implements IContestService {
         dto.setStartTime(contest.getStartTime());
         dto.setEndTime(contest.getEndTime());
 
+        UUID currentUserId = currentUser.getUserId();
+
+        if (contest.getOwner().getUserId().equals(currentUserId)) {
+            dto.setRole("OWNER");
+        } else if (contest.getModifiers()
+                .stream()
+                .anyMatch(m -> m.getUserId().equals(currentUserId))) {
+            dto.setRole("MODIFIER");
+        }
+
         return dto;
     }
 
-    private ContestDetailDto toContestDetailDto(Contest contest) {
+
+
+    private ContestDetailDto toContestDetailDto(Contest contest, User currentUser) {
+
         ContestDetailDto res = modelMapper.map(contest, ContestDetailDto.class);
+
         List<ContestQuestionDto> questionDtos = contest.getContestQuestions()
                 .stream()
-                .sorted(Comparator.comparing(ContestQuestion::getOrderIndex,
-                        Comparator.nullsLast(Integer::compareTo)))
+                .sorted(Comparator.comparing(
+                        ContestQuestion::getOrderIndex,
+                        Comparator.nullsLast(Integer::compareTo)
+                ))
                 .map(cq -> {
                     ContestQuestionDto condto = new ContestQuestionDto();
                     condto.setQuestion(modelMapper.map(
                             cq.getQuestion(),
                             QuestionDto.class
                     ));
-
                     condto.setScore(cq.getScore());
                     condto.setOrderIndex(cq.getOrderIndex());
                     return condto;
                 })
                 .toList();
 
+        UUID currentUserId = currentUser.getUserId();
+
+        if (contest.getOwner().getUserId().equals(currentUserId)) {
+            res.setRole("OWNER");
+        } else if (contest.getModifiers()
+                .stream()
+                .anyMatch(m -> m.getUserId().equals(currentUserId))) {
+            res.setRole("MODIFIER");
+        }
+
         res.setQuestions(questionDtos);
+        //removed owner email id
+        List<String> modifierEmails = contest.getModifiers()
+                .stream()
+                .filter(m -> !m.getEmail().equals(contest.getOwner().getEmail()))
+                .map(User::getEmail)
+                .toList();
+
+        res.setModifiers(modifierEmails);
+
+
         return res;
     }
+
 
 }

@@ -16,6 +16,8 @@ export default function CreateContestPage() {
         endTime: "",
       }}
       initialQuestions={[]}
+      initialModifiers={[]}
+      role="OWNER"
       loading={loading}
       error={error}
       success={success}

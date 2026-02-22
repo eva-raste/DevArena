@@ -94,7 +94,7 @@ export const submitCode = async (
   roomId,
   code
 ) => {
-    // console.log(  `submitting backend ${roomId} for ${questionSlug} `)
+    //  console.log(  `submitting backend ${roomId} for ${questionSlug} `)
   try {
     const res = await api.post(
       `/questions/${questionSlug}/submit`,
@@ -142,6 +142,7 @@ export const deleteQuestionApi = async (questionSlug) => {
 export const updateQuestionApi = async (questionSlug, form) => {
     // try
     // {
+        console.log("from update q",form)
         console.log("calling with ",questionSlug)
         return api.put(
             "/questions",
@@ -196,3 +197,8 @@ export const verifyUserByEmail = async (email) => {
 }
 
 
+export const removeModifierApi = (slug, email) => {
+  return api.delete(`/questions/${slug}/modifiers`, {
+    params: { email }
+  })
+}

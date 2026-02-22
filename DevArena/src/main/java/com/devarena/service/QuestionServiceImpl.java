@@ -22,10 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @Data
@@ -43,18 +40,29 @@ public class QuestionServiceImpl implements IQuesitonService {
     ) {
 
         Question newquestion = modelMapper.map(dto, Question.class);
+        newquestion.setModifiers(new ArrayList<>());
 
         validateTestcases(newquestion.getHiddenTestcases());
         validateTestcases(newquestion.getSampleTestcases());
 
         newquestion.setOwner(owner);
 
-        if (dto.getModifierIds() != null && !dto.getModifierIds().isEmpty()) {
-            List<User> users = userRepo.findAllById(dto.getModifierIds());
-            newquestion.getModifiers().addAll(users);
-        }
+        if (dto.getModifiers() != null && !dto.getModifiers().isEmpty()) {
+            List<User> users = userRepo.findAllByEmailIn(dto.getModifiers());
 
-        newquestion.getModifiers().add(owner);
+            if (users.size() != dto.getModifiers().size()) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "ONE_OR_MORE_USERS_NOT_FOUND"
+                );
+            }
+
+            List<User> filteredUsers = users.stream()
+                    .filter(u -> !u.getUserId().equals(owner.getUserId()))
+                    .toList();
+
+            newquestion.getModifiers().addAll(filteredUsers);
+        }
 
         questionRepo.save(newquestion);
 
@@ -74,11 +82,8 @@ public class QuestionServiceImpl implements IQuesitonService {
         return page.map(q -> {
             QuestionDto dto = modelMapper.map(q, QuestionDto.class);
 
-            if (q.getOwner().getUserId().equals(userId)) {
-                dto.setRole("OWNER");
-            } else {
-                dto.setRole("MODIFIER");
-            }
+            dto.setRole(resolveRole(q, userRepo.findById(userId).orElseThrow()));
+            dto.setModifiers(extractModifierEmails(q));
 
             return dto;
         });
@@ -104,13 +109,9 @@ public class QuestionServiceImpl implements IQuesitonService {
                 .findByQuestionSlugAndDeletedFalse(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Question not found"));
 
-        boolean isOwner = question.getOwner().getUserId()
-                .equals(currentUser.getUserId());
+        String role = resolveRole(question, currentUser);
 
-        boolean isModifier = question.getModifiers().stream()
-                .anyMatch(u -> u.getUserId().equals(currentUser.getUserId()));
-
-        if (!isOwner && !isModifier) {
+        if (role == null) {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN,
                     "NO_ACCESS"
@@ -118,12 +119,11 @@ public class QuestionServiceImpl implements IQuesitonService {
         }
 
         QuestionDto dto = modelMapper.map(question, QuestionDto.class);
+        dto.setRole(role);
+        dto.setModifiers(extractModifierEmails(question));
 
-        if (isOwner) {
-            dto.setRole("OWNER");
-        } else {
-            dto.setRole("MODIFIER");
-        }
+        System.out.println("Owner ID: " + question.getOwner().getUserId());
+        System.out.println("CurrentUser ID: " + currentUser.getUserId());
 
         return dto;
     }
@@ -172,11 +172,37 @@ public class QuestionServiceImpl implements IQuesitonService {
     @Override
     public QuestionDto findByQuestionSlugAndModifier(String slug, User user) {
         Question ques = questionRepo.findByQuestionSlugAndModifiersContains(slug,user);
+
         if(ques == null)
         {
             throw new EntityNotFoundException("Question not found");
         }
-        return modelMapper.map(ques, QuestionDto.class);
+
+        String role = resolveRole(ques, user);
+        System.out.println("role from findByQuestionSlugAndModifier "+ role);
+        if (role == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "NO_ACCESS"
+            );
+        }
+
+        QuestionDto dto = modelMapper.map(ques, QuestionDto.class);
+        dto.setRole(role);
+        dto.setModifiers(extractModifierEmails(ques));
+
+        return dto;
+//        QuestionDto dto = modelMapper.map(ques, QuestionDto.class);
+//
+//        List<String> modifierEmails = ques.getModifiers()
+//                .stream()
+//                .map(User::getEmail)
+//                .toList();
+//
+//        dto.setModifiers(modifierEmails);
+//        System.out.println(dto.getRole());
+//        return dto;
+
     }
 
 
@@ -208,7 +234,11 @@ public class QuestionServiceImpl implements IQuesitonService {
             );
         }
 
-        return modelMapper.map(question, QuestionCardDto.class);
+        QuestionCardDto dto = modelMapper.map(question, QuestionCardDto.class);
+
+        dto.setModifiers(extractModifierEmails(question));
+        System.out.println("from getCardByQuestionSlug ");
+        return dto;
     }
 
 
@@ -216,9 +246,14 @@ public class QuestionServiceImpl implements IQuesitonService {
     @Override
     public List<QuestionDto> getAllQuestionsByUser(User owner) {
         List<Question> qu = questionRepo.findAllByOwnerAndDeletedFalse(owner);
-        return qu.stream().map(
-                q -> modelMapper.map(q,QuestionDto.class)
-        ).toList();
+        return qu.stream().map(q -> {
+            QuestionDto dto = modelMapper.map(q, QuestionDto.class);
+
+            dto.setRole("OWNER");
+            dto.setModifiers(extractModifierEmails(q));
+
+            return dto;
+        }).toList();
     }
 
     @Transactional
@@ -265,8 +300,35 @@ public class QuestionServiceImpl implements IQuesitonService {
 
         question.getHiddenTestcases().clear();
         question.getHiddenTestcases().addAll(dto.getHiddenTestcases());
+        if (isOwner) {
 
-        return modelMapper.map(question, QuestionDto.class);
+            question.getModifiers().clear();
+
+            if (dto.getModifiers() != null && !dto.getModifiers().isEmpty()) {
+
+                List<User> users = userRepo.findAllByEmailIn(dto.getModifiers());
+
+                if (users.size() != dto.getModifiers().size()) {
+                    throw new ResponseStatusException(
+                            HttpStatus.BAD_REQUEST,
+                            "ONE_OR_MORE_USERS_NOT_FOUND"
+                    );
+                }
+
+                // Never add owner into modifier list
+                question.getModifiers().addAll(
+                        users.stream()
+                                .filter(u -> !u.getUserId().equals(question.getOwner().getUserId()))
+                                .toList()
+                );
+            }
+        }
+        QuestionDto updatedDto = modelMapper.map(question, QuestionDto.class);
+
+        updatedDto.setRole(resolveRole(question, currentUser));
+        updatedDto.setModifiers(extractModifierEmails(question));
+
+        return updatedDto;
     }
 
 
@@ -293,6 +355,46 @@ public class QuestionServiceImpl implements IQuesitonService {
     }
 
 
+    @Transactional
+    public void removeModifier(
+            String slug,
+            String modifierEmail,
+            User currentUser
+    ) {
+
+        Question question = questionRepo
+                .findByQuestionSlugAndDeletedFalse(slug)
+                .orElseThrow(() -> new EntityNotFoundException("Question not found"));
+
+        // Only owner can remove
+        if (!question.getOwner().getUserId()
+                .equals(currentUser.getUserId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "ONLY_OWNER_CAN_REMOVE_MODIFIER"
+            );
+        }
+
+        User modifier = userRepo.findByEmail(modifierEmail)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "USER_NOT_FOUND"
+                ));
+
+        // Prevent removing owner
+        if (modifier.getUserId().equals(question.getOwner().getUserId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "OWNER_CANNOT_BE_REMOVED"
+            );
+        }
+
+        question.getModifiers().removeIf(
+                u -> u.getUserId().equals(modifier.getUserId())
+        );
+
+        questionRepo.save(question);
+    }
 
     private void validateTestcases(List<Testcase> testcases) {
 
@@ -350,41 +452,29 @@ public class QuestionServiceImpl implements IQuesitonService {
         }
     }
 
-    public UserVerifyDto verifyUserByEmail(String email) {
-        User user = userRepo.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "USER_NOT_FOUND"
-                ));
-
-        return modelMapper.map(user, UserVerifyDto.class);
+    private List<String> extractModifierEmails(Question question) {
+        return question.getModifiers()
+                .stream()
+                .filter(u -> !u.getUserId().equals(question.getOwner().getUserId()))
+                .map(User::getEmail)
+                .toList();
     }
 
-    @Transactional
-    public void updateModifiers(
-            String slug,
-            List<UUID> modifierIds,
-            User currentUser
-    ) {
-        Question question = questionRepo
-                .findByQuestionSlugAndDeletedFalse(slug)
-                .orElseThrow(() -> new EntityNotFoundException("Question not found"));
-
-        // ONLY OWNER CAN MODIFY MODIFIERS
-        if (!question.getOwner().getUserId().equals(currentUser.getUserId())) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN,
-                    "ONLY_OWNER_CAN_MANAGE_MODIFIERS"
-            );
+    private String resolveRole(Question question, User currentUser) {
+        if (question.getOwner().getUserId().equals(currentUser.getUserId())) {
+            return "OWNER";
         }
 
-        List<User> users = userRepo.findAllById(modifierIds);
-        System.out.println(users);
-        question.getModifiers().clear();
-        question.getModifiers().add(question.getOwner()); // always include owner
-        question.getModifiers().addAll(users);
+        boolean isModifier = question.getModifiers()
+                .stream()
+                .anyMatch(u -> u.getUserId().equals(currentUser.getUserId()));
 
-        questionRepo.save(question);
+        if (isModifier) {
+            return "MODIFIER";
+        }
+
+        return null;
     }
+
 
 }

@@ -30,4 +30,6 @@ public class QuestionDto {
 
     private List<Testcase> hiddenTestcases;
 
+    private List<String> modifiers;
+
 }

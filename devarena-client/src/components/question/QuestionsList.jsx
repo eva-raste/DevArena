@@ -108,7 +108,7 @@ export default function QuestionsPage() {
                     pageInfo.size,
                     difficulty
                 )
-                // console.log(data);
+                console.log(data);
                 setQuestions(data.content)
                 setPageInfo({
                     page: data.number,

@@ -35,4 +35,9 @@ public class ContestDetailDto {
 
     private ContestStatus status;
 
+    private String role;
+
+    private List<String> modifiers;
+
 }
+

@@ -7,7 +7,7 @@ export const JsonPreview = ({ question, modifiers = [], onCopy, onPreviewPublish
 
   const payload = {
     ...question,
-    modifierIds: modifiers.map(m => m.userId)
+    modifiers
   }
 
   return (

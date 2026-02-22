@@ -29,7 +29,7 @@ public class QuestionCreateDto {
     @NotNull
     private QuestionDifficulty difficulty;
 
-    private List<UUID> modifierIds;
+    private List<String> modifiers;
 
     private String constraints;
 

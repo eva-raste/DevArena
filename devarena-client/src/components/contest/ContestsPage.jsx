@@ -305,22 +305,23 @@ export default function ContestsPage() {
                   </span>
 
                   {contest.status === "SCHEDULED" && (
-                    <>
-                      <button
-                        onClick={() => onEdit(contest.roomId)}
-                        className="p-2 rounded hover:bg-muted"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-
-                      <button
-                        onClick={() => onDelete(contest.roomId)}
-                        className="p-2 rounded hover:bg-destructive/20 text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </>
+                    <button
+                      onClick={() => onEdit(contest.roomId)}
+                      className="p-2 rounded hover:bg-muted"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
                   )}
+
+                  {contest.status === "SCHEDULED" && contest.role === "OWNER" && (
+                    <button
+                      onClick={() => onDelete(contest.roomId)}
+                      className="p-2 rounded hover:bg-destructive/20 text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+
                 </div>
               </div>
 

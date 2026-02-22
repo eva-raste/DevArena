@@ -1,6 +1,7 @@
 package com.devarena.service;
 
 import com.devarena.dtos.users.UserDto;
+import com.devarena.dtos.users.UserVerifyDto;
 import com.devarena.exception.ResourceNotFoundException;
 import com.devarena.helper.userHelper;
 import com.devarena.models.User;
@@ -9,7 +10,9 @@ import com.devarena.service.interfaces.UserService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 
@@ -73,4 +76,26 @@ public class UserServiceImpl implements UserService {
     public Iterable<UserDto> getAllUsers() {
         return userRepository.findAll().stream().map(user->modelMapper.map(user,UserDto.class)).toList();
     }
+
+    @Override
+    public UserVerifyDto verifyUserByEmail(String email,User currentUser) {
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (email.equals(currentUser.getEmail())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "OWNER_CANNOT_BE_MODIFIER"
+            );
+        }
+
+        UserVerifyDto dto = new UserVerifyDto();
+        dto.setUserId(user.getUserId());
+        dto.setUsername(user.getUsername());
+        dto.setEmail(user.getEmail());
+
+        return dto;
+    }
+
 }

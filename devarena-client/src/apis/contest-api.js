@@ -54,7 +54,7 @@ export const fetchContestByIdApi = async (roomId) => {
 export const deleteContestApi = async (roomId) => {
     try {
         const res = await api.delete('/contests', {
-            params: roomId ? { roomId } : ""
+            params: roomId
         })
     }
     catch {
@@ -114,3 +114,10 @@ export const fetchAcceptedQuestions = async (roomId) => {
     }
 };
 
+
+
+export const removeModifierApi = (roomId, email) => {
+  return api.delete(`/contests/${roomId}/modifiers`, {
+    params: { email }
+  })
+}

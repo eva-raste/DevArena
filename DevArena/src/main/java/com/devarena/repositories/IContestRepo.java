@@ -26,6 +26,12 @@ public interface IContestRepo extends JpaRepository<Contest, UUID> {
 
     Page<Contest> findAllByOwnerAndDeletedFalse(User owner,Pageable pg);
 
+    Page<Contest> findByDeletedFalseAndOwnerOrModifiersContaining(
+            User owner,
+            User modifier,
+            Pageable pageable
+    );
+
     Page<Contest> findByDeletedFalseAndVisibility(ContestVisibility contestVisibility, Pageable pageable);
 
     Page<Contest> findByDeletedFalseAndVisibilityAndStatus(ContestVisibility contestVisibility, ContestStatus status, Pageable pageable);
@@ -41,5 +47,30 @@ public interface IContestRepo extends JpaRepository<Contest, UUID> {
     """)
     Page<Contest> recentAttended(UUID userId, Pageable pageable);
 
-    Contest findByRoomId(String roomId);
+    Optional<Contest> findByRoomId(String roomId);
+
+    Page<Contest> findAllByOwnerOrModifiersAndStatusAndDeletedFalse(User owner, User currentUser, ContestStatus status, Pageable pageable);
+
+    @Query("""
+    SELECT c FROM Contest c
+    WHERE c.deleted = false
+    AND (c.owner = :user OR :user MEMBER OF c.modifiers)
+""")
+    Page<Contest> findAccessibleContests(
+            @Param("user") User user,
+            Pageable pageable
+    );
+
+    @Query("""
+    SELECT c FROM Contest c
+    WHERE c.deleted = false
+    AND c.status = :status
+    AND (c.owner = :user OR :user MEMBER OF c.modifiers)
+""")
+    Page<Contest> findAccessibleContestsByStatus(
+            @Param("user") User user,
+            @Param("status") ContestStatus status,
+            Pageable pageable
+    );
+
 }

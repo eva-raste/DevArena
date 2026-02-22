@@ -1,6 +1,7 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { fetchQuestionCard } from "../../apis/question-api.js"
-
+import { removeModifierApi  } from "../../apis/contest-api"
+import { verifyUserApi } from "../../apis/user-api"
 /* ---------- shared input styles ---------- */
 
 const inputClass = `
@@ -24,9 +25,12 @@ const textareaClass = `
 
 const ContestForm = ({
     pageTitle,
+    roomId,
     submitLabel,
     initialForm,
     initialQuestions,
+    initialModifiers,
+    role,
     onSubmit,
     loading,
     error,
@@ -42,6 +46,19 @@ const ContestForm = ({
         }
     )
 
+    const [modifiers, setModifiers] = useState(
+      initialModifiers?.map(m => ({
+        email: m.email ?? m,
+        username: m.username ?? null
+      })) ?? []
+    )
+
+    useEffect(() => {
+      if (initialForm) {
+        setForm(initialForm)
+      }
+    }, [initialForm])
+
     const [contestQuestions, setContestQuestions] = useState(
         initialQuestions?.map((q, index) => ({
             question: q.question ?? q, // handles edit mode vs create mode
@@ -53,6 +70,21 @@ const ContestForm = ({
     const [slugInput, setSlugInput] = useState("")
     const [questionError, setQuestionError] = useState(null)
     const [timeError, setTimeError] = useState(null)
+    const [modifierInput, setModifierInput] = useState("")
+    const [modifierError, setModifierError] = useState(null)
+    const [verifying, setVerifying] = useState(false)
+    const [verifiedEmails, setVerifiedEmails] = useState([])
+
+    useEffect(() => {
+      if (initialModifiers) {
+        setModifiers(
+          initialModifiers.map(m => ({
+            email: m.email ?? m,
+            username: m.username ?? null
+          }))
+        )
+      }
+    }, [initialModifiers])
 
     /* ---------- Time Validation ---------- */
 
@@ -172,18 +204,21 @@ const ContestForm = ({
         setQuestionError(null)
 
         const payload = {
-            title: form.title,
-            visibility: form.visibility,
-            instructions: form.instructions || null,
-            startTime: form.startTime || null,
-            endTime: form.endTime || null,
-            questions: contestQuestions.map(cq => ({
-                questionSlug: cq.question.questionSlug,
-                score: Number(cq.score),
-                orderIndex: cq.orderIndex
-            }))
+          title: form.title,
+          visibility: form.visibility,
+          instructions: form.instructions || null,
+          startTime: form.startTime || null,
+          endTime: form.endTime || null,
+          modifiers:
+             modifiers.length > 0
+                ? modifiers.map(m => m.email)
+                : null,
+          questions: contestQuestions.map(cq => ({
+            questionSlug: cq.question.questionSlug,
+            score: Number(cq.score),
+            orderIndex: cq.orderIndex
+          }))
         }
-
         await onSubmit(payload)
     }
 
@@ -198,6 +233,62 @@ const ContestForm = ({
         )
     }
 
+
+   const removeModifier = async (email) => {
+     try {
+       await removeModifierApi(roomId, email)
+
+       // Update UI after successful removal
+       setModifiers(prev =>
+         prev.filter(m => m.email !== email)
+       )
+
+     } catch (err) {
+       console.error(err)
+       setModifierError(
+         err.response?.data?.message || "Failed to remove modifier"
+       )
+     }
+   }
+
+
+
+    const handleVerifyModifier = async () => {
+      const email = modifierInput.trim()
+      if (!email) return
+
+      if (modifiers.some(m => m.email === email)) {
+        setModifierError("Modifier already added")
+        return
+      }
+
+      try {
+        setModifierError(null)
+
+        const user = await verifyUserApi(email)
+
+        setModifiers(prev => [
+          ...prev,
+          {
+            email: user.email,
+            username: user.username
+          }
+        ])
+
+        setModifierInput("")
+      } catch (err) {
+          const backendMessage =
+            err.response?.data?.message
+
+          if (backendMessage === "OWNER_CANNOT_BE_MODIFIER") {
+            setModifierError("You cannot add yourself as a modifier.")
+          } else if (backendMessage === "User not found") {
+            setModifierError("User not found.")
+          } else {
+            setModifierError("Verification failed.")
+          }
+        }
+    }
 
     /* ---------- UI ---------- */
 
@@ -242,6 +333,57 @@ const ContestForm = ({
                             <option value="PRIVATE">Private</option>
                         </select>
                     </div>
+                   <div className="space-y-2">
+                     <label className="text-sm font-medium text-gray-700 dark:text-slate-300">
+                       Modifiers
+                     </label>
+
+                     {role === "OWNER" && (
+                       <div className="flex gap-2">
+                         <input
+                           placeholder="user@email.com"
+                           value={modifierInput}
+                           onChange={(e) => setModifierInput(e.target.value)}
+                           className={inputClass}
+                         />
+
+                         <button
+                           type="button"
+                           onClick={handleVerifyModifier}
+                           className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                         >
+                           Verify
+                         </button>
+                       </div>
+                     )}
+
+                     {modifierError && (
+                       <p className="text-sm text-red-500">{modifierError}</p>
+                     )}
+
+                     {modifiers.length > 0 && (
+                       <div className="flex flex-wrap gap-2">
+                         {modifiers.map(m => (
+                           <span
+                             key={m.email}
+                             className="px-3 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 rounded-full text-xs flex items-center gap-2"
+                           >
+                             {m.username ?? m.email}
+                             {role === "OWNER" && (
+                               <button
+                                 type="button"
+                                 onClick={() => removeModifier(m.email)}
+                                 className="text-red-500"
+                               >
+                                 ×
+                               </button>
+                             )}
+                           </span>
+                         ))}
+                       </div>
+                     )}
+                   </div>
+
                     {/* Add Question */}
                     <div className="space-y-1">
                         <label className="text-sm font-medium text-gray-700 dark:text-slate-300">

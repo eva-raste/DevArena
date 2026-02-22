@@ -128,14 +128,7 @@ public class QuestionController {
         return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/{slug}/modifiers")
-    public void updateModifiers(
-            @PathVariable String slug,
-            @RequestBody List<UUID> modifierIds,
-            @AuthenticationPrincipal User currentUser
-    ) {
-        questionService.updateModifiers(slug, modifierIds, currentUser);
-    }
+
     
     @GetMapping("/{slug}/contest/{roomId}")
     public ResponseEntity<QuestionCardDto> getContestQuestion
@@ -152,6 +145,16 @@ public class QuestionController {
     {
         QuestionDto dto = questionService.findByQuestionSlugAndModifier(slug,user);
         return ResponseEntity.ok(dto);
+    }
+
+    @DeleteMapping("/{slug}/modifiers")
+    public ResponseEntity<Void> removeModifier(
+            @PathVariable String slug,
+            @RequestParam String email,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        questionService.removeModifier(slug, email, currentUser);
+        return ResponseEntity.ok().build();
     }
 
 }

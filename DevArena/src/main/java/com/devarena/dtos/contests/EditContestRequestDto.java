@@ -25,4 +25,6 @@ public class EditContestRequestDto {
 
     private LocalDateTime startTime;
     private LocalDateTime endTime;
+
+    private List<String> modifiers;
 }

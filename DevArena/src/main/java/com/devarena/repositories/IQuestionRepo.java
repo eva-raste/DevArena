@@ -54,9 +54,13 @@ public interface IQuestionRepo extends JpaRepository<Question, UUID> {
 
 
     @Query("""
-    SELECT q FROM Question q
+    SELECT DISTINCT q FROM Question q
     LEFT JOIN q.modifiers m
-    WHERE (q.owner.userId = :userId OR m.userId = :userId)
+    WHERE q.deleted = false
+    AND (
+        q.owner.userId = :userId
+        OR m.userId = :userId
+    )
     AND (:difficulty IS NULL OR q.difficulty = :difficulty)
 """)
     Page<Question> findAllAccessibleByUser(
@@ -64,7 +68,6 @@ public interface IQuestionRepo extends JpaRepository<Question, UUID> {
             @Param("difficulty") QuestionDifficulty difficulty,
             Pageable pageable
     );
-
 
 
     Question findByQuestionSlugAndModifiersContains(String slug, User user);

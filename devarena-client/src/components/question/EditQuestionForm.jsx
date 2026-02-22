@@ -13,6 +13,7 @@ import { LivePreview } from "./LivePreview"
 import { TestcaseImportBlock } from "./TestcaseImportBlock"
 import { TestcaseSection } from "./TestcaseSection"
 import { AppToast } from "./AppToast"
+import { ModifierManager } from "./ModifierManager"
 
 
 export default function EditQuestionForm() {
@@ -40,19 +41,22 @@ export default function EditQuestionForm() {
   const [showConstraintsGuide, setShowConstraintsGuide] = useState(false)
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState(null)
-  
+  const [role, setRole] = useState(null)
+  const [modifiers, setModifiers] = useState([])
 
   /* ================== FETCH ================== */
   useEffect(() => {
     const load = async () => {
       // console.log("Calling api")
       const q = await fetchEditQuestionCard(slug)
-      // console.log(q);
+      console.log(q);
       setQuestion({
         ...q,
         sampleTestcases: normalizeOrder(q.sampleTestcases),
         hiddenTestcases: normalizeOrder(q.hiddenTestcases),
       });
+      setRole(q.role);
+      setModifiers(q.modifiers || [])
       setLoading(false)
     }
 
@@ -230,8 +234,13 @@ export default function EditQuestionForm() {
     try {
       setErrors([])
       setSlugWarning(false)
+      
+      const payload = {
+        ...question,
+        modifiers: modifiers
+      }
 
-      await updateQuestionApi(slug, question)
+      await updateQuestionApi(slug, payload)
       navigate("/show-all-questions")
     } catch (err) {
       handleBackendError(err)
@@ -322,6 +331,15 @@ export default function EditQuestionForm() {
       {activeTab === QUESTION_TABS.PREVIEW && (
         <LivePreview question={question} />
       )}
+
+     {activeTab === QUESTION_TABS.MODIFIER && (
+      console.log("role", role),
+       <ModifierManager
+         modifiers={modifiers}
+         setModifiers={setModifiers}
+         role={role}
+       />
+     )}
 
     </div>
   );

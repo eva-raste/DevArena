@@ -16,16 +16,20 @@ import org.springframework.data.domain.Pageable;
 public interface IContestService {
     ContestResponseDto createContest(CreateContestRequest request, User owner);
 
-    ContestResponseDto getContestByRoomId(String roomId);
+//    ContestResponseDto getContestByRoomId(String roomId);
+
+    ContestResponseDto getContestByRoomId(String roomId, User currentUser);
 
     public Page<ContestResponseDto> getOwnerContests(
             User owner,
             ContestStatus status,
             Pageable pageable
     );
-    ContestDetailDto getContestDetails(String roomId);
+//    ContestDetailDto getContestDetails(String roomId);
 
     boolean deleteContest(String roomid, User owner);
+
+    ContestDetailDto getContestDetails(String roomId, User currentUser);
 
     Contest assertEditable(String roomId, User owner);
 
@@ -35,4 +39,6 @@ public interface IContestService {
             Pageable pageable,
             ContestStatus status
     );
+
+    void removeModifier(String roomId, String email, String name);
 }

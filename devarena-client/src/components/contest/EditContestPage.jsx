@@ -11,6 +11,9 @@ export default function EditContestPage() {
   const [success, setSuccess] = useState(null)
   const [initialForm, setInitialForm] = useState(null)
   const [initialQuestions, setInitialQuestions] = useState([])
+  const [initialModifiers, setInitialModifiers] = useState([])
+  const [role, setRole] = useState(null)
+  const [modifiers, setModifiers] = useState([])
 
   useEffect(() => {
   if (!roomId) return
@@ -18,7 +21,6 @@ export default function EditContestPage() {
   const load = async () => {
     try {
       const contest = await fetchContestByIdApi(roomId)
-
       setInitialForm({
         title: contest.title,
         visibility: contest.visibility,
@@ -28,7 +30,10 @@ export default function EditContestPage() {
       })
 
       // backend already gives QuestionDto list
-      setInitialQuestions(contest.questions ?? [])
+        setInitialQuestions(contest.questions ?? [])
+        setInitialModifiers(contest.modifiers ?? [])
+        setRole(contest.role)
+
     } catch (err) {
       console.error("Failed to load contest", err)
       setError("Failed to load contest")
@@ -41,9 +46,17 @@ export default function EditContestPage() {
 }, [roomId])
 
 
-  const onSubmit = async (payload) => {
+    const onSubmit = async (payload) => {
     try {
-      await updateContestApi(roomId, payload)
+      const finalPayload = {
+        ...payload,
+        modifiers: payload.modifiers|| initialModifiers
+      }
+
+      console.log("Submitting updated contest", finalPayload)
+
+      await updateContestApi(roomId, finalPayload)
+
       setSuccess("Contest updated successfully")
     } catch (err) {
       setError(err.response?.data?.message || "Failed to update contest")
@@ -58,12 +71,15 @@ export default function EditContestPage() {
     <ContestForm
       pageTitle="Edit Contest"
       submitLabel="Update Contest"
+      roomId={roomId}
       initialForm={initialForm}
       initialQuestions={initialQuestions}
+      initialModifiers={initialModifiers}
       loading={loading}
       error={error}
       success={success}
       onSubmit={onSubmit}
+      role={role}
     />
   )
 }

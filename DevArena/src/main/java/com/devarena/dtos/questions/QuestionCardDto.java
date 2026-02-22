@@ -21,4 +21,5 @@ public class QuestionCardDto {
 
     private List<Testcase> sampleTestcases;
 
+    private List<String> modifiers;
 }
