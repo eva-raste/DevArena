@@ -112,6 +112,7 @@ const QuestionSolve = () => {
     lastSavedRef.current = code;
 
     draftLoadedRef.current = true; 
+  };
 
   load();
 }, [question, language, roomId]);
