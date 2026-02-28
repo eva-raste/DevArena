@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 "use client"
 import { Link } from "react-router-dom"
 import { FileQuestion, Trophy, Code2, ArrowRight, Zap, Users } from "lucide-react"

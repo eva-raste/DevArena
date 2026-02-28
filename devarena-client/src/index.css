@@ -2,76 +2,70 @@
 @tailwind components;
 @tailwind utilities;
 
-/* =========================
-   THEME TOKENS (SHADCN)
-   ========================= */
-
 @layer base {
   :root {
-    --background: 0 0% 98%;
-    --foreground: 222.2 47.4% 11.2%;
+    /* Warm cream light theme */
+    --background: 36 33% 97%;
+    --foreground: 243 40% 12%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 47.4% 11.2%;
+    --card: 36 25% 95%;
+    --card-foreground: 243 40% 12%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 47.4% 11.2%;
+    --popover: 36 25% 95%;
+    --popover-foreground: 243 40% 12%;
 
-    --primary: 262.1 83.3% 57.8%;
+    --primary: 243 75% 59%;
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 36 20% 90%;
+    --secondary-foreground: 243 40% 12%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 36 20% 90%;
+    --muted-foreground: 243 15% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 36 20% 90%;
+    --accent-foreground: 243 40% 12%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 262.1 83.3% 57.8%;
+    --border: 36 15% 85%;
+    --input: 36 15% 85%;
+    --ring: 243 75% 59%;
 
     --radius: 0.625rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    /* V2 Midnight Indigo dark theme */
+    --background: 243 85% 3%;
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 4.9%;
+    --card: 243 60% 6%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 84% 4.9%;
+    --popover: 243 60% 6%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 263.4 70% 50.4%;
+    --primary: 243 75% 59%;
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 217.2 32.6% 17.5%;
+    --secondary: 243 40% 12%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 243 40% 12%;
+    --muted-foreground: 243 20% 60%;
 
-    --accent: 217.2 32.6% 17.5%;
+    --accent: 243 40% 12%;
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 263.4 70% 50.4%;
+    --border: 243 30% 15%;
+    --input: 243 30% 15%;
+    --ring: 243 75% 59%;
   }
-
-  /* =========================
-     GLOBAL BASE STYLES
-     ========================= */
 
   * {
     @apply border-border;
@@ -79,12 +73,17 @@
 
   body {
     @apply bg-background text-foreground antialiased;
+    min-height: 100vh;
+  }
+
+  /* Dark mode — V2 indigo glow applied */
+  .dark body {
+    background-image:
+      radial-gradient(ellipse 60% 60% at 15% 90%, rgba(67, 56, 202, 0.38) 0%, transparent 60%),
+      radial-gradient(ellipse 30% 50% at 85% 5%, rgba(129, 140, 248, 0.12) 0%, transparent 50%),
+      radial-gradient(ellipse 80% 20% at 50% 100%, rgba(55, 48, 163, 0.2) 0%, transparent 50%);
   }
 }
-
-/* =========================
-   GLOBAL UTILITIES
-   ========================= */
 
 @layer utilities {
   .text-balance {
@@ -92,19 +91,9 @@
   }
 }
 
-/* =========================
-   OPTIONAL ANIMATIONS
-   ========================= */
-
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fade-in {
