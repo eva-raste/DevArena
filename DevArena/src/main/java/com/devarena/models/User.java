@@ -45,8 +45,8 @@ public class User implements UserDetails
     @ManyToMany(mappedBy = "modifiers")
     private List<Contest> modifierContests = new ArrayList<>();
 
-    @ManyToMany(mappedBy = "attendees")
-    private List<Contest> attendedContests = new ArrayList<>();
+//    @ManyToMany(mappedBy = "attendees")
+//    private List<Contest> attendedContests = new ArrayList<>();
 
     @OneToMany(mappedBy = "owner")
     private List<Question> createdQuestions = new ArrayList<>();

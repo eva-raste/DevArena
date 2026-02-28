@@ -7,4 +7,5 @@ import java.util.UUID;
 
 public interface IContestQuestionRepo extends JpaRepository<ContestQuestion, UUID> {
 
+    int findByContest_ContestIdAndQuestion_QuestionId(UUID contestId, UUID questionId);
 }

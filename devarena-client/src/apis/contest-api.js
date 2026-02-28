@@ -121,3 +121,29 @@ export const removeModifierApi = (roomId, email) => {
     params: { email }
   })
 }
+// leaderboard
+
+export const fetchContestLeaderboard = async (roomId, page = 0, size = 50) => {
+  try{
+    const res = await api.get(
+        `/contests/${roomId}/leaderboard?page=${page}&size=${size}`
+  );
+  return res.data;
+  }
+  catch{
+    throw new Error("Failed to fetch leaderboard details");
+  }
+};
+
+export const fetchMyLeaderboardRow = async (roomId) => {
+  try{
+    const res = await api.get(
+        `/contests/${roomId}/leaderboard/me`
+  );
+  return res.data;
+  }
+  catch{
+    throw new Error("Failed to fetch leaderboard me details");
+  }
+};
+

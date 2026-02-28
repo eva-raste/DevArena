@@ -2,9 +2,8 @@ package com.devarena.service;
 
 import com.devarena.dtos.questions.Testcase;
 import com.devarena.models.*;
-import com.devarena.repositories.IContestRepo;
-import com.devarena.repositories.IQuestionRepo;
-import com.devarena.repositories.ISubmissionRepo;
+import com.devarena.repositories.*;
+import com.devarena.service.interfaces.ILeaderboardService;
 import com.devarena.service.interfaces.ISubmissionService;
 import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
@@ -24,18 +23,22 @@ public class SubmissionService implements ISubmissionService {
     private final ISubmissionRepo submissionRepo;
     private final ContestEventPublisher eventPublisher;
 
+    private final ILeaderboardService leaderboardService;
+
     public SubmissionService(
             LocalCppRunnerService runner,
             IContestRepo contestRepo,
             IQuestionRepo questionRepo,
             ISubmissionRepo submissionRepo,
-            ContestEventPublisher eventPublisher
+            ContestEventPublisher eventPublisher,
+            ILeaderboardService leaderboardService
     ) {
         this.runner = runner;
         this.contestRepo = contestRepo;
         this.questionRepo = questionRepo;
         this.submissionRepo = submissionRepo;
         this.eventPublisher=eventPublisher;
+        this.leaderboardService = leaderboardService;
     }
 
     public Map<String, Object> run(Map<String, Object> body) {
@@ -176,6 +179,8 @@ public class SubmissionService implements ISubmissionService {
 
         submissionRepo.save(submission);
 
+        leaderboardService.updateLeaderboardAfterSubmission(contest,question,user,verdict);
+
 
         return Map.of(
                 "verdict", verdict,
@@ -257,5 +262,7 @@ public class SubmissionService implements ISubmissionService {
                 .distinct()
                 .toList();
     }
+
+
 }
 

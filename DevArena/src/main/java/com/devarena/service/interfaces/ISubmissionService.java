@@ -1,8 +1,6 @@
 package com.devarena.service.interfaces;
 
-import com.devarena.models.Submission;
-import com.devarena.models.User;
-import com.devarena.models.Verdict;
+import com.devarena.models.*;
 
 import java.util.List;
 import java.util.Map;
@@ -27,5 +25,8 @@ public interface ISubmissionService {
     public int getMyTotalScore(UUID userId, String roomId);
 
     public List<String> getAcceptedQuestionSlugs(UUID userId, String roomId);
+
+
+
 
 }

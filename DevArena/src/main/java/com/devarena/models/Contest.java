@@ -26,7 +26,8 @@ import org.hibernate.annotations.UpdateTimestamp;
                 @Index(
                         name = "idx_contest_status_end",
                         columnList = "status,endTime"
-                )
+                ),
+                @Index(name = "idx_contest_room_id", columnList = "room_id", unique = true)
         }
 )
 public class Contest
@@ -45,23 +46,16 @@ public class Contest
             inverseJoinColumns = @JoinColumn(name="modifier_id"))
     private List<User> modifiers = new ArrayList<>();
 
-    @ManyToMany
-    @JoinTable(name = "attendees_contests",
-            joinColumns = @JoinColumn(name="contest_id"),
-            inverseJoinColumns = @JoinColumn(name="attendee_id"))
-    private List<User> attendees = new ArrayList<>();
+//    @ManyToMany
+//    @JoinTable(name = "attendees_contests",
+//            joinColumns = @JoinColumn(name="contest_id"),
+//            inverseJoinColumns = @JoinColumn(name="attendee_id"))
+//    private List<User> attendees = new ArrayList<>();
 
     private String title;
 
     @Column(unique = true,nullable = false)
     private String roomId;
-
-//    @ManyToMany
-//    @JoinTable(name="contests_questions",
-//            joinColumns = @JoinColumn(name = "contest_id"),
-//            inverseJoinColumns = @JoinColumn(name = "question_id"))
-//    private List<Question> questions = new ArrayList<>();
-
 
     @OneToMany(
             mappedBy = "contest",
@@ -107,12 +101,12 @@ public class Contest
         contest.startTime = req.getStartTime();
         contest.endTime = req.getEndTime();
         contest.roomId = roomId;
-        System.out.println("Owner is " + owner);
+//        System.out.println("Owner is " + owner);
         contest.setOwner(owner);
         contest.getModifiers().add(owner);
         contest.status = ContestStatus.SCHEDULED;
 
-        System.out.println("Creating contest : \n" + contest);
+//        System.out.println("Creating contest : \n" + contest);
         return contest;
     }
 

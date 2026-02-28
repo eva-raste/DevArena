@@ -2,14 +2,15 @@ package com.devarena.helper;
 
 import com.devarena.dtos.questions.CodeforcesQuestionPrefillDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -24,65 +25,94 @@ public class CodeforcesDatasetLoader {
     private final AtomicBoolean loading = new AtomicBoolean(false);
     private final AtomicBoolean loaded = new AtomicBoolean(false);
 
+    private static final int CONNECT_TIMEOUT = 5000;
+    private static final int READ_TIMEOUT = 15000;
+
     public CodeforcesDatasetLoader(
             @Value("${datasets.codeforces.ndjson-url}") String ndjsonUrl
     ) {
         this.ndjsonUrl = ndjsonUrl;
     }
 
-    /** 🔥 Background warm-up (non-blocking) */
+    // Non-blocking warmup
     @Async
     public void preloadAsync() {
-        loadInternal(false);
+        try {
+            loadInternal();
+        } catch (Exception e) {
+            System.err.println("Codeforces preload failed: " + e.getMessage());
+        }
     }
 
-    /** 🔥 Safe fallback for first request */
+    // Blocking fallback (first request)
     public void ensureLoaded() {
-        loadInternal(true);
+        if (!loaded.get()) {
+            loadInternal();
+        }
     }
 
-    private void loadInternal(boolean block) {
+    private void loadInternal() {
+
         if (loaded.get()) return;
 
         if (!loading.compareAndSet(false, true)) {
-            if (block) {
-                // wait until background finishes
-                while (!loaded.get()) {
-                    try {
-                        Thread.sleep(50);
-                    } catch (InterruptedException ignored) {}
-                }
-            }
+            // Someone else is loading
             return;
         }
 
-        try (BufferedReader reader =
-                     new BufferedReader(
-                             new InputStreamReader(
-                                     new URL(ndjsonUrl).openStream()
-                             ))) {
+        HttpURLConnection connection = null;
 
-            ObjectMapper mapper = new ObjectMapper();
-            String line;
+        try {
+            URL url = new URL(ndjsonUrl);
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setConnectTimeout(CONNECT_TIMEOUT);
+            connection.setReadTimeout(READ_TIMEOUT);
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("User-Agent", "devarena-dataset-loader");
 
-            while ((line = reader.readLine()) != null) {
-                CodeforcesQuestionPrefillDto dto =
-                        mapper.readValue(line, CodeforcesQuestionPrefillDto.class);
-
-                cache.put(dto.getSlug().toLowerCase(), dto);
+            int status = connection.getResponseCode();
+            if (status != 200) {
+                throw new RuntimeException("HTTP error: " + status);
             }
 
-            loaded.set(true);
-            System.out.println("✔ Codeforces dataset loaded (" + cache.size() + ")");
+            try (BufferedReader reader =
+                         new BufferedReader(
+                                 new InputStreamReader(
+                                         connection.getInputStream(),
+                                         StandardCharsets.UTF_8
+                                 ))) {
+
+                ObjectMapper mapper = new ObjectMapper();
+                String line;
+
+                while ((line = reader.readLine()) != null) {
+                    CodeforcesQuestionPrefillDto dto =
+                            mapper.readValue(line, CodeforcesQuestionPrefillDto.class);
+
+                    cache.put(dto.getSlug().toLowerCase(), dto);
+                }
+
+                loaded.set(true);
+                System.out.println("✔ Codeforces dataset loaded (" + cache.size() + ")");
+
+            }
 
         } catch (Exception e) {
+            System.err.println("Failed to load Codeforces dataset: " + e.getMessage());
+            loaded.set(false);
+        } finally {
             loading.set(false);
-            throw new IllegalStateException("Failed to load Codeforces dataset", e);
+            if (connection != null) {
+                connection.disconnect();
+            }
         }
     }
 
     public CodeforcesQuestionPrefillDto get(String slug) {
         return cache.get(slug.toLowerCase());
     }
-}
 
+    public boolean isLoaded() {
+        return loaded.get();
+    }
+}

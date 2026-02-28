@@ -157,13 +157,13 @@ public class QuestionServiceImpl implements IQuesitonService {
             throw new RuntimeException("Contest not started");
         }
 
-        if (contest.getVisibility() == ContestVisibility.PRIVATE && contest.getStatus() == ContestStatus.ENDED) {
-            // TODO : do that when we keep functionality of registration in contest. then for LIVE also check registered or not
-            // if contests is private and ended, then only attendees can access it...
-            if (!contest.getAttendees().contains(user)) {
-                throw new RuntimeException("Not allowed");
-            }
-        }
+//        if (contest.getVisibility() == ContestVisibility.PRIVATE && contest.getStatus() == ContestStatus.ENDED) {
+//            // TODO : do that when we keep functionality of registration in contest. then for LIVE also check registered or not
+//            // if contests is private and ended, then only attendees can access it...
+//            if (!contest.getAttendees().contains(user)) {
+//                throw new RuntimeException("Not allowed");
+//            }
+//        }
 
 
         return modelMapper.map(ques,QuestionCardDto.class);

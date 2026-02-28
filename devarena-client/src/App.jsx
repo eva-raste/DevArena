@@ -8,14 +8,17 @@ import Login from "./components/authentication/login";
 import Signup from "./components/authentication/signup";
 import ContestsPage from "./components/contest/ContestsPage";
 import QuestionSolve from "./components/question/QuestionSolve";
-import ContestDetailsPage from "./components/contest/ContestDetailsPage";
 import { useLoader } from "./components/loader/LoaderContext";
 import GlobalLoader from "./components/loader/GlobalLoader";
 import EditContestPage from "./components/contest/EditContestPage";
 import Dashboard from "./components/dashboard/Dashboard";
-
 import Profile from "./components/Profile";
 import EditQuestionForm from "./components/question/EditQuestionForm.jsx";
+import ContestProblemPage from "./components/contest/ContestProblemPage";
+import ContestLayout from "./components/contest/ContestLayout";
+import ContestProblemsPage from "./components/contest/ContestProblemPage";
+import ContestLeaderboardPage from "./components/contest/ContestLeaderboardPage";
+
 function App() {
     const { loading } = useLoader();
 
@@ -30,10 +33,17 @@ function App() {
                     <Route path="/create-question" element={<CreateQuestion />} />
                     <Route path="/questions/:slug/edit" element={<EditQuestionForm />} />
                     <Route path="/show-all-questions" element={<QuestionsList />} />
-                    
+
                     <Route path="/create-contest" element={<CreateContest />} />
                     <Route path="/my-contests" element={< ContestsPage />} />
-                    <Route path="/contests/:roomId" element={<ContestDetailsPage />} />
+
+                    {/* <Route path="/contests/:roomId" element={<ContestProblemPage />} /> */}
+
+                    <Route path="/contests/:roomId" element={<ContestLayout />}>
+                        <Route index element={<ContestProblemsPage />} />
+                        <Route path="leaderboard" element={<ContestLeaderboardPage />} />
+                    </Route>
+
                     <Route path="/contests/edit/:roomId" element={<EditContestPage />} />
 
                     <Route path="/question/:slug" element={<QuestionSolve />} />
