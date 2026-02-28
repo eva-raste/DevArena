@@ -1,5 +1,6 @@
 package com.devarena.service;
 
+import com.devarena.dtos.compiler.CompileResponse;
 import com.devarena.dtos.questions.Testcase;
 import com.devarena.models.*;
 import com.devarena.repositories.*;
@@ -17,7 +18,7 @@ import java.util.*;
 @Transactional
 public class SubmissionService implements ISubmissionService {
 
-    private final LocalCppRunnerService runner;
+    private final CompilerClient compilerClient;
     private final IContestRepo contestRepo;
     private final IQuestionRepo questionRepo;
     private final ISubmissionRepo submissionRepo;
@@ -26,14 +27,14 @@ public class SubmissionService implements ISubmissionService {
     private final ILeaderboardService leaderboardService;
 
     public SubmissionService(
-            LocalCppRunnerService runner,
+            CompilerClient compilerClient,
             IContestRepo contestRepo,
             IQuestionRepo questionRepo,
             ISubmissionRepo submissionRepo,
             ContestEventPublisher eventPublisher,
             ILeaderboardService leaderboardService
     ) {
-        this.runner = runner;
+        this.compilerClient = compilerClient;
         this.contestRepo = contestRepo;
         this.questionRepo = questionRepo;
         this.submissionRepo = submissionRepo;
@@ -52,8 +53,8 @@ public class SubmissionService implements ISubmissionService {
             throw new IllegalArgumentException("Missing code or testcases");
         }
 
-        List<LocalCppRunnerService.Result> results =
-                runner.executeBatch(code, testcases);
+        List<CompileResponse.Result> results =
+                compilerClient.execute(code, testcases);
 
         return Map.of("results", results);
     }
@@ -115,9 +116,8 @@ public class SubmissionService implements ISubmissionService {
 //        System.out.println("inputs : " + inputs);
 //        System.out.println(question.getHiddenTestcases());
 
-        List<LocalCppRunnerService.Result> results =
-                runner.executeBatch(code, inputs);
-
+        List<CompileResponse.Result> results =
+                compilerClient.execute(code, inputs);
 
         List<Testcase> allTestcases = new java.util.ArrayList<>();
         allTestcases.addAll(question.getSampleTestcases());
@@ -128,7 +128,7 @@ public class SubmissionService implements ISubmissionService {
         int passed = 0;
         String errmsg="";
         for (int i = 0; i < results.size(); i++) {
-            LocalCppRunnerService.Result r = results.get(i);
+            CompileResponse.Result r = results.get(i);
 
             if (r.stderr != null && !r.stderr.isBlank()) {
                 System.out.println("result " + r.stderr);
@@ -179,8 +179,9 @@ public class SubmissionService implements ISubmissionService {
 
         submissionRepo.save(submission);
 
-        leaderboardService.updateLeaderboardAfterSubmission(contest,question,user,verdict);
-
+        if(contest!=null) {
+            leaderboardService.updateLeaderboardAfterSubmission(contest, question, user, verdict);
+        }
 
         return Map.of(
                 "verdict", verdict,
