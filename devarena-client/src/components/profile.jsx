@@ -24,22 +24,13 @@ import { VERDICT_STYLES } from "./helpers/colorVerdict";
 
 export default function Profile() {
     const [profile, setProfile] = useState(null);
-    const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("overview");
 
     useEffect(() => {
         fetchMyProfile({ page: 0, size: 5 })
             .then((res) => setProfile(res.data))
-            .finally(() => setLoading(false));
     }, []);
 
-    if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
-                Loading profile...
-            </div>
-        );
-    }
 
     if (!profile) {
         return (

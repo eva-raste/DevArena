@@ -23,9 +23,8 @@ function App() {
         <div>
             {loading && <GlobalLoader />}
             <Routes>
-                <Route path="/" element={<Root />}>
+                <Route element={<Root />}>
 
-                    <Route path="/" element={<Home />} />
                     <Route path="/dashboard" element={<Dashboard />} />
 
                     <Route path="/create-question" element={<CreateQuestion />} />
@@ -43,6 +42,7 @@ function App() {
                     <Route path="/profile" element={<Profile />} />
 
                 </Route>
+                <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
                 {/* <Route path="/create-contest" element = {<CreateContest />} /> */}
@@ -53,3 +53,4 @@ function App() {
 }
 
 export default App;
+

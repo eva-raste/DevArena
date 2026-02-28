@@ -123,13 +123,13 @@ public class SubmissionService implements ISubmissionService {
 
         Verdict verdict = Verdict.ACCEPTED;
         int passed = 0;
-
+        String errmsg="";
         for (int i = 0; i < results.size(); i++) {
             LocalCppRunnerService.Result r = results.get(i);
 
             if (r.stderr != null && !r.stderr.isBlank()) {
-//                System.out.println("result " + r.stderr);
-
+                System.out.println("result " + r.stderr);
+                errmsg=r.stderr;
                 verdict = mapErrorToVerdict(r.stderr);
                 break;
             }
@@ -179,8 +179,10 @@ public class SubmissionService implements ISubmissionService {
 
         return Map.of(
                 "verdict", verdict,
+                "results",results,
                 "passed", passed,
                 "total", results.size(),
+                "errmsg",errmsg,
                 "score", submission.getScore()
         );
 

@@ -32,6 +32,7 @@ const QuestionSolve = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [showSubmissions, setShowSubmissions] = useState(false);
   const [mySubmissions, setMySubmissions] = useState([]);
+  const [errmsg, setErrmsg] = useState("");
 
   const editorRef = useRef(null);
   const monacoEditor = useRef(null);
@@ -307,6 +308,15 @@ const QuestionSolve = () => {
       // submitCases.map((tc) => tc.input)
     );
     console.log("submit response", data); 
+    const results = data.results.map((r, i) => ({
+      caseNumber: i + 1,
+      stdout: r.stdout?.trim() || "",
+      stderr: r.stderr?.trim() || "",
+    }));
+
+    setTestResults(results);
+    
+    setErrmsg(data.errmsg);
     setVerdict(data.verdict);
     setPassedCount(data.verdict === "ACCEPTED" ? submitCases.length : data.passed);
     setTotalCount(submitCases.length);
@@ -532,6 +542,8 @@ const QuestionSolve = () => {
                 {currentResult?.stderr
                   ? currentResult.stderr
                   : currentResult?.stdout || ""}
+
+                {errmsg && `\nError: ${errmsg}`}
               </pre>
 
               <div className="text-sm text-muted-foreground mt-3">Expected</div>
