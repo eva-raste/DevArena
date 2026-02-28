@@ -103,25 +103,29 @@ public class ContestServiceImpl implements IContestService {
         );
 
         // Prevent duplicate emails
-        Set<String> uniqueEmails = new HashSet<>(req.getModifierEmails());
-        if (uniqueEmails.size() != req.getModifierEmails().size()) {
+        List<String> modifierEmails =
+                Optional.ofNullable(req.getModifierEmails())
+                        .orElse(Collections.emptyList());
+
+        Set<String> uniqueEmails = new HashSet<>(modifierEmails);
+
+        if (uniqueEmails.size() != modifierEmails.size()) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "DUPLICATE_MODIFIERS"
             );
         }
 
-        // Fetch all modifiers in ONE DB call
         List<User> modifiers =
-                userRepository.findAllByEmailIn(req.getModifierEmails());
+                userRepository.findAllByEmailIn(modifierEmails);
 
-        // If some emails don't exist
-        if (modifiers.size() != req.getModifierEmails().size()) {
+        if (modifiers.size() != modifierEmails.size()) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "INVALID_MODIFIER_EMAIL"
             );
         }
+
 
         // Prevent owner from being added
         for (User modifier : modifiers) {

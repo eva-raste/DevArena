@@ -3,9 +3,11 @@ import Navbar from "./Navbar"
 
 const Root = () => {
   return (
-      <div style={{ minHeight: '100vh' }}>  {/* NO background */}
+      <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
         <Navbar />
-        <Outlet />
+        <main className="pt-16">
+          <Outlet />
+        </main>
       </div>
 
     

@@ -209,10 +209,7 @@ const ContestForm = ({
           instructions: form.instructions || null,
           startTime: form.startTime || null,
           endTime: form.endTime || null,
-          modifiers:
-             modifiers.length > 0
-                ? modifiers.map(m => m.email)
-                : null,
+          modifiers: modifiers.map(m => m.email),
           questions: contestQuestions.map(cq => ({
             questionSlug: cq.question.questionSlug,
             score: Number(cq.score),

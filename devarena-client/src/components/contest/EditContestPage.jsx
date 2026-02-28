@@ -49,8 +49,7 @@ export default function EditContestPage() {
     const onSubmit = async (payload) => {
     try {
       const finalPayload = {
-        ...payload,
-        modifiers: payload.modifiers|| initialModifiers
+        ...payload
       }
 
       console.log("Submitting updated contest", finalPayload)
