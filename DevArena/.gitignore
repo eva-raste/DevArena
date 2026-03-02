@@ -28,7 +28,7 @@ Thumbs.db
 
 # Environment/config
 application-*.yml
-application-*.properties
+application-local.properties
 .env
 
 .factorypath
