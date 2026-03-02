@@ -36,21 +36,15 @@ public class Contest
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID contestId;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id",nullable = false)
     private User owner;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "modifiers_contests",
             joinColumns = @JoinColumn(name="contest_id"),
             inverseJoinColumns = @JoinColumn(name="modifier_id"))
     private List<User> modifiers = new ArrayList<>();
-
-//    @ManyToMany
-//    @JoinTable(name = "attendees_contests",
-//            joinColumns = @JoinColumn(name="contest_id"),
-//            inverseJoinColumns = @JoinColumn(name="attendee_id"))
-//    private List<User> attendees = new ArrayList<>();
 
     private String title;
 
@@ -61,6 +55,7 @@ public class Contest
             mappedBy = "contest",
             cascade = CascadeType.ALL,
             orphanRemoval = true
+            ,fetch = FetchType.LAZY
     )
     private List<ContestQuestion> contestQuestions = new ArrayList<>();
 
@@ -109,16 +104,5 @@ public class Contest
 //        System.out.println("Creating contest : \n" + contest);
         return contest;
     }
-
-
-
-    public void addContestQuestions(List<ContestQuestion> contestQuestions) {
-        for (ContestQuestion cq : contestQuestions) {
-            cq.setContest(this);
-            this.contestQuestions.add(cq);
-        }
-    }
-
-
 
 }

@@ -12,8 +12,6 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class UserProfileDto {
-    private UUID userId;
-
     @NotBlank(message = "Username is required")
     private String displayName;
 

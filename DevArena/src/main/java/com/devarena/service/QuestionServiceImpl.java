@@ -494,14 +494,6 @@ public class QuestionServiceImpl implements IQuesitonService {
         }
     }
 
-    private List<String> extractModifierEmails(Question question) {
-        return question.getModifiers()
-                .stream()
-                .filter(u -> !u.getUserId().equals(question.getOwner().getUserId()))
-                .map(User::getEmail)
-                .toList();
-    }
-
     private String resolveRole(Question question, User currentUser) {
         if (question.getOwner().getUserId().equals(currentUser.getUserId())) {
             return "OWNER";

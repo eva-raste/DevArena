@@ -39,19 +39,19 @@ public class User implements UserDetails
     @Enumerated(EnumType.STRING)
     private Provider provider=Provider.LOCAL;
 
-    @OneToMany(mappedBy = "owner")
+    @OneToMany(mappedBy = "owner",fetch = FetchType.LAZY)
     private List<Contest> createdContests = new ArrayList<>();
 
-    @ManyToMany(mappedBy = "modifiers")
+    @ManyToMany(mappedBy = "modifiers",fetch = FetchType.LAZY)
     private List<Contest> modifierContests = new ArrayList<>();
 
-//    @ManyToMany(mappedBy = "attendees")
+//    @ManyToMany(mappedBy = "attendees",fetch = FetchType.LAZY)
 //    private List<Contest> attendedContests = new ArrayList<>();
 
-    @OneToMany(mappedBy = "owner")
+    @OneToMany(mappedBy = "owner",fetch = FetchType.LAZY)
     private List<Question> createdQuestions = new ArrayList<>();
 
-    @ManyToMany(mappedBy = "modifiers")
+    @ManyToMany(mappedBy = "modifiers",fetch = FetchType.LAZY)
     private List<Question> modifierQuestions = new ArrayList<>();
 
     @PrePersist

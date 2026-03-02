@@ -156,7 +156,7 @@ export default function Profile() {
                             <div className="space-y-3">
                                 {profile.recentContests.content.map((c) => (
                                     <div
-                                        key={c.contestId}
+                                        key={c.roomId}
                                         className=" p-4 rounded-lg border border-border bg-muted/30 hover:bg-muted/50 transition-colors flex items-center justify-between " >
                                         <div>
                                             <p className="font-medium">{c.title}</p>

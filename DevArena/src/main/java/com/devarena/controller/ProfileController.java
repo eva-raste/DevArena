@@ -1,9 +1,9 @@
 package com.devarena.controller;
 
 import com.devarena.dtos.users.UserProfileDto;
+import com.devarena.dtos.users.UserResponseDto;
 import com.devarena.service.interfaces.UserService;
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -18,13 +18,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class ProfileController {
 
     private final UserService userService;
-    private final ModelMapper modelMapper;
 
     @GetMapping("/me")
     public ResponseEntity<UserProfileDto> me(Authentication authentication) {
+        UserResponseDto dto = userService.getUserByEmail(authentication.getName());
         return ResponseEntity.ok(
-                modelMapper.map(
-                        userService.getUserByEmail(authentication.getName()),UserProfileDto.class
-                ));
+                new  UserProfileDto(
+                        dto.getDisplayName(),
+                        dto.getEmail()
+                )
+        );
     }
 }

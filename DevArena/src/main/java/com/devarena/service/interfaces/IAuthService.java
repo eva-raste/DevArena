@@ -1,7 +1,8 @@
 package com.devarena.service.interfaces;
 
 import com.devarena.dtos.users.UserDto;
+import com.devarena.dtos.users.UserResponseDto;
 
 public interface IAuthService {
-    UserDto registerUser(UserDto userDto);
+    UserResponseDto registerUser(UserDto userDto);
 }

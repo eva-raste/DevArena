@@ -8,7 +8,6 @@ import com.devarena.repositories.IQuestionRepo;
 import com.devarena.repositories.ISubmissionRepo;
 import com.devarena.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,15 +17,14 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class UserProfileService {
 
     private final UserRepository userRepo;
     private final ISubmissionRepo submissionRepo;
     private final IContestRepo contestRepo;
     private final IQuestionRepo questionRepo;
-    private final ModelMapper modelMapper;
 
+    @Transactional(readOnly = true)
     public UserProfileResponse getProfile(UUID userId, Pageable pageable) {
 
         User user = userRepo.findById(userId)
@@ -46,7 +44,6 @@ public class UserProfileService {
         // recent contests
         res.setRecentContests(
                 contestRepo.recentAttended(userId, pageable)
-                        .map(c -> modelMapper.map(c,RecentContestDto.class))
         );
 
         // recent submissions

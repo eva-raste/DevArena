@@ -4,13 +4,13 @@ import com.devarena.dtos.auth.LoginRequest;
 import com.devarena.dtos.auth.LoginUserDto;
 import com.devarena.dtos.auth.TokenResponse;
 import com.devarena.dtos.users.UserDto;
+import com.devarena.dtos.users.UserResponseDto;
 import com.devarena.models.User;
 import com.devarena.repositories.UserRepository;
 import com.devarena.security.JwtService;
 import com.devarena.service.interfaces.IAuthService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
-import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -30,10 +30,9 @@ public class AuthController {
     private final UserRepository userRepository;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
-    private final ModelMapper mapper;
 
     @PostMapping("/register")
-    public ResponseEntity<UserDto> register(@Valid @RequestBody UserDto userDto) {
+    public ResponseEntity<UserResponseDto> register(@Valid @RequestBody UserDto userDto) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(authService.registerUser(userDto));
     }

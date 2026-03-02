@@ -7,21 +7,20 @@ import com.devarena.dtos.contests.EditContestRequestDto;
 import com.devarena.dtos.questions.ContestQuestionDto;
 import com.devarena.dtos.questions.QuestionConfig;
 import com.devarena.dtos.questions.QuestionDto;
+import com.devarena.dtos.questions.Testcase;
 import com.devarena.models.*;
 import com.devarena.repositories.IContestRepo;
 import com.devarena.repositories.IQuestionRepo;
 import com.devarena.repositories.UserRepository;
 import com.devarena.security.RoomIdGenerator;
 import com.devarena.service.interfaces.IContestService;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
-import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
@@ -33,11 +32,9 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class ContestServiceImpl implements IContestService {
-    private final TaskScheduler taskScheduler;
     private final IContestRepo contestRepo;
     private final IQuestionRepo questionRepo;
     private final ContestTaskScheduler contestTaskScheduler;
-    private final ModelMapper modelMapper;
     private final UserRepository userRepository;
 
     public String createUniqueRoomId() {
@@ -178,20 +175,23 @@ public class ContestServiceImpl implements IContestService {
         Contest saved = contestRepo.save(contest);
         contestTaskScheduler.scheduleContest(saved);
 
-        return toResponseDto(saved,owner);
+        return toContestResponseDto(saved,owner);
     }
 
 
     @Override
+    @Transactional(readOnly = true)
     public ContestResponseDto getContestByRoomId(String roomId, User currentUser) {
         Contest contest = contestRepo.findByRoomIdAndDeletedFalse(roomId)
                 .orElseThrow(() -> new RuntimeException("Contest not found"));
 
-        return toResponseDto(contest,currentUser);
+        return toContestResponseDto(contest,currentUser);
     }
 
 
     @Override
+    @Transactional(readOnly = true)
+
     public Page<ContestResponseDto> getOwnerContests(
             User currentUser,
             ContestStatus status,
@@ -201,16 +201,16 @@ public class ContestServiceImpl implements IContestService {
         Page<Contest> page;
 
         if (status == null) {
-            page = contestRepo.findAccessibleContests(currentUser, pageable);
+            return contestRepo.findAccessibleContestsProjected(currentUser,currentUser.getUserId(), pageable);
         } else {
-            page = contestRepo.findAccessibleContestsByStatus(currentUser, status, pageable);
+            return contestRepo.findAccessibleContestsByStatusProjected(currentUser,currentUser.getUserId(), status, pageable);
         }
-
-        return page.map(c -> toResponseDto(c, currentUser));
     }
 
 
     @Override
+    @Transactional(readOnly = true)
+
     public ContestDetailDto getContestDetails(String roomId, User currentUser) {
         Contest contest = contestRepo.findByRoomIdAndDeletedFalse(roomId)
                 .orElseThrow(() -> new RuntimeException("Contest not found"));
@@ -432,6 +432,8 @@ public class ContestServiceImpl implements IContestService {
 
 
     @Override
+    @Transactional(readOnly = true)
+
     public Page<ContestResponseDto> getPublicContests(
             Pageable pageable,
             ContestStatus status
@@ -439,21 +441,20 @@ public class ContestServiceImpl implements IContestService {
         Page<Contest> contests;
 
         if (status == null) {
-            contests = contestRepo.findByDeletedFalseAndVisibility(
+            return contestRepo.findVisibleContestsProjected(
                     ContestVisibility.PUBLIC,
-                    pageable
-            );
-        } else {
-            contests = contestRepo.findByDeletedFalseAndVisibilityAndStatus(
-                    ContestVisibility.PUBLIC,
-                    status,
                     pageable
             );
         }
-
-        return contests.map(c -> modelMapper.map(c, ContestResponseDto.class));
+        return contestRepo.findVisibleContestsByStatusProjected(
+                ContestVisibility.PUBLIC,
+                status,
+                pageable
+        );
     }
 
+    @Override
+    @Transactional
     public void removeModifier(String roomId, String email, String currentUserEmail) {
 
         Contest contest = contestRepo.findByRoomId(roomId)
@@ -477,12 +478,7 @@ public class ContestServiceImpl implements IContestService {
         contestRepo.save(contest);
     }
 
-
-
-
-
-
-    private ContestResponseDto toResponseDto(Contest contest, User currentUser) {
+    private ContestResponseDto toContestResponseDto(Contest contest, User currentUser) {
 
         ContestResponseDto dto = new ContestResponseDto();
 
@@ -508,10 +504,44 @@ public class ContestServiceImpl implements IContestService {
 
 
 
-    private ContestDetailDto toContestDetailDto(Contest contest, User currentUser) {
+    private ContestDetailDto toContestDetailDto(
+            Contest contest,
+            User currentUser
+    ) {
 
-        ContestDetailDto res = modelMapper.map(contest, ContestDetailDto.class);
+        UUID currentUserId = currentUser.getUserId();
 
+        ContestDetailDto dto = new ContestDetailDto();
+
+        dto.setRoomId(contest.getRoomId());
+        dto.setTitle(contest.getTitle());
+        dto.setVisibility(contest.getVisibility());
+        dto.setInstructions(contest.getInstructions());
+        dto.setStartTime(contest.getStartTime());
+        dto.setEndTime(contest.getEndTime());
+        dto.setStatus(contest.getStatus());
+
+        // 🔹 Role computation
+        if (contest.getOwner().getUserId().equals(currentUserId)) {
+            dto.setRole("OWNER");
+        } else if (contest.getModifiers()
+                .stream()
+                .anyMatch(m -> m.getUserId().equals(currentUserId))) {
+            dto.setRole("MODIFIER");
+        } else {
+            dto.setRole("PARTICIPANT");
+        }
+
+        // 🔹 Contest Modifiers (excluding owner)
+        List<String> modifierEmails = contest.getModifiers()
+                .stream()
+                .filter(m -> !m.getUserId().equals(contest.getOwner().getUserId()))
+                .map(User::getEmail)
+                .toList();
+
+        dto.setModifiers(modifierEmails);
+
+        // 🔹 Questions mapping
         List<ContestQuestionDto> questionDtos = contest.getContestQuestions()
                 .stream()
                 .sorted(Comparator.comparing(
@@ -519,40 +549,69 @@ public class ContestServiceImpl implements IContestService {
                         Comparator.nullsLast(Integer::compareTo)
                 ))
                 .map(cq -> {
-                    ContestQuestionDto condto = new ContestQuestionDto();
-                    condto.setQuestion(modelMapper.map(
-                            cq.getQuestion(),
-                            QuestionDto.class
-                    ));
-                    condto.setScore(cq.getScore());
-                    condto.setOrderIndex(cq.getOrderIndex());
-                    return condto;
+
+                    Question question = cq.getQuestion();
+
+                    QuestionDto qdto = new QuestionDto();
+
+                    qdto.setQuestionSlug(question.getQuestionSlug());
+                    qdto.setTitle(question.getTitle());
+                    qdto.setDescription(question.getDescription());
+                    qdto.setDifficulty(question.getDifficulty());
+                    qdto.setConstraints(question.getConstraints());
+
+                    // Question role
+                    if (question.getOwner().getUserId().equals(currentUserId)) {
+                        qdto.setRole("OWNER");
+                    } else if (question.getModifiers()
+                            .stream()
+                            .anyMatch(m -> m.getUserId().equals(currentUserId))) {
+                        qdto.setRole("MODIFIER");
+                    }
+
+                    // Question modifiers
+                    List<String> questionModifiers = question.getModifiers()
+                            .stream()
+                            .map(User::getEmail)
+                            .toList();
+
+                    qdto.setModifiers(questionModifiers);
+
+                    // Sample testcases
+                    List<Testcase> sample = question.getSampleTestcases()
+                            .stream()
+                            .map(t -> new Testcase(
+                                    t.getOrder(),
+                                    t.getInput(),
+                                    t.getOutput()
+                            ))
+                            .toList();
+
+                    qdto.setSampleTestcases(sample);
+
+                    // Hidden testcases
+                    List<Testcase> hidden = question.getHiddenTestcases()
+                            .stream()
+                            .map(t -> new Testcase(
+                                    t.getOrder(),
+                                    t.getInput(),
+                                    t.getOutput()
+                            ))
+                            .toList();
+
+                    qdto.setHiddenTestcases(hidden);
+
+                    ContestQuestionDto contestQuestionDto = new ContestQuestionDto();
+                    contestQuestionDto.setQuestion(qdto);
+                    contestQuestionDto.setScore(cq.getScore());
+                    contestQuestionDto.setOrderIndex(cq.getOrderIndex());
+
+                    return contestQuestionDto;
                 })
                 .toList();
 
-        UUID currentUserId = currentUser.getUserId();
+        dto.setQuestions(questionDtos);
 
-        if (contest.getOwner().getUserId().equals(currentUserId)) {
-            res.setRole("OWNER");
-        } else if (contest.getModifiers()
-                .stream()
-                .anyMatch(m -> m.getUserId().equals(currentUserId))) {
-            res.setRole("MODIFIER");
-        }
-
-        res.setQuestions(questionDtos);
-        //removed owner email id
-        List<String> modifierEmails = contest.getModifiers()
-                .stream()
-                .filter(m -> !m.getEmail().equals(contest.getOwner().getEmail()))
-                .map(User::getEmail)
-                .toList();
-
-        res.setModifiers(modifierEmails);
-
-
-        return res;
+        return dto;
     }
-
-
 }

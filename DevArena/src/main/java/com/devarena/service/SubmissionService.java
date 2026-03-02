@@ -22,8 +22,6 @@ public class SubmissionService implements ISubmissionService {
     private final IContestRepo contestRepo;
     private final IQuestionRepo questionRepo;
     private final ISubmissionRepo submissionRepo;
-    private final ContestEventPublisher eventPublisher;
-
     private final ILeaderboardService leaderboardService;
 
     public SubmissionService(
@@ -31,24 +29,23 @@ public class SubmissionService implements ISubmissionService {
             IContestRepo contestRepo,
             IQuestionRepo questionRepo,
             ISubmissionRepo submissionRepo,
-            ContestEventPublisher eventPublisher,
             ILeaderboardService leaderboardService
     ) {
         this.compilerClient = compilerClient;
         this.contestRepo = contestRepo;
         this.questionRepo = questionRepo;
         this.submissionRepo = submissionRepo;
-        this.eventPublisher=eventPublisher;
         this.leaderboardService = leaderboardService;
     }
 
+    @Transactional
     public Map<String, Object> run(Map<String, Object> body) {
 
         String code = (String) body.get("code");
 
         @SuppressWarnings("unchecked")
         List<String> testcases = (List<String>) body.get("testcases");
-        System.out.println(testcases);
+//        System.out.println(testcases);
         if (code == null || testcases == null) {
             throw new IllegalArgumentException("Missing code or testcases");
         }
@@ -59,6 +56,7 @@ public class SubmissionService implements ISubmissionService {
         return Map.of("results", results);
     }
 
+    @Transactional
     public Map<String, Object> submit(
             String roomId,
             String questionSlug,
@@ -95,14 +93,14 @@ public class SubmissionService implements ISubmissionService {
             }
 
         }
-
+        LocalDateTime submittedAt = LocalDateTime.now();
 //        System.out.println("submission " + roomId + " " + questionSlug);
         Submission submission = new Submission();
         submission.setUserId(user.getUserId());
         submission.setRoomId(roomId);   //contestid is nullale
         submission.setQuestionSlug(questionSlug);
         submission.setCode(code);
-        submission.setSubmittedAt(LocalDateTime.now());
+        submission.setSubmittedAt(submittedAt);
         submission.setVerdict(Verdict.PENDING);
         submission.setScore(0);
 
@@ -150,22 +148,17 @@ public class SubmissionService implements ISubmissionService {
 
 
         submission.setVerdict(verdict);
-//        assert contest != null;
-        int score=0;
-        if(contest!=null)
+
+        if(contest!=null && !submittedAt.isAfter(contest.getEndTime()) && verdict == Verdict.ACCEPTED)
         {
-             score = contest.getContestQuestions()
+             int score = contest.getContestQuestions()
                     .stream().filter(cq -> cq.getQuestion().getQuestionId()
                             .equals(question.getQuestionId())
                     )
                     .map(ContestQuestion::getScore).findFirst()
                     .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND, "Score not found"));
 
-        }
-
-
-        if (verdict == Verdict.ACCEPTED) {
-            submission.setScore(score);
+             submission.setScore(score);
         }
 
 //        eventPublisher.publishSubmissionResult(
@@ -179,7 +172,7 @@ public class SubmissionService implements ISubmissionService {
 
         submissionRepo.save(submission);
 
-        if(contest!=null) {
+        if(contest!=null && !submittedAt.isAfter(contest.getEndTime()) && verdict == Verdict.ACCEPTED) {
             leaderboardService.updateLeaderboardAfterSubmission(contest, question, user, verdict);
         }
 

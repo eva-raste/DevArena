@@ -17,7 +17,6 @@ public interface IQuestionAttemptRepo  extends JpaRepository<QuestionAttempt, UU
             Question question
     );
 
-
         @Query("""
         SELECT qa
         FROM QuestionAttempt qa

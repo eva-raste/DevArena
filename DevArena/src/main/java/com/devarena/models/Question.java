@@ -26,10 +26,7 @@ public class Question {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID questionId;
 
-//    @ManyToMany(mappedBy = "questions")
-//    private List<Contest> contests = new ArrayList<>();
-
-    @OneToMany(mappedBy = "question")
+    @OneToMany(mappedBy = "question",fetch = FetchType.LAZY)
     private List<ContestQuestion> contestQuestions = new ArrayList<>();
 
 
@@ -39,11 +36,11 @@ public class Question {
     @Column(nullable = false)
     private String title;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id",nullable = false)
     private User owner;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name="modifiers_questions",
             joinColumns = @JoinColumn(name = "question_id"),

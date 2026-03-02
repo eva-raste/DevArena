@@ -1,17 +1,19 @@
 package com.devarena.service;
 
 import com.devarena.dtos.users.UserDto;
+import com.devarena.dtos.users.UserResponseDto;
 import com.devarena.dtos.users.UserVerifyDto;
 import com.devarena.exception.ResourceNotFoundException;
 import com.devarena.helper.userHelper;
+import com.devarena.models.Provider;
 import com.devarena.models.User;
 import com.devarena.repositories.UserRepository;
 import com.devarena.service.interfaces.UserService;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
@@ -22,11 +24,11 @@ import java.util.UUID;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-    private final ModelMapper modelMapper;
-
+    private final PasswordEncoder passwordEncoder;
 
     @Override
-    public UserDto createUser(UserDto userDto) {
+    @Transactional
+    public UserResponseDto createUser(UserDto userDto) {
         if(userDto.getEmail()==null || userDto.getEmail().isBlank())
             throw new IllegalArgumentException("email is required");
 
@@ -35,31 +37,34 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("email already exists");
         }
 
-        User user=modelMapper.map(userDto,User.class);
+        User user=toUserEntity(userDto);
         User savedUser=userRepository.save(user);
         System.out.println("user saved ");
-        return modelMapper.map(savedUser,UserDto.class);
+        return toUserResponseDto(savedUser);
     }
 
     @Override
-    public UserDto getUserByEmail(String email) {
+    @Transactional(readOnly = true)
+    public UserResponseDto getUserByEmail(String email) {
         User user=userRepository.findByEmail(email)
                 .orElseThrow(()->new ResourceNotFoundException("user not found with given email id"));
-        return modelMapper.map(user,UserDto.class);
+        return toUserResponseDto(user);
     }
 
     @Override
-    public UserDto updateUser(UserDto userDto, String userId) {
+    @Transactional
+    public UserResponseDto updateUser(UserDto userDto, String userId) {
         User existingUser=userRepository.findById(userHelper.parseUUID(userId)).orElseThrow(()->new ResourceNotFoundException("User not found"));
         if(userDto.getDisplayName()!=null)
             existingUser.setDisplayName(userDto.getDisplayName());
 
 
         User updatedUser=userRepository.save(existingUser);
-        return modelMapper.map(updatedUser,UserDto.class);
+        return toUserResponseDto(updatedUser);
     }
 
     @Override
+    @Transactional
     public void deleteUser(String userId) {
         UUID uid=userHelper.parseUUID(userId);
         User user=userRepository.findById(uid).orElseThrow(()->new ResourceNotFoundException("User not found"));
@@ -67,17 +72,20 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDto getUserById(String userId) {
+    @Transactional(readOnly = true)
+    public UserResponseDto getUserById(String userId) {
         User user=userRepository.findById(userHelper.parseUUID(userId)).orElseThrow(()->new ResourceNotFoundException("User not found"));
-        return modelMapper.map(user,UserDto.class);
+        return toUserResponseDto(user);
     }
 
     @Override
-    public Iterable<UserDto> getAllUsers() {
-        return userRepository.findAll().stream().map(user->modelMapper.map(user,UserDto.class)).toList();
+    @Transactional(readOnly = true)
+    public Iterable<UserResponseDto> getAllUsers() {
+        return userRepository.findAll().stream().map(this::toUserResponseDto).toList();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserVerifyDto verifyUserByEmail(String email,User currentUser) {
 
         User user = userRepository.findByEmail(email)
@@ -98,4 +106,26 @@ public class UserServiceImpl implements UserService {
         return dto;
     }
 
+
+    private User toUserEntity(UserDto dto) {
+
+        User user = new User();
+
+        user.setDisplayName(dto.getDisplayName());
+        user.setEmail(dto.getEmail());
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        user.setProvider(Provider.LOCAL);
+        user.setEnable(true);
+
+        return user;
+    }
+
+    private UserResponseDto toUserResponseDto(User user) {
+
+        return UserResponseDto.builder()
+                .userId(user.getUserId())
+                .displayName(user.getDisplayName())
+                .email(user.getEmail())
+                .build();
+    }
 }

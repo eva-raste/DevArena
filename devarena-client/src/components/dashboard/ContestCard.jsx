@@ -36,7 +36,9 @@ export default function ContestCard({ contest }) {
         )}
 
         {contest.status === "ENDED" && (
-          <Button variant="secondary">View Results</Button>
+          <Link to={`/contests/${contest.roomId}/leaderboard`}>
+            <Button variant="secondary">View Results</Button>
+          </Link>
         )}
       </div>
     </div>

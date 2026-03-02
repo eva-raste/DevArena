@@ -1,6 +1,5 @@
 package com.devarena.repositories;
 
-import com.devarena.dtos.questions.ExampleDto;
 import com.devarena.dtos.questions.QuestionCardDto;
 import com.devarena.dtos.questions.QuestionDto;
 import com.devarena.dtos.questions.Testcase;
@@ -26,11 +25,6 @@ public interface IQuestionRepo extends JpaRepository<Question, UUID> {
 
     Optional<Question> findByQuestionSlug(String slug);
 
-
-
-//    Optional<Question> findByQuestionSlugAndDeletedFalse(String questionSlug);
-
-
     List<Question> findAllByOwnerAndDeletedFalse(User owner);
 
 
@@ -54,9 +48,6 @@ public interface IQuestionRepo extends JpaRepository<Question, UUID> {
             @Param("difficulty") QuestionDifficulty difficulty,
             Pageable pageable
     );
-
-
-    Question findByQuestionSlugAndModifiersContains(String slug, User user);
 
     @Query("""
         SELECT new com.devarena.dtos.questions.QuestionCardDto(

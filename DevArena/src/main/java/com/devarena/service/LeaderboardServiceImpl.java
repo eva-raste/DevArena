@@ -211,9 +211,7 @@ public class LeaderboardServiceImpl implements ILeaderboardService {
         return response;
     }
 
-    // ==========================
     // MY RANK (TRUE COMPETITION RANK)
-    // ==========================
 
     @Transactional(readOnly = true)
     @Override

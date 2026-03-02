@@ -5,6 +5,7 @@ import com.devarena.exception.testcases.TestcaseApiException;
 import com.devarena.exception.testcases.TestcaseErrorCode;
 import com.devarena.service.interfaces.ITestcaseParseService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -23,6 +24,7 @@ public class TestcaseParseService implements ITestcaseParseService {
     private static final int MAX_OUTPUT_SIZE = 10_000;
 
     @Override
+    @Transactional(readOnly = true)
     public List<Testcase> parse(MultipartFile zipFile) {
 
         validateZipFile(zipFile);
