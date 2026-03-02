@@ -4,7 +4,6 @@ package com.devarena.service.interfaces;
 import com.devarena.dtos.questions.QuestionCardDto;
 import com.devarena.dtos.questions.QuestionCreateDto;
 import com.devarena.dtos.questions.QuestionDto;
-import com.devarena.dtos.users.UserVerifyDto;
 import com.devarena.models.QuestionDifficulty;
 import com.devarena.models.User;
 import jakarta.validation.constraints.NotBlank;

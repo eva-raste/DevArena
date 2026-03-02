@@ -1,5 +1,9 @@
 package com.devarena.repositories;
 
+import com.devarena.dtos.questions.ExampleDto;
+import com.devarena.dtos.questions.QuestionCardDto;
+import com.devarena.dtos.questions.QuestionDto;
+import com.devarena.dtos.questions.Testcase;
 import com.devarena.models.Question;
 import com.devarena.models.QuestionDifficulty;
 import com.devarena.models.User;
@@ -22,36 +26,18 @@ public interface IQuestionRepo extends JpaRepository<Question, UUID> {
 
     Optional<Question> findByQuestionSlug(String slug);
 
-    List<Question> findAllByOwner(User owner);
 
-    Optional<Question> findByQuestionSlugAndOwner(
-            String slug
-            , User owner);
 
 //    Optional<Question> findByQuestionSlugAndDeletedFalse(String questionSlug);
 
-    Page<Question> findAllByDeletedFalseAndOwner(User owner, Pageable pageable);
-
-    Optional<Question> findByQuestionSlugAndOwnerAndDeletedFalse(String slug, User owner);
 
     List<Question> findAllByOwnerAndDeletedFalse(User owner);
 
-    Page<Question> findAllByOwnerAndDeletedFalse(User owner, Pageable pageable);
-
-    Page<Question> findAllByOwnerAndDifficultyAndDeletedFalse(User owner, QuestionDifficulty difficulty, Pageable pageable);
 
     long countByDifficultyAndDeletedFalse(QuestionDifficulty difficulty);
 
 
     Optional<Question> findByQuestionSlugAndDeletedFalse(String slug);
-
-    Optional<Question> findByQuestionSlugAndOwnerOrModifiersContainingAndDeletedFalse(
-            String slug,
-            User owner,
-            User modifier
-    );
-
-
 
     @Query("""
     SELECT DISTINCT q FROM Question q
@@ -71,4 +57,97 @@ public interface IQuestionRepo extends JpaRepository<Question, UUID> {
 
 
     Question findByQuestionSlugAndModifiersContains(String slug, User user);
+
+    @Query("""
+        SELECT new com.devarena.dtos.questions.QuestionCardDto(
+            q.questionSlug,
+            q.title,
+            q.description,
+            q.difficulty,
+            q.constraints
+        )
+        FROM Question q
+        LEFT JOIN q.modifiers m
+        WHERE q.deleted = false
+        AND (
+            q.owner.userId = :userId
+            OR m.userId = :userId
+        )
+        AND (:difficulty IS NULL OR q.difficulty = :difficulty)
+        """)
+    Page<QuestionCardDto> findAllAccessibleProjected(
+            @Param("userId") UUID userId,
+            @Param("difficulty") QuestionDifficulty difficulty,
+            Pageable pageable
+    );
+
+    @Query("""
+        SELECT m.email
+        FROM Question q
+        JOIN q.modifiers m
+        WHERE q.questionSlug = :slug
+        AND q.deleted = false
+        """)
+    List<String> findModifierEmailsBySlug(@Param("slug") String slug);
+
+    @Query("""
+    SELECT t
+    FROM Question q
+    JOIN q.sampleTestcases t
+    WHERE q.questionSlug = :slug
+""")
+    List<Testcase> findSampleTestcasesBySlug(@Param("slug") String slug);
+
+    @Query("""
+    SELECT t
+    FROM Question q
+    JOIN q.hiddenTestcases t
+    WHERE q.questionSlug = :slug
+""")
+    List<Testcase> findHiddenTestcasesBySlug(@Param("slug") String slug);
+
+    @Query("""
+        SELECT new com.devarena.dtos.questions.QuestionDto(
+            q.questionSlug,
+            q.title,
+            q.description,
+            q.difficulty,
+            q.constraints
+        )
+        FROM Question q
+        WHERE q.questionSlug = :slug
+        AND q.deleted = false
+        """)
+    Optional<QuestionDto> findQuestionDtoBySlug(@Param("slug") String slug);
+
+    @Query("""
+        SELECT COUNT(q) > 0
+        FROM Question q
+        WHERE q.questionSlug = :slug
+        AND q.owner.userId = :userId
+        """)
+    boolean existsByQuestionSlugAndOwnerUserId(
+            @Param("slug") String slug,
+            @Param("userId") UUID userId
+    );
+
+    @Query("""
+    SELECT q
+    FROM Question q
+    WHERE q.questionSlug = :slug
+    AND q.deleted = false
+    AND (
+        q.owner.userId = :userId
+        OR EXISTS (
+            SELECT 1
+            FROM q.modifiers m
+            WHERE m.userId = :userId
+        )
+    )
+""")
+    Optional<Question> findAccessibleBySlug(
+            @Param("slug") String slug,
+            @Param("userId") UUID userId
+    );
+
 }

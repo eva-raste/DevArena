@@ -4,7 +4,6 @@ import com.devarena.dtos.questions.QuestionCardDto;
 import com.devarena.dtos.questions.QuestionCreateDto;
 import com.devarena.dtos.questions.QuestionDto;
 import com.devarena.dtos.questions.Testcase;
-import com.devarena.dtos.users.UserVerifyDto;
 import com.devarena.exception.testcases.TestcaseApiException;
 import com.devarena.exception.testcases.TestcaseErrorCode;
 import com.devarena.models.*;
@@ -12,14 +11,12 @@ import com.devarena.repositories.IQuestionRepo;
 import com.devarena.repositories.UserRepository;
 import com.devarena.service.interfaces.IQuesitonService;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
 import lombok.Data;
-import org.modelmapper.ModelMapper;
-import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
@@ -31,7 +28,6 @@ public class QuestionServiceImpl implements IQuesitonService {
     private final UserRepository userRepo;
 
     private final IQuestionRepo questionRepo;
-    private final ModelMapper modelMapper;
     @Transactional
     @Override
     public QuestionCreateDto createQuestion(
@@ -39,8 +35,7 @@ public class QuestionServiceImpl implements IQuesitonService {
             User owner
     ) {
 
-        Question newquestion = modelMapper.map(dto, Question.class);
-        newquestion.setModifiers(new ArrayList<>());
+        Question newquestion = mapToEntity(dto, owner);        newquestion.setModifiers(new ArrayList<>());
 
         validateTestcases(newquestion.getHiddenTestcases());
         validateTestcases(newquestion.getSampleTestcases());
@@ -66,67 +61,105 @@ public class QuestionServiceImpl implements IQuesitonService {
 
         questionRepo.save(newquestion);
 
-        return modelMapper.map(newquestion, QuestionCreateDto.class);
-    }
+        return mapToCreateDto(newquestion);    }
 
 
-
+    @Transactional(readOnly = true)
     public Page<QuestionDto> getAllQuestions(
             Pageable pageable,
             UUID userId,
             QuestionDifficulty difficulty
     ) {
-        Page<Question> page = questionRepo
-                .findAllAccessibleByUser(userId,difficulty, pageable);
+        Page<QuestionCardDto> page =
+                questionRepo.findAllAccessibleProjected(userId, difficulty, pageable);
 
-        return page.map(q -> {
-            QuestionDto dto = modelMapper.map(q, QuestionDto.class);
-
-            dto.setRole(resolveRole(q, userRepo.findById(userId).orElseThrow()));
-            dto.setModifiers(extractModifierEmails(q));
-
-            return dto;
-        });
+        return page.map(card -> toQuestionDtoFromCard(card, userId));
     }
 
-
-
+    @Transactional
     @Override
     public boolean existsByQuestionSlug(String questionSlug) {
         return questionRepo.existsByQuestionSlug(questionSlug);
     }
 
+    @Transactional(readOnly = true)
     @Override
     public QuestionDto findByQuestionSlugAndDeletedFalse(String slug) {
-        return modelMapper.map(questionRepo.findByQuestionSlugAndDeletedFalse(slug),QuestionDto.class);
-
-    }
-
-    @Override
-    public QuestionDto findByQuestionSlug(String slug, User currentUser) {
 
         Question question = questionRepo
                 .findByQuestionSlugAndDeletedFalse(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Question not found"));
 
-        String role = resolveRole(question, currentUser);
+        return mapToQuestionDto(question, "OWNER"); // or compute properly
+    }
 
-        if (role == null) {
+//    @Override
+//    public QuestionDto findByQuestionSlug(String slug, User currentUser) {
+//
+//        Question question = questionRepo
+//                .findByQuestionSlugAndDeletedFalse(slug)
+//                .orElseThrow(() -> new EntityNotFoundException("Question not found"));
+//
+//        String role = resolveRole(question, currentUser);
+//
+//        if (role == null) {
+//            throw new ResponseStatusException(
+//                    HttpStatus.FORBIDDEN,
+//                    "NO_ACCESS"
+//            );
+//        }
+//
+//        QuestionDto dto = modelMapper.map(question, QuestionDto.class);
+//        dto.setRole(role);
+//        dto.setModifiers(extractModifierEmails(question));
+//
+//        System.out.println("Owner ID: " + question.getOwner().getUserId());
+//        System.out.println("CurrentUser ID: " + currentUser.getUserId());
+//
+//        return dto;
+//    }
+
+    @Transactional(readOnly = true)
+    public QuestionDto findByQuestionSlug(String slug, User currentUser) {
+
+        QuestionDto dto = questionRepo.findQuestionDtoBySlug(slug)
+                .orElseThrow(() -> new EntityNotFoundException("Question not found"));
+
+        List<String> modifiers =
+                questionRepo.findModifierEmailsBySlug(slug);
+
+        boolean isOwner = questionRepo.existsByQuestionSlugAndOwnerUserId(slug, currentUser.getUserId());
+
+        boolean isModifier = modifiers.contains(currentUser.getEmail());
+
+        if (!isOwner && !isModifier) {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN,
                     "NO_ACCESS"
             );
         }
 
-        QuestionDto dto = modelMapper.map(question, QuestionDto.class);
-        dto.setRole(role);
-        dto.setModifiers(extractModifierEmails(question));
+        dto.setRole(isOwner ? "OWNER" : "MODIFIER");
 
-        System.out.println("Owner ID: " + question.getOwner().getUserId());
-        System.out.println("CurrentUser ID: " + currentUser.getUserId());
+        dto.setModifiers(modifiers);
+
+        List<Testcase> sample =
+                questionRepo.findSampleTestcasesBySlug(slug);
+
+        List<Testcase> hidden =
+                questionRepo.findHiddenTestcasesBySlug(slug);
+
+// Sort safely here
+        sample.sort(Comparator.comparingInt(Testcase::getOrder));
+        hidden.sort(Comparator.comparingInt(Testcase::getOrder));
+
+        dto.setSampleTestcases(sample);
+        dto.setHiddenTestcases(hidden);
 
         return dto;
     }
+
+    @Transactional(readOnly = true)
     public QuestionCardDto fetchContestQuestion(String questionSlug, String roomId, User user) {
         Question ques = questionRepo.findByQuestionSlug(questionSlug)
                 .orElseThrow(() -> new EntityNotFoundException("Question not found"));
@@ -166,20 +199,56 @@ public class QuestionServiceImpl implements IQuesitonService {
 //        }
 
 
-        return modelMapper.map(ques,QuestionCardDto.class);
+        return mapToCardDto(ques);
     }
 
+//    @Transactional(readOnly = true)
+//    @Override
+//    public QuestionDto findByQuestionSlugAndModifier(String slug, User user) {
+//        Question ques = questionRepo.findByQuestionSlugAndModifiersContains(slug,user);
+//
+//        if(ques == null)
+//        {
+//            throw new EntityNotFoundException("Question not found");
+//        }
+//
+//        String role = resolveRole(ques, user);
+//        System.out.println("role from findByQuestionSlugAndModifier "+ role);
+//        if (role == null) {
+//            throw new ResponseStatusException(
+//                    HttpStatus.FORBIDDEN,
+//                    "NO_ACCESS"
+//            );
+//        }
+//
+//        return mapToQuestionDto(ques, role);
+////        QuestionDto dto = modelMapper.map(ques, QuestionDto.class);
+////
+////        List<String> modifierEmails = ques.getModifiers()
+////                .stream()
+////                .map(User::getEmail)
+////                .toList();
+////
+////        dto.setModifiers(modifierEmails);
+////        System.out.println(dto.getRole());
+////        return dto;
+//
+//    }
+
+    @Transactional(readOnly = true)
     @Override
     public QuestionDto findByQuestionSlugAndModifier(String slug, User user) {
-        Question ques = questionRepo.findByQuestionSlugAndModifiersContains(slug,user);
 
-        if(ques == null)
-        {
-            throw new EntityNotFoundException("Question not found");
-        }
+        Question ques = questionRepo
+                .findAccessibleBySlug(slug, user.getUserId())
+                .orElseThrow(() ->
+                        new EntityNotFoundException(
+                                "Question not found or access denied for slug: " + slug
+                        )
+                );
 
         String role = resolveRole(ques, user);
-        System.out.println("role from findByQuestionSlugAndModifier "+ role);
+
         if (role == null) {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN,
@@ -187,25 +256,10 @@ public class QuestionServiceImpl implements IQuesitonService {
             );
         }
 
-        QuestionDto dto = modelMapper.map(ques, QuestionDto.class);
-        dto.setRole(role);
-        dto.setModifiers(extractModifierEmails(ques));
-
-        return dto;
-//        QuestionDto dto = modelMapper.map(ques, QuestionDto.class);
-//
-//        List<String> modifierEmails = ques.getModifiers()
-//                .stream()
-//                .map(User::getEmail)
-//                .toList();
-//
-//        dto.setModifiers(modifierEmails);
-//        System.out.println(dto.getRole());
-//        return dto;
-
+        return mapToQuestionDto(ques, role);
     }
 
-
+    @Transactional(readOnly = true)
     @Override
     public QuestionCardDto getCardByQuestionSlug(
             String slug,
@@ -234,25 +288,17 @@ public class QuestionServiceImpl implements IQuesitonService {
             );
         }
 
-        QuestionCardDto dto = modelMapper.map(question, QuestionCardDto.class);
-
-        dto.setModifiers(extractModifierEmails(question));
-        System.out.println("from getCardByQuestionSlug ");
-        return dto;
+        return mapToCardDto(question);
     }
 
 
 
+    @Transactional(readOnly = true)
     @Override
     public List<QuestionDto> getAllQuestionsByUser(User owner) {
         List<Question> qu = questionRepo.findAllByOwnerAndDeletedFalse(owner);
         return qu.stream().map(q -> {
-            QuestionDto dto = modelMapper.map(q, QuestionDto.class);
-
-            dto.setRole("OWNER");
-            dto.setModifiers(extractModifierEmails(q));
-
-            return dto;
+            return mapToQuestionDto(q, "OWNER");
         }).toList();
     }
 
@@ -323,12 +369,8 @@ public class QuestionServiceImpl implements IQuesitonService {
                 );
             }
         }
-        QuestionDto updatedDto = modelMapper.map(question, QuestionDto.class);
-
-        updatedDto.setRole(resolveRole(question, currentUser));
-        updatedDto.setModifiers(extractModifierEmails(question));
-
-        return updatedDto;
+        String role = resolveRole(question, currentUser);
+        return mapToQuestionDto(question, role);
     }
 
 
@@ -476,5 +518,132 @@ public class QuestionServiceImpl implements IQuesitonService {
         return null;
     }
 
+    private Question mapToEntity(QuestionCreateDto dto, User owner) {
 
+        Question question = new Question();
+
+        question.setQuestionSlug(dto.getQuestionSlug());
+        question.setTitle(dto.getTitle());
+        question.setDescription(dto.getDescription());
+        question.setDifficulty(dto.getDifficulty());
+        question.setConstraints(dto.getConstraints());
+        question.setOwner(owner);
+
+        question.setSampleTestcases(
+                new ArrayList<>(dto.getSampleTestcases())
+        );
+
+        question.setHiddenTestcases(
+                new ArrayList<>(dto.getHiddenTestcases())
+        );
+
+        question.setModifiers(new ArrayList<>());
+
+        return question;
+    }
+
+    private QuestionCreateDto mapToCreateDto(Question question) {
+
+        QuestionCreateDto dto = new QuestionCreateDto();
+
+        dto.setQuestionSlug(question.getQuestionSlug());
+        dto.setTitle(question.getTitle());
+        dto.setDescription(question.getDescription());
+        dto.setDifficulty(question.getDifficulty());
+        dto.setConstraints(question.getConstraints());
+        dto.setSampleTestcases(question.getSampleTestcases());
+        dto.setHiddenTestcases(question.getHiddenTestcases());
+
+        dto.setModifiers(
+                question.getModifiers()
+                        .stream()
+                        .map(User::getEmail)
+                        .toList()
+        );
+
+        return dto;
+    }
+
+    private QuestionDto mapToQuestionDto(Question question, String role) {
+
+        QuestionDto dto = new QuestionDto();
+
+        dto.setQuestionSlug(question.getQuestionSlug());
+        dto.setTitle(question.getTitle());
+        dto.setDescription(question.getDescription());
+        dto.setDifficulty(question.getDifficulty());
+        dto.setConstraints(question.getConstraints());
+        dto.setRole(role);
+
+        dto.setSampleTestcases(question.getSampleTestcases());
+        dto.setHiddenTestcases(question.getHiddenTestcases());
+
+        dto.setModifiers(
+                question.getModifiers()
+                        .stream()
+                        .filter(u -> !u.getUserId()
+                                .equals(question.getOwner().getUserId()))
+                        .map(User::getEmail)
+                        .toList()
+        );
+
+        return dto;
+    }
+
+    private QuestionCardDto mapToCardDto(Question question) {
+
+        QuestionCardDto dto = new QuestionCardDto();
+
+        dto.setQuestionSlug(question.getQuestionSlug());
+        dto.setTitle(question.getTitle());
+        dto.setDescription(question.getDescription());
+        dto.setDifficulty(question.getDifficulty());
+        dto.setConstraints(question.getConstraints());
+        dto.setSampleTestcases(question.getSampleTestcases());
+
+        dto.setModifiers(
+                question.getModifiers()
+                        .stream()
+                        .filter(u -> !u.getUserId()
+                                .equals(question.getOwner().getUserId()))
+                        .map(User::getEmail)
+                        .toList()
+        );
+
+        return dto;
+    }
+
+    private QuestionDto toQuestionDtoFromCard(
+            QuestionCardDto card,
+            UUID currentUserId
+    ) {
+        QuestionDto dto = new QuestionDto();
+
+        dto.setQuestionSlug(card.getQuestionSlug());
+        dto.setTitle(card.getTitle());
+        dto.setDescription(card.getDescription());
+        dto.setDifficulty(card.getDifficulty());
+        dto.setConstraints(card.getConstraints());
+
+        // Listing → no testcases
+        dto.setSampleTestcases(null);
+        dto.setHiddenTestcases(null);
+
+        // Modifiers
+        List<String> modifiers =
+                questionRepo.findModifierEmailsBySlug(card.getQuestionSlug());
+
+        dto.setModifiers(modifiers);
+
+        // Role
+        boolean isOwner =
+                questionRepo.existsByQuestionSlugAndOwnerUserId(
+                        card.getQuestionSlug(),
+                        currentUserId
+                );
+
+        dto.setRole(isOwner ? "OWNER" : "MODIFIER");
+
+        return dto;
+    }
 }

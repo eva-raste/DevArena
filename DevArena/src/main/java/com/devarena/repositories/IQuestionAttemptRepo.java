@@ -17,9 +17,6 @@ public interface IQuestionAttemptRepo  extends JpaRepository<QuestionAttempt, UU
             Question question
     );
 
-    List<QuestionAttempt> findByParticipation(
-            ContestParticipation participation
-    );
 
         @Query("""
         SELECT qa

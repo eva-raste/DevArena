@@ -481,17 +481,6 @@ public class ContestServiceImpl implements IContestService {
 
 
 
-    private QuestionDto toQuestionDto(Question question) {
-        QuestionDto dto = new QuestionDto();
-        dto.setQuestionSlug(question.getQuestionSlug());
-        dto.setHiddenTestcases(question.getHiddenTestcases());
-        dto.setSampleTestcases(question.getSampleTestcases());
-        dto.setConstraints(question.getConstraints());
-        dto.setDifficulty(question.getDifficulty());
-        dto.setTitle(question.getTitle());
-        dto.setDescription(question.getDescription());
-        return dto;
-    }
 
     private ContestResponseDto toResponseDto(Contest contest, User currentUser) {
 
