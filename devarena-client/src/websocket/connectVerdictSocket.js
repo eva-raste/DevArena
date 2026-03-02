@@ -1,4 +1,5 @@
 import { Client } from "@stomp/stompjs";
+const url = import.meta.env.VITE_API_BASE_URL;
 
 export function connectVerdictSocket(
   roomId,
@@ -6,7 +7,7 @@ export function connectVerdictSocket(
   onVerdict
 ) {
   const client = new Client({
-    brokerURL: "ws://localhost:8080/ws",
+    brokerURL: `${url}/ws`,
     reconnectDelay: 5000,
 
     onConnect: () => {

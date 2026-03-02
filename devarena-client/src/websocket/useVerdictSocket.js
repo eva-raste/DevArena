@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Client } from "@stomp/stompjs";
+const url = import.meta.env.VITE_API_BASE_URL;
 
 /**
  * Subscribes to verdict updates for a contest question
@@ -18,7 +19,7 @@ export function useVerdictSocket(roomId, questionSlug, currentUserId) {
     if (!roomId || !questionSlug || !currentUserId) return;
 
     const client = new Client({
-      brokerURL: "ws://localhost:8080/ws",
+    brokerURL: `${url}/ws`,
       reconnectDelay: 5000,
       debug: (str) => console.log(str),
 

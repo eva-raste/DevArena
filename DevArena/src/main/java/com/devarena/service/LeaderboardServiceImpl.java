@@ -102,8 +102,8 @@ public class LeaderboardServiceImpl implements ILeaderboardService {
         attempt.setAcceptedAt(now);
 
         //  Fetch question score from contest mapping
-        int score = contestQuestionRepo
-                .findByContest_ContestIdAndQuestion_QuestionId(
+        Integer score = contestQuestionRepo
+                .findScoreByContestAndQuestion(
                         contest.getContestId(),
                         question.getQuestionId()
                 );

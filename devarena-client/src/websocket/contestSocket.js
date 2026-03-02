@@ -1,8 +1,9 @@
 import { Client } from "@stomp/stompjs";
+const url = import.meta.env.VITE_API_BASE_URL;
 
 export function connectContestSocket(onEvent) {
   const client = new Client({
-    brokerURL: "ws://localhost:8080/ws",
+    brokerURL: `${url}/ws`,
     reconnectDelay: 5000,
     //debug: (str) => console.log("[STOMP]", str),
 
