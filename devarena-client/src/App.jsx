@@ -12,7 +12,7 @@ import { useLoader } from "./components/loader/LoaderContext";
 import GlobalLoader from "./components/loader/GlobalLoader";
 import EditContestPage from "./components/contest/EditContestPage";
 import Dashboard from "./components/dashboard/Dashboard";
-import Profile from "./components/Profile";
+import Profile from "./components/profile";
 import EditQuestionForm from "./components/question/EditQuestionForm.jsx";
 import ContestProblemPage from "./components/contest/ContestProblemPage";
 import ContestLayout from "./components/contest/ContestLayout";
