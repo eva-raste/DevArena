@@ -310,11 +310,15 @@ function Navbar() {
 
         <div className="nav-inner">
           {/* Logo */}
-          <Link to="/" className="nav-logo">
-            <div className="nav-logo-icon">
-              <Code2 size={15} color="#fff" strokeWidth={2.5} />
-            </div>
-            <span className="nav-logo-text">Dev<em>Arena</em></span>
+          <Link to="/" className="flex items-center gap-2">
+            <img
+              src="/logo-badge.png"
+              alt="DevArena Logo"
+              className="h-10 w-10 object-contain"
+            />
+            <span className="text-lg font-bold tracking-tight">
+              Dev<span className="text-blue-500">Arena</span>
+            </span>
           </Link>
 
           {/* Desktop links */}
