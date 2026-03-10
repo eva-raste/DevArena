@@ -26,7 +26,7 @@ public class ContestLifecycleService {
         if (contest.getStatus() != ContestStatus.SCHEDULED) return;
 
         contest.setStatus(ContestStatus.LIVE);
-
+        contestRepo.save(contest);
         eventPublisher.publishContestStatus(
                 roomId,
                 ContestStatus.LIVE,
@@ -43,7 +43,7 @@ public class ContestLifecycleService {
         if (contest.getStatus() == ContestStatus.ENDED) return;
 
         contest.setStatus(ContestStatus.ENDED);
-
+        contestRepo.save(contest);
         eventPublisher.publishContestStatus(
                 roomId,
                 ContestStatus.ENDED,
@@ -65,7 +65,7 @@ public class ContestLifecycleService {
 
         if (contest.getStatus() != correct) {
             contest.setStatus(correct);
-
+            contestRepo.save(contest);
             eventPublisher.publishContestStatus(
                     contest.getRoomId(),
                     correct,

@@ -101,7 +101,7 @@ public class ContestServiceImpl implements IContestService {
 
         // Prevent duplicate emails
         List<String> modifierEmails =
-                Optional.ofNullable(req.getModifierEmails())
+                Optional.ofNullable(req.getModifiers())
                         .orElse(Collections.emptyList());
 
         Set<String> uniqueEmails = new HashSet<>(modifierEmails);
@@ -123,10 +123,11 @@ public class ContestServiceImpl implements IContestService {
             );
         }
 
-
+        System.out.println(" owner id "+ owner.getUsername());
+        System.out.println("modifiers id ");
         // Prevent owner from being added
         for (User modifier : modifiers) {
-            System.out.println(modifier.getDisplayName());
+            System.out.println(modifier.getUsername());
             if (modifier.getUserId().equals(owner.getUserId())) {
                 throw new ResponseStatusException(
                         HttpStatus.BAD_REQUEST,

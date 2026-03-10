@@ -33,7 +33,9 @@ public class ContestSchedulerRecovery {
         for (Contest contest : contestRepo.findAll()) {
 
             lifecycleService.reconcileContest(contest, now);
-            scheduler.scheduleContest(contest);
+            if (contest.getStatus() != ContestStatus.ENDED) {
+                scheduler.scheduleContest(contest);
+            }
         }
     }
 }
