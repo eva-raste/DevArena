@@ -28,7 +28,7 @@ export default function EditContestPage() {
         startTime: contest.startTime ?? "",
         endTime: contest.endTime ?? "",
       })
-
+        console.log("Loaded contest for editing", contest)
       // backend already gives QuestionDto list
         setInitialQuestions(contest.questions ?? [])
         setInitialModifiers(contest.modifiers ?? [])

@@ -10,6 +10,7 @@ import {
   saveDraft,
   fetchDraft,
 } from "../../apis/question-api";
+import { fetchContestByIdApi } from "../../apis/contest-api";
 import * as monaco from "monaco-editor";
 import { useThemeStore } from "@/store/useThemeStore";
 import getDifficultyColor from "../helpers/colorDifficulty";
@@ -17,48 +18,151 @@ import { VERDICT_STYLES } from "../helpers/colorVerdict";
 
 const MAX_TESTCASES = 6;
 
-const QuestionSolve = () => {
+/* ─────────────────────────────────────────────
+   TIMER HELPERS  (same logic as ContestsPage)
+───────────────────────────────────────────── */
+const formatRemaining = (targetMs, nowMs) => {
+  let diff = Math.max(0, targetMs - nowMs);
+  if (diff === 0) return "00s";
 
+  const units = [
+    { label: "y",  ms: 1000 * 60 * 60 * 24 * 365 },
+    { label: "mo", ms: 1000 * 60 * 60 * 24 * 30  },
+    { label: "d",  ms: 1000 * 60 * 60 * 24        },
+    { label: "h",  ms: 1000 * 60 * 60              },
+    { label: "m",  ms: 1000 * 60                   },
+    { label: "s",  ms: 1000                         },
+  ];
+
+  const parts = [];
+  for (const u of units) {
+    const v = Math.floor(diff / u.ms);
+    if (v > 0) {
+      parts.push(`${v}${u.label}`);
+      diff %= u.ms;
+    }
+  }
+  return parts.join(" ");
+};
+
+/* ─────────────────────────────────────────────
+   CONTEST TIMER COMPONENT
+   • Only renders when roomId is present
+   • Fetches the contest once, derives targetMs
+   • Shows "Starts in" / "Ends in" / "Ended"
+   • Same badge style as ContestsPage LIVE pulse
+
+   WHY THIS SOLVES THE "SAME QUESTION IN TWO CONTESTS" PROBLEM:
+   The timer reads `roomId` from the URL params.
+   Each contest has its own roomId, so navigating to
+     /contests/roomA/solve/two-sum  →  shows Contest A's timer
+     /contests/roomB/solve/two-sum  →  shows Contest B's timer
+   No ambiguity. The question slug is irrelevant to the timer;
+   only the roomId determines which contest clock is shown.
+───────────────────────────────────────────── */
+const ContestTimer = ({ roomId }) => {
+  const [contest, setContest]   = useState(null);
+  const [now, setNow]           = useState(Date.now());
+
+  // Fetch contest metadata once
+  useEffect(() => {
+    if (!roomId) return;
+    fetchContestByIdApi(roomId)
+      .then(setContest)
+      .catch((err) => console.error("Timer: failed to fetch contest", err));
+  }, [roomId]);
+
+  // Tick every second
+  useEffect(() => {
+    if (!contest) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [contest]);
+
+  if (!contest) return null;
+
+  const status    = contest.status;            // SCHEDULED | LIVE | ENDED | DRAFT
+  const startMs   = contest.startTime ? new Date(contest.startTime).getTime() : null;
+  const endMs     = contest.endTime   ? new Date(contest.endTime).getTime()   : null;
+
+  // Determine what to display
+  let label    = "";
+  let timeStr  = "";
+  let timerCls = "";
+
+  if (status === "SCHEDULED" && startMs) {
+    label    = "Starts in";
+    timeStr  = formatRemaining(startMs, now);
+    timerCls = "text-blue-400";
+  } else if (status === "LIVE" && endMs) {
+    const remaining = Math.max(0, endMs - now);
+    label    = "Ends in";
+    timeStr  = remaining === 0 ? "Ended" : formatRemaining(endMs, now);
+    // Turn red when < 5 minutes
+    timerCls = remaining < 5 * 60 * 1000 ? "text-red-400 animate-pulse" : "text-emerald-400";
+  } else if (status === "ENDED") {
+    label    = "Contest";
+    timeStr  = "Ended";
+    timerCls = "text-muted-foreground";
+  } else {
+    return null; // DRAFT – nothing to show
+  }
+
+  return (
+    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-card">
+      {status === "LIVE" && (
+        <span className="relative flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+        </span>
+      )}
+      <span className="text-xs text-muted-foreground font-medium">{label}:</span>
+      <span className={`font-mono text-sm font-bold ${timerCls}`}>{timeStr}</span>
+    </div>
+  );
+};
+
+/* ─────────────────────────────────────────────
+   MAIN COMPONENT
+───────────────────────────────────────────── */
+const QuestionSolve = () => {
   const { roomId, slug } = useParams();
 
-  const [question, setQuestion] = useState(null);
-  const [language, setLanguage] = useState("cpp");
-  const [error, setError] = useState(null);
+  const [question, setQuestion]           = useState(null);
+  const [language, setLanguage]           = useState("cpp");
+  const [error, setError]                 = useState(null);
   const [customTestcases, setCustomTestcases] = useState([]);
-  const [testResults, setTestResults] = useState([]);
-  const [selectedCase, setSelectedCase] = useState(1);
-  const [verdict, setVerdict] = useState(null);
-  const [passedCount, setPassedCount] = useState(0);
-  const [totalCount, setTotalCount] = useState(0);
+  const [testResults, setTestResults]     = useState([]);
+  const [selectedCase, setSelectedCase]   = useState(1);
+  const [verdict, setVerdict]             = useState(null);
+  const [passedCount, setPassedCount]     = useState(0);
+  const [totalCount, setTotalCount]       = useState(0);
   const [showSubmissions, setShowSubmissions] = useState(false);
   const [mySubmissions, setMySubmissions] = useState([]);
-  const [errmsg, setErrmsg] = useState("");
+  const [errmsg, setErrmsg]               = useState("");
 
-  const editorRef = useRef(null);
-  const monacoEditor = useRef(null);
-  const lastSavedRef = useRef("");
-  const draftLoadedRef = useRef(false);
+  const editorRef       = useRef(null);
+  const monacoEditor    = useRef(null);
+  const lastSavedRef    = useRef("");
+  const draftLoadedRef  = useRef(false);
   const isDark = useThemeStore((s) => s.isDark);
 
   const fallbackTemplates = {
-    c: `#include <stdio.h>\n\nint main() {\n    return 0;\n}`,
+    c:   `#include <stdio.h>\n\nint main() {\n    return 0;\n}`,
     cpp: `#include <iostream>\nusing namespace std;\n\nint main() {\n    return 0;\n}`,
   };
 
+  // ── load question ──────────────────────────────────────────
   useEffect(() => {
     const loadQuestion = async () => {
       try {
-        let data = undefined;
-        if(roomId)
-        {
-          data = await fetchContestQuestion(roomId , slug);
-          console.log("coming from conets");
-        }else{
-
+        let data;
+        if (roomId) {
+          data = await fetchContestQuestion(roomId, slug);
+        } else {
           data = await fetchQuestionCard(slug);
         }
-        if(data)
-          setQuestion(data);
+        if (data) setQuestion(data);
       } catch {
         setError("Question not found");
       }
@@ -66,90 +170,73 @@ const QuestionSolve = () => {
     loadQuestion();
   }, [roomId, slug]);
 
+  // ── draft helpers ──────────────────────────────────────────
   const loadInitialCode = async () => {
     if (!question) return fallbackTemplates[language];
-
     try {
       const code = await fetchDraft({
         questionSlug: question.questionSlug,
         language,
         roomId: roomId ?? null,
       });
-
       if (code) return code;
-
       return question.codeMap?.[language] || fallbackTemplates[language];
-    } catch (err) {
-      console.error("Error loading draft:", err);
+    } catch {
       return question.codeMap?.[language] || fallbackTemplates[language];
     }
   };
 
+  // ── monaco init ────────────────────────────────────────────
   useEffect(() => {
     if (!editorRef.current || monacoEditor.current || !question) return;
-
     monacoEditor.current = monaco.editor.create(editorRef.current, {
-      value: fallbackTemplates[language],
+      value:            fallbackTemplates[language],
       language,
-      theme: isDark ? "vs-dark" : "vs-light",
-      automaticLayout: true,
-      minimap: { enabled: false },
+      theme:            isDark ? "vs-dark" : "vs-light",
+      automaticLayout:  true,
+      minimap:          { enabled: false },
     });
-
     return () => {
       monacoEditor.current?.dispose();
       monacoEditor.current = null;
     };
   }, [question]);
 
-    useEffect(() => {
-  if (!monacoEditor.current || !question) return;
-
-  const load = async () => {
-    draftLoadedRef.current = false; // reset
-
-    const code = await loadInitialCode();
-    monacoEditor.current.setValue(code);
-    lastSavedRef.current = code;
-
-    draftLoadedRef.current = true; 
-  };
-
-  load();
-}, [question, language, roomId]);
-
   useEffect(() => {
     if (!monacoEditor.current || !question) return;
+    const load = async () => {
+      draftLoadedRef.current = false;
+      const code = await loadInitialCode();
+      monacoEditor.current.setValue(code);
+      lastSavedRef.current = code;
+      draftLoadedRef.current = true;
+    };
+    load();
+  }, [question, language, roomId]);
 
+  // ── auto-save ──────────────────────────────────────────────
+  useEffect(() => {
+    if (!monacoEditor.current || !question) return;
     let timer;
-
     const disposable = monacoEditor.current.onDidChangeModelContent(() => {
       const currentCode = monacoEditor.current.getValue();
-
       clearTimeout(timer);
-
       timer = setTimeout(async () => {
         if (currentCode === lastSavedRef.current) return;
-
         try {
           await saveDraft({
             questionSlug: question.questionSlug,
-            roomId: roomId ?? null,
+            roomId:       roomId ?? null,
             language,
-            code: currentCode,
+            code:         currentCode,
           });
-
           lastSavedRef.current = currentCode;
         } catch (err) {
           console.error("Auto-save failed:", err);
         }
       }, 15000);
     });
-
-    return () => {
-      clearTimeout(timer);
-      disposable.dispose();
-    };
+    return () => { clearTimeout(timer); disposable.dispose(); };
   }, [question, language, roomId]);
 
   useEffect(() => {
@@ -157,68 +244,48 @@ const QuestionSolve = () => {
     monaco.editor.setTheme(isDark ? "vs-dark" : "vs-light");
   }, [isDark]);
 
+  // ── save on tab-switch / page unload ──────────────────────
   useEffect(() => {
     const handleVisibilityChange = async () => {
-      if (document.visibilityState === "hidden") {
-        const code = monacoEditor.current?.getValue();
-        if (!code || !question || code === lastSavedRef.current) return;
-
-        try {
-          await saveDraft({
-            questionSlug: question.questionSlug,
-            roomId: roomId ?? null,
-            language,
-            code,
-          });
-
-          lastSavedRef.current = code;
-        } catch (err) {
-          console.error("Save on tab switch failed:", err);
-        }
-      }
+      if (document.visibilityState !== "hidden") return;
+      const code = monacoEditor.current?.getValue();
+      if (!code || !question || code === lastSavedRef.current) return;
+      try {
+        await saveDraft({ questionSlug: question.questionSlug, roomId: roomId ?? null, language, code });
+        lastSavedRef.current = code;
+      } catch (err) { console.error("Save on tab switch failed:", err); }
     };
-
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () =>
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [question, language, roomId]);
 
   useEffect(() => {
-    const handleBeforeUnload = async (e) => {
+    const handleBeforeUnload = async () => {
       if (!draftLoadedRef.current) return;
       const code = monacoEditor.current?.getValue();
       if (!code || !question || code === lastSavedRef.current) return;
-
       try {
-        await saveDraft({
-          questionSlug: question.questionSlug,
-          roomId: roomId ?? null,
-          language,
-          code,
-        });
-
+        await saveDraft({ questionSlug: question.questionSlug, roomId: roomId ?? null, language, code });
         lastSavedRef.current = code;
-      } catch (err) {
-        console.error("Save on page reload failed:", err);
-      }
+      } catch (err) { console.error("Save on page reload failed:", err); }
     };
-
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [question, language, roomId]);
 
+  // ── testcases ──────────────────────────────────────────────
   const allCases = [
     ...(question?.sampleTestcases || []).map((tc, i) => ({
       caseNumber: i + 1,
-      input: tc.input,
-      expected: tc.output,
-      isCustom: false,
+      input:      tc.input,
+      expected:   tc.output,
+      isCustom:   false,
     })),
     ...customTestcases.map((tc, i) => ({
-      caseNumber: (question?.sampleTestcases?.length || 0) + i + 1,
-      input: tc.input,
-      expected: "-",
-      isCustom: true,
+      caseNumber:  (question?.sampleTestcases?.length || 0) + i + 1,
+      input:       tc.input,
+      expected:    "-",
+      isCustom:    true,
       customIndex: i,
     })),
   ];
@@ -226,10 +293,7 @@ const QuestionSolve = () => {
   const handleAddTestcase = () => {
     if (!question?.sampleTestcases?.length) return;
     if (allCases.length >= MAX_TESTCASES) return;
-    setCustomTestcases((prev) => [
-      ...prev,
-      { input: question.sampleTestcases[0].input },
-    ]);
+    setCustomTestcases((prev) => [...prev, { input: question.sampleTestcases[0].input }]);
     setSelectedCase(allCases.length + 1);
   };
 
@@ -239,87 +303,52 @@ const QuestionSolve = () => {
     setTestResults([]);
   };
 
+  // ── run / submit ───────────────────────────────────────────
+  const saveCurrentCode = async () => {
+    if (!draftLoadedRef.current) return false;
+    const code = monacoEditor.current.getValue();
+    if (code !== lastSavedRef.current) {
+      try {
+        await saveDraft({ questionSlug: question.questionSlug, roomId: roomId ?? null, language, code });
+        lastSavedRef.current = code;
+      } catch (err) { console.error("Save failed:", err); }
+    }
+    return code;
+  };
+
   const handleRun = async () => {
     setVerdict(null);
     setTestResults([]);
-    if (!draftLoadedRef.current) return;
-    const code = monacoEditor.current.getValue();
-
-    if (code !== lastSavedRef.current) {
-      try {
-        await saveDraft({
-          questionSlug: question.questionSlug,
-          roomId: roomId ?? null,
-          language,
-          code,
-        });
-        lastSavedRef.current = code;
-      } catch (err) {
-        console.error("Save on run failed:", err);
-      }
-    }
-
-    const data = await runCode(
-      code,
-      allCases.map((tc) => tc.input)
+    const code = await saveCurrentCode();
+    if (!code) return;
+    const data = await runCode(code, allCases.map((tc) => tc.input));
+    setTestResults(
+      data.results.map((r, i) => ({
+        caseNumber: i + 1,
+        stdout:     r.stdout?.trim() || "",
+        stderr:     r.stderr?.trim() || "",
+      }))
     );
-
-    const results = data.results.map((r, i) => ({
-      caseNumber: i + 1,
-      stdout: r.stdout?.trim() || "",
-      stderr: r.stderr?.trim() || "",
-    }));
-
-    setTestResults(results);
   };
 
   const handleSubmit = async () => {
     if (!question || !monacoEditor.current) return;
-
     setVerdict(null);
-
-    if (!draftLoadedRef.current) return;
-
-    const code = monacoEditor.current.getValue();
-
-    if (code !== lastSavedRef.current) {
-      try {
-        await saveDraft({
-          questionSlug: question.questionSlug,
-          roomId: roomId ?? null,
-          language,
-          code,
-        });
-        lastSavedRef.current = code;
-      } catch (err) {
-        console.error("Save on submit failed:", err);
-      }
-    }
-
-    const submitCases = [
-      ...(question.sampleTestcases ?? []),
-      // ...(question.hiddenTestcases ?? []),
-    ];
-    // console.log(`submitting ${question.questionSlug} for ${roomId}`)
-    const data = await submitCode(
-      question.questionSlug,
-      roomId ?? null,
-      code,
-      // submitCases.map((tc) => tc.input)
+    const code = await saveCurrentCode();
+    if (!code) return;
+    const data = await submitCode(question.questionSlug, roomId ?? null, code);
+    console.log("submit response", data);
+    setTestResults(
+      data.results.map((r, i) => ({
+        caseNumber: i + 1,
+        stdout:     r.stdout?.trim() || "",
+        stderr:     r.stderr?.trim() || "",
+      }))
     );
-    console.log("submit response", data); 
-    const results = data.results.map((r, i) => ({
-      caseNumber: i + 1,
-      stdout: r.stdout?.trim() || "",
-      stderr: r.stderr?.trim() || "",
-    }));
-
-    setTestResults(results);
-    
     setErrmsg(data.errmsg);
     setVerdict(data.verdict);
-    setPassedCount(data.verdict === "ACCEPTED" ? submitCases.length : data.passed);
-    setTotalCount(submitCases.length);
+    setPassedCount(data.passed);
+    setTotalCount(data.total);
   };
 
   const loadMySubmissions = async () => {
@@ -328,6 +357,7 @@ const QuestionSolve = () => {
     setMySubmissions(data);
   };
 
+  // ── render ─────────────────────────────────────────────────
   if (!question && !error) return <div>Loading...</div>;
   if (error) {
     return (
@@ -337,13 +367,21 @@ const QuestionSolve = () => {
     );
   }
 
-  const currentCase = allCases.find((c) => c.caseNumber === selectedCase);
+  const currentCase   = allCases.find((c) => c.caseNumber === selectedCase);
   const currentResult = testResults.find((r) => r.caseNumber === selectedCase);
 
   return (
     <div className="flex h-screen bg-background text-foreground">
+      {/* ── LEFT PANEL ── */}
       <div className="w-1/2 border-r border-border overflow-y-auto p-6">
         <h1 className="text-3xl font-bold mb-2">{question.title}</h1>
+
+        {/* ── CONTEST TIMER — shown at top of question panel when inside a contest ── */}
+        {roomId && (
+          <div className="mb-4">
+            <ContestTimer roomId={roomId} />
+          </div>
+        )}
 
         <button
           onClick={() => {
@@ -371,12 +409,8 @@ const QuestionSolve = () => {
                 <tbody>
                   {mySubmissions.map((s) => (
                     <tr key={s.id} className="border-b border-border">
-                      <td className="py-2">
-                        {new Date(s.submittedAt).toLocaleString()}
-                      </td>
-                      <td className="py-2">
-                        {s.verdict.replaceAll("_", " ")}
-                      </td>
+                      <td className="py-2">{new Date(s.submittedAt).toLocaleString()}</td>
+                      <td className="py-2">{s.verdict.replaceAll("_", " ")}</td>
                       <td className="py-2">{s.score}</td>
                     </tr>
                   ))}
@@ -387,11 +421,7 @@ const QuestionSolve = () => {
         )}
 
         <div className="flex gap-2 mb-4">
-          <span
-            className={`px-2 py-1 rounded text-sm font-semibold ${getDifficultyColor(
-              question.difficulty
-            )}`}
-          >
+          <span className={`px-2 py-1 rounded text-sm font-semibold ${getDifficultyColor(question.difficulty)}`}>
             {question.difficulty}
           </span>
           <span className="px-2 py-1 rounded text-sm bg-muted">
@@ -403,7 +433,7 @@ const QuestionSolve = () => {
           <p>{question.description}</p>
         </div>
 
-        {question.sampleTestcases && question.sampleTestcases.length > 0 && (
+        {question.sampleTestcases?.length > 0 && (
           <div className="mt-6">
             <h3 className="text-lg font-semibold mb-3">Sample Testcases</h3>
             {question.sampleTestcases.map((tc, idx) => (
@@ -411,15 +441,11 @@ const QuestionSolve = () => {
                 <div className="font-semibold mb-2">Example {idx + 1}:</div>
                 <div className="mb-2">
                   <div className="text-sm text-muted-foreground mb-1">Input:</div>
-                  <pre className="bg-background p-2 rounded text-sm overflow-x-auto">
-                    {tc.input}
-                  </pre>
+                  <pre className="bg-background p-2 rounded text-sm overflow-x-auto">{tc.input}</pre>
                 </div>
                 <div>
                   <div className="text-sm text-muted-foreground mb-1">Output:</div>
-                  <pre className="bg-background p-2 rounded text-sm overflow-x-auto">
-                    {tc.output}
-                  </pre>
+                  <pre className="bg-background p-2 rounded text-sm overflow-x-auto">{tc.output}</pre>
                 </div>
               </div>
             ))}
@@ -436,8 +462,11 @@ const QuestionSolve = () => {
         )}
       </div>
 
+      {/* ── RIGHT PANEL ── */}
       <div className="w-1/2 flex flex-col">
-        <div className="p-4 border-b border-border flex items-center justify-between">
+
+        {/* toolbar */}
+        <div className="p-4 border-b border-border flex items-center justify-between gap-3">
           <div>
             Language:
             <select
@@ -449,6 +478,7 @@ const QuestionSolve = () => {
               <option value="cpp">C++</option>
             </select>
           </div>
+
           <div className="flex gap-2">
             <button
               onClick={handleRun}
@@ -466,17 +496,14 @@ const QuestionSolve = () => {
         </div>
 
         {verdict && (
-          <div
-            className={`p-3 text-sm font-semibold ${
-              VERDICT_STYLES[verdict] || "bg-muted"
-            }`}
-          >
+          <div className={`p-3 text-sm font-semibold ${VERDICT_STYLES[verdict] || "bg-muted"}`}>
             {verdict} — Passed {passedCount} / {totalCount} testcases
           </div>
         )}
 
         <div ref={editorRef} className="flex-1" />
 
+        {/* testcase panel */}
         <div className="border-t border-border p-4">
           <div className="flex gap-2 mb-3 overflow-x-auto">
             {allCases.map((tc) => (
@@ -519,9 +546,7 @@ const QuestionSolve = () => {
                   onChange={(e) =>
                     setCustomTestcases((prev) =>
                       prev.map((c, i) =>
-                        i === currentCase.customIndex
-                          ? { ...c, input: e.target.value }
-                          : c
+                        i === currentCase.customIndex ? { ...c, input: e.target.value } : c
                       )
                     )
                   }
@@ -534,15 +559,8 @@ const QuestionSolve = () => {
               )}
 
               <div className="text-sm text-muted-foreground mt-3">Output</div>
-              <pre
-                className={`bg-background p-2 rounded overflow-x-auto text-sm ${
-                  currentResult?.stderr ? "text-destructive" : "text-foreground"
-                }`}
-              >
-                {currentResult?.stderr
-                  ? currentResult.stderr
-                  : currentResult?.stdout || ""}
-
+              <pre className={`bg-background p-2 rounded overflow-x-auto text-sm ${currentResult?.stderr ? "text-destructive" : "text-foreground"}`}>
+                {currentResult?.stderr ? currentResult.stderr : currentResult?.stdout || ""}
                 {errmsg && `\nError: ${errmsg}`}
               </pre>
 

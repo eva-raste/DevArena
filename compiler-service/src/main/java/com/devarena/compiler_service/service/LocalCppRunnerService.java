@@ -4,7 +4,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -12,39 +11,75 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class LocalCppRunnerService {
 
-    private static final long MEMORY_LIMIT_BYTES = 256L * 1024 * 1024; // 256MB
+    private static final long MEMORY_LIMIT_BYTES = 256L * 1024 * 1024;
+    private static final int COMPILE_TIMEOUT_SECONDS = 10;
+    private static final int RUN_TIMEOUT_SECONDS = 5;
 
     public List<Result> executeBatch(String code, List<String> testcases) {
 
         List<Result> results = new ArrayList<>();
+
         String containerName = "cpp-runner-" + System.nanoTime();
-        Path tempDir = null;
 
         try {
-            tempDir = Files.createTempDirectory("cpp");
-            Files.writeString(tempDir.resolve("code.cpp"), code, StandardCharsets.UTF_8);
 
-            // Start container
-            new ProcessBuilder(
+            /* START RUNNER CONTAINER */
+
+            Process startContainer = new ProcessBuilder(
                     "docker", "run", "-dit",
+                    "--rm",
                     "--name", containerName,
-                    "-v", tempDir.toAbsolutePath() + ":/work",
-                    "-w", "/work",
                     "--cpus=1",
                     "--memory=256m",
                     "--pids-limit=64",
                     "--network=none",
-                    "gpp-runner",
+                    "--tmpfs", "/work:exec,size=64m",
+                    "--security-opt=no-new-privileges",
+                    "--cap-drop=ALL",
+                    "evaraste/gpp-runner",
                     "bash"
-            ).start().waitFor();
+            ).start();
 
-            // Compile
+            boolean started = startContainer.waitFor(10, TimeUnit.SECONDS);
+
+            if (!started || startContainer.exitValue() != 0) {
+                results.add(new Result("", "Failed to start runner container"));
+                return results;
+            }
+
+            /* WAIT FOR CONTAINER TO BE READY */
+
+            boolean ready = false;
+            for (int attempt = 0; attempt < 10; attempt++) {
+                Process ping = new ProcessBuilder(
+                        "docker", "exec", containerName, "true"
+                ).start();
+                if (ping.waitFor(2, TimeUnit.SECONDS) && ping.exitValue() == 0) {
+                    ready = true;
+                    break;
+                }
+                Thread.sleep(200);
+            }
+
+            if (!ready) {
+                results.add(new Result("", "Container did not become ready in time"));
+                return results;
+            }
+
+            /* COMPILE: pipe code via stdin to avoid docker cp race condition */
+
             Process compile = new ProcessBuilder(
-                    "docker", "exec", containerName,
-                    "g++", "code.cpp", "-O2", "-std=c++17", "-o", "app"
-            ).redirectErrorStream(true).start();
+                    "docker", "exec", "-i", containerName,
+                    "bash", "-c",
+                    "cat > /work/code.cpp && g++ /work/code.cpp -O2 -std=c++17 -o /work/app 2>&1"
+            ).start();
 
-            boolean compiled = compile.waitFor(10, TimeUnit.SECONDS);
+            // Write source code into the container via stdin
+            try (OutputStream os = compile.getOutputStream()) {
+                os.write(code.getBytes(StandardCharsets.UTF_8));
+            }
+
+            boolean compiled = compile.waitFor(COMPILE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
             if (!compiled) {
                 compile.destroyForcibly();
@@ -59,29 +94,40 @@ public class LocalCppRunnerService {
 
             if (compile.exitValue() != 0) {
                 for (int i = 0; i < testcases.size(); i++) {
-                    results.add(new Result("", compileOutput));
+                    results.add(new Result("", compileOutput.trim()));
                 }
                 return results;
             }
 
-            // Execute testcases
+            /* RUN TESTCASES */
+
             for (String input : testcases) {
 
                 Process run = new ProcessBuilder(
                         "docker", "exec", "-i",
                         containerName,
-                        "timeout", "--signal=SIGKILL", "1s",
-                        "./app"
+                        "bash", "-c",
+                        "cd /work && timeout --signal=SIGKILL 1s ./app"
                 ).start();
 
+                // Write test input to stdin
                 try (OutputStream os = run.getOutputStream()) {
                     os.write(input.getBytes(StandardCharsets.UTF_8));
-                    os.flush();
                 }
 
-                run.waitFor();
-                int exitCode = run.exitValue();
+                // Read stdout and stderr BEFORE waitFor to prevent pipe buffer deadlock
+                byte[] stdoutBytes = run.getInputStream().readAllBytes();
+                byte[] stderrBytes = run.getErrorStream().readAllBytes();
 
+                boolean finished = run.waitFor(RUN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+                if (!finished) {
+                    run.destroyForcibly();
+                    results.add(new Result("", "Time Limit Exceeded"));
+                    continue;
+                }
+
+                int exitCode = run.exitValue();
                 long memoryUsed = readContainerMemory(containerName);
 
                 if (exitCode == 124) {
@@ -95,43 +141,27 @@ public class LocalCppRunnerService {
                     }
                 }
                 else if (exitCode != 0) {
-                    results.add(new Result("", "Runtime Error"));
+                    String stderr = new String(stderrBytes, StandardCharsets.UTF_8).trim();
+                    results.add(new Result("", stderr.isEmpty() ? "Runtime Error" : stderr));
                 }
                 else {
-                    String stdout = new String(
-                            run.getInputStream().readAllBytes(),
-                            StandardCharsets.UTF_8
-                    );
-
-                    String stderr = new String(
-                            run.getErrorStream().readAllBytes(),
-                            StandardCharsets.UTF_8
-                    );
-
-                    results.add(new Result(stdout.trim(), stderr.trim()));
+                    String stdout = new String(stdoutBytes, StandardCharsets.UTF_8).trim();
+                    String stderr = new String(stderrBytes, StandardCharsets.UTF_8).trim();
+                    results.add(new Result(stdout, stderr));
                 }
             }
 
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             results.clear();
             results.add(new Result("", "Execution error: " + e.getMessage()));
-        } finally {
-
+        }
+        finally {
             try {
-                new ProcessBuilder("docker", "rm", "-f", containerName)
-                        .start().waitFor();
+                new ProcessBuilder(
+                        "docker", "rm", "-f", containerName
+                ).start().waitFor();
             } catch (Exception ignored) {}
-
-            if (tempDir != null) {
-                try {
-                    Files.walk(tempDir)
-                            .sorted((a, b) -> b.compareTo(a))
-                            .forEach(path -> {
-                                try { Files.delete(path); }
-                                catch (Exception ignored) {}
-                            });
-                } catch (Exception ignored) {}
-            }
         }
 
         return results;
@@ -144,7 +174,7 @@ public class LocalCppRunnerService {
                     "cat", "/sys/fs/cgroup/memory.current"
             ).start();
 
-            p.waitFor();
+            p.waitFor(2, TimeUnit.SECONDS);
 
             String output = new String(
                     p.getInputStream().readAllBytes(),
@@ -152,13 +182,14 @@ public class LocalCppRunnerService {
             ).trim();
 
             return Long.parseLong(output);
-
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             return 0;
         }
     }
 
     public static class Result {
+
         private String stdout;
         private String stderr;
 
@@ -169,20 +200,9 @@ public class LocalCppRunnerService {
             this.stderr = stderr;
         }
 
-        public String getStdout() {
-            return stdout;
-        }
-
-        public String getStderr() {
-            return stderr;
-        }
-
-        public void setStdout(String stdout) {
-            this.stdout = stdout;
-        }
-
-        public void setStderr(String stderr) {
-            this.stderr = stderr;
-        }
+        public String getStdout() { return stdout; }
+        public String getStderr() { return stderr; }
+        public void setStdout(String stdout) { this.stdout = stdout; }
+        public void setStderr(String stderr) { this.stderr = stderr; }
     }
 }

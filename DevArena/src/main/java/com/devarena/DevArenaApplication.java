@@ -9,7 +9,5 @@ public class DevArenaApplication {
     public static void main(String[] args) {
 
         SpringApplication.run(DevArenaApplication.class, args);
-        String redisUrl = System.getenv("REDIS_URL");
-        System.out.println("REDIS_URL exists? " + (redisUrl != null));
     }
 }

@@ -126,6 +126,7 @@ public class ContestServiceImpl implements IContestService {
 
         // Prevent owner from being added
         for (User modifier : modifiers) {
+            System.out.println(modifier.getDisplayName());
             if (modifier.getUserId().equals(owner.getUserId())) {
                 throw new ResponseStatusException(
                         HttpStatus.BAD_REQUEST,
@@ -174,6 +175,7 @@ public class ContestServiceImpl implements IContestService {
 
         Contest saved = contestRepo.save(contest);
         contestTaskScheduler.scheduleContest(saved);
+
 
         return toContestResponseDto(saved,owner);
     }
@@ -276,6 +278,7 @@ public class ContestServiceImpl implements IContestService {
         }
 
         contest.setDeleted(true);
+        contestTaskScheduler.cancelContestTasks(contest.getRoomId());
         return true;
     }
 
@@ -426,7 +429,7 @@ public class ContestServiceImpl implements IContestService {
             }
         }
         Contest saved = contestRepo.save(contest);
-
+        contestTaskScheduler.scheduleContest(saved);
         return toContestDetailDto(saved, currentUser);
     }
 

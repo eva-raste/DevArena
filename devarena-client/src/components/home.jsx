@@ -33,8 +33,8 @@ function Home() {
         pointerEvents: 'none',
       }} />
 
-      <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh' }}>
-        <div style={{ paddingTop: 88, paddingLeft: 16, paddingRight: 16 }}>
+        <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', overflowX: 'hidden' }}>
+          <div style={{ paddingTop: 88, paddingLeft: 0, paddingRight: 0 }}>
 
           {/* Heading */}
           <div style={{ maxWidth: 1152, margin: '0 auto 48px', textAlign: 'center' }}>

@@ -68,7 +68,7 @@ export const ModifierManager = ({ modifiers = [], setModifiers, role = "OWNER" }
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Enter user email"
-            className="border px-3 py-2 rounded"
+            className="border px-3 py-2 rounded bg-background text-foreground"
           />
           <button
             onClick={handleVerify}

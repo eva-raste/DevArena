@@ -120,7 +120,7 @@ public class SubmissionService implements ISubmissionService {
         List<Testcase> allTestcases = new java.util.ArrayList<>();
         allTestcases.addAll(question.getSampleTestcases());
         allTestcases.addAll(question.getHiddenTestcases());
-
+        System.out.println("hidden testcase size "+question.getHiddenTestcases().size());
 
         Verdict verdict = Verdict.ACCEPTED;
         int passed = 0;
@@ -176,6 +176,8 @@ public class SubmissionService implements ISubmissionService {
             leaderboardService.updateLeaderboardAfterSubmission(contest, question, user, verdict);
         }
 
+        System.out.println("passed "+passed);
+        System.out.println("total "+results.size());
         return Map.of(
                 "verdict", verdict,
                 "results",results,

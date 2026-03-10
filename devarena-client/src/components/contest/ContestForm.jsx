@@ -72,8 +72,7 @@ const ContestForm = ({
     const [timeError, setTimeError] = useState(null)
     const [modifierInput, setModifierInput] = useState("")
     const [modifierError, setModifierError] = useState(null)
-    const [verifying, setVerifying] = useState(false)
-    const [verifiedEmails, setVerifiedEmails] = useState([])
+    
 
     useEffect(() => {
       if (initialModifiers) {
@@ -200,7 +199,7 @@ const ContestForm = ({
             setQuestionError("Duplicate questions are not allowed")
             return
         }
-
+        
         setQuestionError(null)
 
         const payload = {
