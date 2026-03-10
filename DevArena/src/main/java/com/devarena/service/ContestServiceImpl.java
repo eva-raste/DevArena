@@ -123,11 +123,11 @@ public class ContestServiceImpl implements IContestService {
             );
         }
 
-        System.out.println(" owner id "+ owner.getUsername());
-        System.out.println("modifiers id ");
+//        System.out.println(" owner id "+ owner.getUsername());
+//        System.out.println("modifiers id ");
         // Prevent owner from being added
         for (User modifier : modifiers) {
-            System.out.println(modifier.getUsername());
+//            System.out.println(modifier.getUsername());
             if (modifier.getUserId().equals(owner.getUserId())) {
                 throw new ResponseStatusException(
                         HttpStatus.BAD_REQUEST,
@@ -259,19 +259,12 @@ public class ContestServiceImpl implements IContestService {
     @Override
     @Transactional
     public boolean deleteContest(String roomid, User currentUser) {
-        //Contest contest = assertEditable(roomid,owner);
-
-        Contest contest = contestRepo
-                .findByRoomIdAndDeletedFalse(roomid)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "CONTEST_NOT_FOUND"
-                ));
+        Contest contest = assertEditable(roomid,currentUser);
 
         if (!contest.getOwner().equals(currentUser)) {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN,
-                    "ONLY_OWNER_CAN_DELETE"
+                    "NOT_ALLOWED"
             );
         }
         if (contest.isDeleted()) {

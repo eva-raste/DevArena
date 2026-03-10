@@ -149,7 +149,7 @@ public class SubmissionService implements ISubmissionService {
 
         submission.setVerdict(verdict);
 
-        if(contest!=null && !submittedAt.isAfter(contest.getEndTime()) && verdict == Verdict.ACCEPTED)
+        if(contest!=null && contest.getEndTime() != null && !submittedAt.isAfter(contest.getEndTime()))
         {
              int score = contest.getContestQuestions()
                     .stream().filter(cq -> cq.getQuestion().getQuestionId()

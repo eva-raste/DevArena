@@ -53,11 +53,13 @@ export const fetchContestByIdApi = async (roomId) => {
 
 export const deleteContestApi = async (roomId) => {
     try {
+        // console.log("calling backend delete contest with ", roomId);
         const res = await api.delete('/contests', {
-            params: roomId
+            params: { roomId }
         })
     }
-    catch {
+    catch(e) {
+        // console.error(e);
         throw new Error("Could not delete contest...")
     }
 }
