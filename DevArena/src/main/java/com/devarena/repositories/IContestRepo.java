@@ -17,6 +17,13 @@ import java.util.UUID;
 
 public interface IContestRepo extends JpaRepository<Contest, UUID> {
 
+    @Query("""
+    SELECT c FROM Contest c
+    LEFT JOIN FETCH c.owner
+    LEFT JOIN FETCH c.modifiers
+    WHERE c.roomId = :roomId
+    AND c.deleted = false
+    """)
     Optional<Contest> findByRoomIdAndDeletedFalse(String roomid);
 
     boolean existsByRoomId(String roomId);

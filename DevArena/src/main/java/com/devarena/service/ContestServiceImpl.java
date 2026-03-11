@@ -230,8 +230,17 @@ public class ContestServiceImpl implements IContestService {
                 ));
 
 
-        if (!contest.getOwner().equals(currentUser)
-                && !contest.getModifiers().contains(currentUser)) {
+        UUID userId = currentUser.getUserId();
+
+        boolean isOwner =
+                contest.getOwner().getUserId().equals(userId);
+
+        boolean isModifier =
+                contest.getModifiers()
+                        .stream()
+                        .anyMatch(m -> m.getUserId().equals(userId));
+
+        if (!isOwner && !isModifier) {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN,
                     "NOT_ALLOWED"
