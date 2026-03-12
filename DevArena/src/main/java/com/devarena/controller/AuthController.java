@@ -40,6 +40,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<TokenResponse> login(@RequestBody LoginRequest loginRequest)
     {
+        System.out.println(loginRequest.getEmail() +  " " + loginRequest.getPassword());
         Authentication authenticate=authenticate(loginRequest);
         User user=userRepository.findByEmail(loginRequest.getEmail()).orElseThrow(()-> new BadCredentialsException("Invalid username or password"));
         System.out.println("email is : "+ user.getEmail());
