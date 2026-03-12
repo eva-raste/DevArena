@@ -2,6 +2,7 @@ package com.devarena.service;
 
 import com.devarena.models.Contest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 
@@ -13,6 +14,7 @@ import java.util.concurrent.ScheduledFuture;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ContestTaskScheduler {
 
     private final TaskScheduler taskScheduler;
@@ -28,11 +30,13 @@ public class ContestTaskScheduler {
         LocalDateTime now = LocalDateTime.now();
 
         cancelContestTasks(roomId);
-
+        log.info("Now: {}", LocalDateTime.now());
+        log.info("Start: {}", contest.getStartTime());
         // ---- Schedule START ----
         if (contest.getStartTime() != null &&
                 contest.getStartTime().isAfter(now)) {
-
+            log.info("Now1: {}", LocalDateTime.now());
+            log.info("Start1: {}", contest.getStartTime());
             ScheduledFuture<?> startFuture =
                     taskScheduler.schedule(
                             () -> lifecycleService.startContest(
@@ -48,7 +52,8 @@ public class ContestTaskScheduler {
         // ---- Schedule END ----
         if (contest.getEndTime() != null &&
                 contest.getEndTime().isAfter(now)) {
-
+            log.info("Now2: {}", LocalDateTime.now());
+            log.info("End2: {}", contest.getEndTime());
             ScheduledFuture<?> endFuture =
                     taskScheduler.schedule(
                             () -> lifecycleService.endContest(
