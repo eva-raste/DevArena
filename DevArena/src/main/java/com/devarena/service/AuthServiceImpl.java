@@ -19,7 +19,6 @@ public class AuthServiceImpl implements IAuthService {
     @Transactional
     @Override
     public UserResponseDto registerUser(UserDto userDto) {
-        userDto.setPassword(passwordEncoder.encode(userDto.getPassword()));
         return userService.createUser(userDto);
     }
 
