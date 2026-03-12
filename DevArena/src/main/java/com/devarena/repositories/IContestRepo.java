@@ -24,7 +24,7 @@ public interface IContestRepo extends JpaRepository<Contest, UUID> {
     WHERE c.roomId = :roomId
     AND c.deleted = false
     """)
-    Optional<Contest> findByRoomIdAndDeletedFalse(String roomid);
+    Optional<Contest> findByRoomIdAndDeletedFalse(@Param("roomId") String roomId);
 
     boolean existsByRoomId(String roomId);
 
